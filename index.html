@@ -3,203 +3,255 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JaapGym - Ultimate 3D Fitness Simulator</title>
+    <title>JaapGym - Ultimate 3D Fitness Simulator (Extreme Edition)</title>
     <style>
         /* ==========================================================================
-           1. CSS RESET & GLOBAL STYLES
+           CORE CSS & RESET
            ========================================================================== */
-        *, *::before, *::after { box-sizing: border-box; user-select: none; -webkit-user-drag: none; }
-        body, html { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background-color: #87CEEB; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
-
+        *, *::before, *::after { box-sizing: border-box; user-select: none; -webkit-user-drag: none; margin: 0; padding: 0; }
+        body, html { width: 100vw; height: 100vh; overflow: hidden; background-color: #0d0d1a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
+        
         /* ==========================================================================
-           2. 3D CANVAS & OVERLAYS
+           3D CANVAS & CROSSHAIR
            ========================================================================== */
         #game-canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 6px; height: 6px; background-color: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0, 0, 0, 0.8); border-radius: 50%; z-index: 10; pointer-events: none; }
-        #interaction-prompt { position: absolute; top: 55%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 1.2rem; display: none; z-index: 10; border: 2px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
-        .key-btn { background: #fff; color: #000; padding: 2px 8px; border-radius: 4px; border-bottom: 3px solid #ccc; font-family: monospace; margin-right: 5px; }
+        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 8px; height: 8px; background-color: #fff; border: 2px solid #000; border-radius: 50%; z-index: 10; pointer-events: none; transition: 0.2s; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        #crosshair.active { transform: translate(-50%, -50%) scale(1.5); background-color: #00FF88; border-color: #fff; }
+        
+        /* ==========================================================================
+           INTERACTION PROMPT
+           ========================================================================== */
+        #interaction-prompt { position: absolute; top: 55%; left: 50%; transform: translateX(-50%); background: rgba(10, 15, 25, 0.9); color: #fff; padding: 15px 30px; border-radius: 12px; font-weight: 900; font-size: 1.5rem; display: none; z-index: 10; border: 3px solid #00FF88; box-shadow: 0 10px 30px rgba(0, 255, 136, 0.4); text-transform: uppercase; letter-spacing: 2px; animation: pulsePrompt 1s infinite alternate; }
+        @keyframes pulsePrompt { 0% { transform: translateX(-50%) scale(1); box-shadow: 0 10px 20px rgba(0,255,136,0.3); } 100% { transform: translateX(-50%) scale(1.05); box-shadow: 0 15px 40px rgba(0,255,136,0.6); } }
+        .key-btn { background: #fff; color: #000; padding: 4px 12px; border-radius: 6px; border-bottom: 4px solid #aaa; font-family: 'Courier New', Courier, monospace; margin-right: 10px; font-weight: 900; }
 
         /* ==========================================================================
-           3. LOADING SCREEN
+           LOADING SCREEN
            ========================================================================== */
-        #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #87CEEB; z-index: 99999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; transition: opacity 1s ease-out; }
-        .loader-ring { width: 120px; height: 120px; border: 12px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top-color: #FFEB3B; border-bottom-color: #4CAF50; animation: spin 1s linear infinite; margin-bottom: 30px; box-shadow: 0 0 30px rgba(255, 235, 59, 0.5); }
+        #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, #1a1a2e, #0a0a14); z-index: 99999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; transition: opacity 0.8s ease-out; }
+        .loader-ring { width: 150px; height: 150px; border: 15px solid rgba(255, 255, 255, 0.1); border-radius: 50%; border-top-color: #FFEB3B; border-bottom-color: #E91E63; border-left-color: #00FF88; animation: spin 1s linear infinite; margin-bottom: 40px; box-shadow: 0 0 50px rgba(255, 255, 255, 0.2); }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #loading-text { font-size: 3rem; font-weight: 900; letter-spacing: 5px; text-transform: uppercase; text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000; }
+        #loading-text { font-size: 4rem; font-weight: 900; letter-spacing: 8px; text-transform: uppercase; text-shadow: 0 0 20px rgba(255,255,255,0.8); }
+        #loading-sub { font-size: 1.5rem; color: #00FF88; margin-top: 15px; font-family: monospace; }
+        #loading-bar-container { width: 400px; height: 20px; background: #111; border: 2px solid #444; border-radius: 10px; margin-top: 20px; overflow: hidden; }
+        #loading-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #00FF88, #00BCD4); transition: width 0.1s; }
 
         /* ==========================================================================
-           4. HEADS UP DISPLAY (HUD)
+           HEADS UP DISPLAY (HUD)
            ========================================================================== */
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: none; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: none; padding: 25px; display: flex; flex-direction: column; justify-content: space-between; }
         .interactive { pointer-events: auto; }
 
-        /* Top HUD area */
+        /* Top HUD */
         #top-hud { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; }
-
-        /* Stats Panel */
-        .hud-panel { background: rgba(20, 25, 30, 0.85); border: 3px solid #222; border-radius: 12px; padding: 20px; color: #fff; box-shadow: 0 10px 20px rgba(0,0,0,0.5); backdrop-filter: blur(8px); min-width: 300px; border-top: 6px solid #4CAF50; }
-        .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        
+        .hud-panel { background: rgba(15, 20, 30, 0.85); border: 4px solid #2a2a35; border-radius: 16px; padding: 25px; color: #fff; box-shadow: 0 15px 35px rgba(0,0,0,0.6); backdrop-filter: blur(10px); min-width: 340px; position: relative; overflow: hidden; }
+        .hud-panel::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #FF5252, #00E676, #00BCD4); }
+        
+        .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .stat-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-        .stat-label { font-weight: 800; color: #ccc; text-transform: uppercase; font-size: 1rem; letter-spacing: 1px; }
-        .stat-val { font-weight: 900; font-family: 'Courier New', Courier, monospace; font-size: 1.5rem; }
-        .val-str { color: #FF5722; text-shadow: 0 0 5px rgba(255, 87, 34, 0.5); }
-        .val-spd { color: #00E676; text-shadow: 0 0 5px rgba(0, 230, 118, 0.5); }
-        .val-coin { color: #FFD700; text-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
-        .val-gem { color: #00BCD4; text-shadow: 0 0 5px rgba(0, 188, 212, 0.5); }
-        .val-rank { color: #E91E63; text-shadow: 0 0 5px rgba(233, 30, 99, 0.5); }
+        .stat-label { font-weight: 900; color: #aaa; text-transform: uppercase; font-size: 1.1rem; letter-spacing: 2px; }
+        .stat-val { font-weight: 900; font-family: 'Courier New', Courier, monospace; font-size: 1.8rem; }
+        .val-str { color: #FF5722; text-shadow: 0 0 10px rgba(255, 87, 34, 0.6); }
+        .val-spd { color: #00E676; text-shadow: 0 0 10px rgba(0, 230, 118, 0.6); }
+        .val-stm { color: #FFEB3B; text-shadow: 0 0 10px rgba(255, 235, 59, 0.6); }
+        .val-coin { color: #FFC107; text-shadow: 0 0 10px rgba(255, 193, 7, 0.6); }
+        .val-gem { color: #00E5FF; text-shadow: 0 0 10px rgba(0, 229, 255, 0.6); }
+        
+        .progress-wrapper { width: 100%; margin-top: 20px; }
+        .progress-label { display: flex; justify-content: space-between; font-size: 1.1rem; color: #fff; margin-bottom: 8px; font-weight: 900; text-shadow: 2px 2px 4px #000; text-transform: uppercase; }
+        .progress-container { width: 100%; height: 24px; background: #0a0a10; border-radius: 12px; overflow: hidden; border: 3px solid #333; position: relative; }
+        .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #4CAF50, #8BC34A); transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 0 15px rgba(76, 175, 80, 0.8); }
+        .progress-bar.stamina { background: linear-gradient(90deg, #FF9800, #FFEB3B); box-shadow: 0 0 15px rgba(255, 193, 7, 0.8); }
 
-        /* Progress Bar */
-        .progress-wrapper { width: 100%; margin-top: 15px; }
-        .progress-label { display: flex; justify-content: space-between; font-size: 0.95rem; color: #fff; margin-bottom: 5px; font-weight: 900; text-shadow: 1px 1px 2px #000; }
-        .progress-container { width: 100%; height: 20px; background: #111; border-radius: 10px; overflow: hidden; border: 2px solid #333; box-shadow: inset 0 3px 6px rgba(0,0,0,0.8); }
-        #exp-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #4CAF50, #8BC34A); transition: width 0.3s ease; box-shadow: 0 0 10px rgba(76, 175, 80, 0.8); }
+        /* Zones Panel */
+        #zone-panel { min-width: 250px; text-align: center; border-top: 4px solid #9C27B0; }
+        #zone-title { font-size: 1.8rem; font-weight: 900; color: #E040FB; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 15px rgba(224, 64, 251, 0.6); margin-bottom: 10px; }
+        #zone-desc { font-size: 1rem; color: #ccc; font-weight: bold; }
 
-        /* Left Side Menu */
-        #side-menu { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 15px; }
-        .side-btn { width: 80px; height: 80px; border-radius: 20px; background: linear-gradient(145deg, #2a2a35, #1e1e25); border: 3px solid #444; color: white; cursor: pointer; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; justify-content: center; align-items: center; flex-direction: column; font-size: 0.8rem; font-weight: 900; text-transform: uppercase; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
-        .side-btn:hover { background: linear-gradient(145deg, #4CAF50, #388E3C); border-color: #fff; transform: scale(1.1) translateX(15px); box-shadow: 0 12px 25px rgba(76, 175, 80, 0.5); }
-        .side-btn svg { width: 32px; height: 32px; fill: white; margin-bottom: 5px; }
-        .side-btn.sell-btn { background: linear-gradient(145deg, #2196F3, #1565C0); border-color: #64B5F6; }
-        .side-btn.sell-btn:hover { background: linear-gradient(145deg, #42A5F5, #1976D2); }
-        .side-btn.rebirth-btn { background: linear-gradient(145deg, #9C27B0, #6A1B9A); border-color: #BA68C8; }
-        .side-btn.rebirth-btn:hover { background: linear-gradient(145deg, #AB47BC, #8E24AA); }
+        /* Side Menu */
+        #side-menu { position: absolute; left: 25px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 20px; }
+        .side-btn { width: 90px; height: 90px; border-radius: 24px; background: linear-gradient(145deg, #2a2a35, #1e1e25); border: 4px solid #444; color: white; cursor: pointer; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; justify-content: center; align-items: center; flex-direction: column; font-size: 0.85rem; font-weight: 900; text-transform: uppercase; box-shadow: 0 10px 30px rgba(0,0,0,0.6); position: relative; overflow: hidden; }
+        .side-btn::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent); transform: rotate(45deg); transition: 0.5s; }
+        .side-btn:hover::after { left: 100%; }
+        .side-btn:hover { border-color: #fff; transform: scale(1.15) translateX(20px); z-index: 10; }
+        .side-btn.shop-btn { background: linear-gradient(145deg, #00C853, #00796B); border-color: #69F0AE; }
+        .side-btn.sell-btn { background: linear-gradient(145deg, #2962FF, #0D47A1); border-color: #82B1FF; }
+        .side-btn.rebirth-btn { background: linear-gradient(145deg, #AA00FF, #4A148C); border-color: #E040FB; }
+        .side-btn.pets-btn { background: linear-gradient(145deg, #FF6D00, #E65100); border-color: #FFAB40; }
+        .side-btn.settings-btn { background: linear-gradient(145deg, #455A64, #263238); border-color: #90A4AE; }
+        .side-btn svg { width: 36px; height: 36px; fill: white; margin-bottom: 8px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
 
         /* Bottom Controls / Hotbar */
-        #bottom-hud { display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 20px; position: relative; gap: 15px; }
-        #hotbar { display: flex; gap: 10px; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 12px; border: 2px solid #333; }
-        .hotbar-slot { width: 60px; height: 60px; background: rgba(255,255,255,0.1); border: 2px solid #555; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 1.5rem; color: #aaa; position: relative; cursor: pointer; transition: 0.2s; }
-        .hotbar-slot.active { border-color: #4CAF50; background: rgba(76, 175, 80, 0.3); color: #fff; transform: translateY(-5px); box-shadow: 0 5px 15px rgba(76, 175, 80, 0.5); }
-        .hotbar-num { position: absolute; top: 2px; left: 4px; font-size: 0.7rem; color: #fff; background: rgba(0,0,0,0.8); padding: 1px 4px; border-radius: 4px; }
-        .hotbar-img { font-size: 2rem; }
+        #bottom-hud { display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 25px; position: relative; gap: 20px; }
+        #hotbar { display: flex; gap: 15px; background: rgba(10, 15, 25, 0.8); padding: 15px; border-radius: 20px; border: 3px solid #333; box-shadow: 0 15px 40px rgba(0,0,0,0.7); backdrop-filter: blur(10px); }
+        .hotbar-slot { width: 80px; height: 80px; background: rgba(255,255,255,0.05); border: 3px solid #555; border-radius: 12px; display: flex; justify-content: center; align-items: center; position: relative; cursor: pointer; transition: 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .hotbar-slot.active { border-color: #00FF88; background: rgba(0, 255, 136, 0.2); transform: translateY(-10px) scale(1.1); box-shadow: 0 10px 25px rgba(0, 255, 136, 0.5); }
+        .hotbar-num { position: absolute; top: 4px; left: 6px; font-size: 0.9rem; font-weight: 900; color: #fff; background: #000; padding: 2px 8px; border-radius: 6px; border: 1px solid #444; }
+        .hotbar-icon { font-size: 2.5rem; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.5)); }
         
-        #btn-action { background: linear-gradient(180deg, #FF5252, #D32F2F); border: 4px solid #FF8A80; padding: 20px 80px; border-radius: 50px; color: white; font-size: 2.2rem; font-weight: 900; cursor: pointer; box-shadow: 0 15px 30px rgba(211, 47, 47, 0.6), inset 0 5px 15px rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 4px; transition: all 0.1s; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); display: none; }
-        #btn-action:active { transform: translateY(8px) scale(0.95); box-shadow: 0 5px 10px rgba(211, 47, 47, 0.6), inset 0 2px 5px rgba(255,255,255,0.4); }
+        #btn-action { background: linear-gradient(180deg, #FF5252, #B71C1C); border: 6px solid #FF8A80; padding: 25px 100px; border-radius: 60px; color: white; font-size: 2.8rem; font-weight: 900; cursor: pointer; box-shadow: 0 20px 40px rgba(183, 28, 28, 0.7), inset 0 8px 20px rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 5px; transition: all 0.1s; text-shadow: 3px 3px 6px rgba(0,0,0,0.6); display: none; }
+        #btn-action:active { transform: translateY(12px) scale(0.95); box-shadow: 0 8px 15px rgba(183, 28, 28, 0.7), inset 0 3px 10px rgba(255,255,255,0.5); }
         
-        #controls-hint { position: absolute; bottom: 0; right: 0; background: rgba(0,0,0,0.8); padding: 15px 25px; border-radius: 12px; color: #fff; font-size: 1rem; font-weight: bold; text-align: right; border: 2px solid #555; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        #controls-hint { position: absolute; bottom: 0; right: 25px; background: rgba(10, 15, 25, 0.9); padding: 15px 30px; border-radius: 16px; color: #fff; font-size: 1.1rem; font-weight: 900; text-align: right; border: 3px solid #444; box-shadow: 0 10px 25px rgba(0,0,0,0.6); letter-spacing: 1px; }
+        .hl { color: #00FF88; }
 
-        /* Notifications */
-        #notification-container { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 15px; align-items: center; pointer-events: none; z-index: 1000; }
-        .toast { background: rgba(20,25,30,0.95); border-left: 8px solid #4CAF50; padding: 20px 40px; border-radius: 12px; color: white; font-weight: 900; font-size: 1.5rem; box-shadow: 0 15px 30px rgba(0,0,0,0.7); animation: slideDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, fadeOut 0.4s ease-in 2.5s forwards; opacity: 0; text-transform: uppercase; letter-spacing: 2px; }
-        @keyframes slideDown { 0% { transform: translateY(-50px) scale(0.8); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
-        @keyframes fadeOut { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-30px); } }
+        /* Status Effects / Action UI */
+        #action-overlay { position: absolute; top: 65%; left: 50%; transform: translateX(-50%); display: none; flex-direction: column; align-items: center; z-index: 90; }
+        .action-text { font-size: 2.5rem; font-weight: 900; color: #FFEB3B; text-transform: uppercase; text-shadow: 0 0 20px #FF9800, 2px 2px 0 #000; letter-spacing: 3px; animation: pumpText 0.5s infinite alternate; }
+        @keyframes pumpText { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
 
-        /* Floating Text Effects */
-        .float-text { position: absolute; pointer-events: none; font-weight: 900; font-size: 3rem; text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 8px 20px rgba(0,0,0,0.8); z-index: 500; animation: floatUp 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        .float-str { color: #FF5722; }
-        .float-spd { color: #00E676; }
-        @keyframes floatUp { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; } 40% { transform: translate(-50%, -150%) scale(1.3); opacity: 1; } 100% { transform: translate(-50%, -300%) scale(1); opacity: 0; } }
+        /* Notifications & Floating Text */
+        #notification-container { position: absolute; top: 120px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 15px; align-items: center; pointer-events: none; z-index: 1000; width: 100%; }
+        .toast { background: rgba(20, 25, 35, 0.95); border-left: 10px solid #00FF88; padding: 25px 50px; border-radius: 16px; color: white; font-weight: 900; font-size: 1.8rem; box-shadow: 0 20px 40px rgba(0,0,0,0.8); animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, fadeOut 0.5s ease-in 3s forwards; opacity: 0; text-transform: uppercase; letter-spacing: 2px; border-right: 2px solid #333; border-top: 2px solid #333; border-bottom: 2px solid #333; }
+        @keyframes slideDown { 0% { transform: translateY(-80px) scale(0.8); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+        @keyframes fadeOut { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-50px) scale(0.9); } }
+
+        .float-text { position: absolute; pointer-events: none; font-weight: 900; font-size: 3.5rem; text-shadow: 3px 3px 0 #000, -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 0 10px 25px rgba(0,0,0,0.9); z-index: 500; animation: floatUpExt 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .float-str { color: #FF5252; } .float-spd { color: #00E676; } .float-coin { color: #FFD700; } .float-exp { color: #00BCD4; }
+        @keyframes floatUpExt { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; } 30% { transform: translate(-50%, -150%) scale(1.4); opacity: 1; } 100% { transform: translate(-50%, -400%) scale(0.8); opacity: 0; } }
 
         /* ==========================================================================
-           5. WINDOW MODALS (SHOP, REBIRTH, SETTINGS)
+           MODALS (SHOP, REBIRTH, ETC)
            ========================================================================== */
-        .window-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: rgba(20, 25, 30, 0.98); border: 4px solid #444; border-radius: 24px; width: 1000px; height: 750px; display: none; flex-direction: column; z-index: 500; box-shadow: 0 30px 80px rgba(0,0,0,0.9), 0 0 0 100vw rgba(0,0,0,0.8); opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); overflow: hidden; }
+        .window-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.7); background: rgba(15, 20, 25, 0.98); border: 5px solid #333; border-radius: 30px; width: 1200px; height: 850px; display: none; flex-direction: column; z-index: 500; box-shadow: 0 40px 100px rgba(0,0,0,0.95), 0 0 0 100vw rgba(0,0,0,0.85); opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); overflow: hidden; }
         .window-modal.active { display: flex; opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 25px 40px; background: linear-gradient(90deg, #1a1a2e, #16213e); border-bottom: 4px solid #4CAF50; }
-        .modal-title { font-size: 3rem; font-weight: 900; color: white; margin: 0; text-transform: uppercase; letter-spacing: 4px; text-shadow: 0 0 15px rgba(76, 175, 80, 0.6); }
-        .close-btn { background: #F44336; border: 3px solid #D32F2F; width: 60px; height: 60px; border-radius: 50%; color: white; font-size: 2.5rem; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; box-shadow: 0 5px 15px rgba(244, 67, 54, 0.5); }
-        .close-btn:hover { background: #D32F2F; transform: rotate(90deg) scale(1.1); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 30px 50px; background: linear-gradient(90deg, #11111a, #1a1a2e); border-bottom: 5px solid #00FF88; position: relative; }
+        .modal-title { font-size: 3.5rem; font-weight: 900; color: white; margin: 0; text-transform: uppercase; letter-spacing: 5px; text-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
+        .close-btn { background: #D32F2F; border: 4px solid #B71C1C; width: 70px; height: 70px; border-radius: 50%; color: white; font-size: 3rem; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; box-shadow: 0 8px 20px rgba(211, 47, 47, 0.6); }
+        .close-btn:hover { background: #F44336; transform: rotate(90deg) scale(1.15); border-color: #fff; }
+        
         .modal-body { display: flex; flex: 1; overflow: hidden; }
-        .modal-tabs { width: 280px; background: rgba(0,0,0,0.7); display: flex; flex-direction: column; padding: 20px; gap: 15px; border-right: 3px solid #333; }
-        .tab-btn { background: rgba(255,255,255,0.05); border: 3px solid transparent; color: #aaa; padding: 20px; text-align: left; font-size: 1.3rem; font-weight: 900; cursor: pointer; border-radius: 16px; transition: 0.2s; text-transform: uppercase; letter-spacing: 2px; }
-        .tab-btn:hover { background: rgba(255,255,255,0.1); color: white; }
-        .tab-btn.active { background: linear-gradient(90deg, rgba(76, 175, 80, 0.3), transparent); border-left-color: #4CAF50; color: white; text-shadow: 0 0 8px rgba(76, 175, 80, 0.8); }
-        .modal-content-area { flex: 1; padding: 30px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; align-content: start; background: radial-gradient(circle at center, #1e1e28, #111118); }
-        .modal-content-area::-webkit-scrollbar { width: 12px; }
-        .modal-content-area::-webkit-scrollbar-track { background: #111; border-left: 1px solid #333; }
-        .modal-content-area::-webkit-scrollbar-thumb { background: #555; border-radius: 6px; border: 3px solid #111; }
+        .modal-tabs { width: 320px; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; padding: 25px; gap: 20px; border-right: 4px solid #222; overflow-y: auto; }
+        .modal-tabs::-webkit-scrollbar { width: 8px; } .modal-tabs::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+        .tab-btn { background: rgba(255,255,255,0.03); border: 4px solid transparent; color: #888; padding: 25px 20px; text-align: left; font-size: 1.4rem; font-weight: 900; cursor: pointer; border-radius: 16px; transition: 0.2s; text-transform: uppercase; letter-spacing: 2px; }
+        .tab-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+        .tab-btn.active { background: linear-gradient(90deg, rgba(0, 255, 136, 0.2), transparent); border-left-color: #00FF88; color: white; text-shadow: 0 0 10px rgba(0, 255, 136, 0.8); }
+        
+        .modal-content-area { flex: 1; padding: 40px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 30px; align-content: start; background: radial-gradient(circle at top left, #1a1a24, #0d0d14); }
+        .modal-content-area::-webkit-scrollbar { width: 16px; } .modal-content-area::-webkit-scrollbar-track { background: #0a0a10; border-left: 2px solid #222; } .modal-content-area::-webkit-scrollbar-thumb { background: #555; border-radius: 8px; border: 4px solid #0a0a10; }
 
-        /* Shop Items */
-        .shop-item { background: linear-gradient(180deg, #2a2a35, #1a1a25); border: 3px solid #444; border-radius: 20px; padding: 25px; display: flex; flex-direction: column; align-items: center; text-align: center; transition: 0.2s; box-shadow: 0 12px 25px rgba(0,0,0,0.6); position: relative; overflow: hidden; }
-        .shop-item::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 50%; background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent); pointer-events: none; }
-        .shop-item:hover { border-color: #4CAF50; transform: translateY(-8px); box-shadow: 0 20px 40px rgba(76, 175, 80, 0.3); }
-        .item-icon-container { width: 120px; height: 120px; background: rgba(0,0,0,0.6); border-radius: 50%; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; font-size: 4rem; border: 4px solid #555; box-shadow: inset 0 0 30px rgba(0,0,0,0.9); }
-        .item-name { font-weight: 900; color: white; font-size: 1.5rem; margin-bottom: 10px; text-transform: uppercase; }
-        .item-desc { color: #4CAF50; font-weight: 900; font-size: 1.2rem; margin-bottom: 25px; flex: 1; text-shadow: 0 0 8px rgba(76, 175, 80, 0.4); }
-        .buy-btn { width: 100%; padding: 18px; border: none; border-radius: 12px; font-weight: 900; font-size: 1.3rem; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 2px; display: flex; justify-content: center; align-items: center; gap: 10px; }
-        .buy-btn.coins { background: #FFC107; color: #000; box-shadow: 0 6px 15px rgba(255, 193, 7, 0.5); }
-        .buy-btn.gems { background: #00BCD4; color: #000; box-shadow: 0 6px 15px rgba(0, 188, 212, 0.5); }
-        .buy-btn:hover:not(:disabled) { transform: scale(1.05); filter: brightness(1.2); }
-        .buy-btn:disabled { background: #333; color: #666; cursor: not-allowed; box-shadow: none; border: 2px solid #555; }
-        .equipped-badge { display: none; background: linear-gradient(90deg, #4CAF50, #00BCD4); color: #fff; padding: 15px; border-radius: 12px; font-size: 1.3rem; font-weight: 900; margin-top: 15px; width: 100%; text-transform: uppercase; box-shadow: 0 0 20px rgba(76, 175, 80, 0.6); border: 2px solid #fff; }
+        /* Items */
+        .shop-item { background: linear-gradient(180deg, #22222d, #15151c); border: 4px solid #333; border-radius: 24px; padding: 30px; display: flex; flex-direction: column; align-items: center; text-align: center; transition: 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 15px 35px rgba(0,0,0,0.8); position: relative; overflow: hidden; }
+        .shop-item::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 40%; background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent); pointer-events: none; }
+        .shop-item:hover { border-color: #00FF88; transform: translateY(-10px); box-shadow: 0 25px 50px rgba(0, 255, 136, 0.25); z-index: 5; }
+        .item-icon-container { width: 140px; height: 140px; background: radial-gradient(circle, #333, #111); border-radius: 50%; margin-bottom: 25px; display: flex; justify-content: center; align-items: center; font-size: 5rem; border: 5px solid #444; box-shadow: inset 0 0 40px rgba(0,0,0,0.9), 0 10px 20px rgba(0,0,0,0.5); }
+        .item-name { font-weight: 900; color: white; font-size: 1.8rem; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        .item-desc { color: #00E676; font-weight: 900; font-size: 1.4rem; margin-bottom: 30px; flex: 1; text-shadow: 0 0 10px rgba(0, 230, 118, 0.5); }
+        .buy-btn { width: 100%; padding: 20px; border: none; border-radius: 16px; font-weight: 900; font-size: 1.5rem; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
+        .buy-btn.coins { background: linear-gradient(180deg, #FFD54F, #FFB300); color: #000; border: 3px solid #FF8F00; }
+        .buy-btn.gems { background: linear-gradient(180deg, #4DD0E1, #00ACC1); color: #000; border: 3px solid #00838F; }
+        .buy-btn.danger { background: linear-gradient(180deg, #EF5350, #C62828); color: #fff; border: 3px solid #B71C1C; }
+        .buy-btn:hover:not(:disabled) { transform: scale(1.08); filter: brightness(1.2); }
+        .buy-btn:active:not(:disabled) { transform: scale(0.95); }
+        .buy-btn:disabled { background: #2a2a35; color: #555; cursor: not-allowed; border: 3px solid #444; box-shadow: none; }
+        .equipped-badge { display: none; background: linear-gradient(90deg, #00C853, #009688); color: #fff; padding: 20px; border-radius: 16px; font-size: 1.5rem; font-weight: 900; margin-top: 20px; width: 100%; text-transform: uppercase; box-shadow: 0 0 25px rgba(0, 200, 83, 0.6); border: 3px solid #fff; letter-spacing: 2px; }
+
+        /* Full Screen Flash */
+        #flash-fx { position: absolute; top:0; left:0; width:100%; height:100%; background: #fff; opacity: 0; pointer-events: none; z-index: 80000; transition: opacity 0.5s; }
     </style>
 </head>
 <body>
 
+    <script>
+        const AUDIO = {
+            ctx: null,
+            init() { if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+            playTone(freq, type, duration, vol=0.1) {
+                if(!this.ctx) return;
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + duration);
+            },
+            uiClick() { this.playTone(600, 'sine', 0.1, 0.1); },
+            uiHover() { this.playTone(400, 'sine', 0.05, 0.05); },
+            lift() { this.playTone(150, 'triangle', 0.2, 0.2); setTimeout(()=>this.playTone(100, 'square', 0.3, 0.2), 100); },
+            punch() { this.playTone(100, 'sawtooth', 0.1, 0.3); setTimeout(()=>this.playTone(50, 'square', 0.2, 0.3), 50); },
+            buy() { this.playTone(800, 'sine', 0.1, 0.1); setTimeout(()=>this.playTone(1200, 'sine', 0.2, 0.1), 100); },
+            error() { this.playTone(200, 'sawtooth', 0.3, 0.2); },
+            levelUp() { [400, 500, 600, 800, 1200].forEach((f,i) => setTimeout(()=>this.playTone(f, 'sine', 0.2, 0.2), i*100)); },
+            sell() { [800, 1000, 1500].forEach((f,i) => setTimeout(()=>this.playTone(f, 'square', 0.1, 0.1), i*80)); },
+            rebirth() { [200,300,400,500,600,800,1000,1500,2000].forEach((f,i)=>setTimeout(()=>this.playTone(f, 'sawtooth', 0.5, 0.3), i*150)); }
+        };
+        document.addEventListener('click', () => AUDIO.init(), {once:true});
+    </script>
+
+    <div id="flash-fx"></div>
+
     <div id="loading-screen">
         <div class="loader-ring"></div>
-        <div id="loading-text">JAAPGYM 3D</div>
+        <div id="loading-text">JAAPGYM 3D: EXTREME</div>
+        <div id="loading-sub">Initializing World Generator...</div>
+        <div id="loading-bar-container"><div id="loading-bar"></div></div>
     </div>
 
     <div id="game-canvas-container"></div>
     <div id="crosshair"></div>
-    <div id="interaction-prompt"><span class="key-btn">E</span> to Use</div>
+    <div id="interaction-prompt"><span class="key-btn">E</span> USE EQUIPMENT</div>
+
+    <div id="action-overlay">
+        <div class="action-text" id="action-msg">LIFTING!</div>
+    </div>
 
     <div id="ui-layer">
         <div id="top-hud">
             <div id="player-stats" class="hud-panel interactive">
-                <div class="stat-row">
-                    <span class="stat-label">Strength</span>
-                    <span class="stat-val val-str" id="ui-strength">0</span>
+                <div class="stat-row"><span class="stat-label">Power Level</span><span class="stat-val val-str" id="ui-strength">0</span></div>
+                <div class="stat-row"><span class="stat-label">Agility (Speed)</span><span class="stat-val val-spd" id="ui-speed">0</span></div>
+                <div class="stat-row"><span class="stat-label">Coins</span><span class="stat-val val-coin" id="ui-coins">0</span></div>
+                <div class="stat-row"><span class="stat-label">Gems</span><span class="stat-val val-gem" id="ui-gems">0</span></div>
+                <div class="stat-row" style="margin-top: 20px; border-top: 4px solid #444; padding-top: 20px;">
+                    <span class="stat-label">Global Rank</span><span class="stat-val val-rank" id="ui-rank">Peasant</span>
                 </div>
-                <div class="stat-row">
-                    <span class="stat-label">Speed</span>
-                    <span class="stat-val val-spd" id="ui-speed">0</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Coins</span>
-                    <span class="stat-val val-coin" id="ui-coins">0</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Gems</span>
-                    <span class="stat-val val-gem" id="ui-gems">0</span>
-                </div>
-                <div class="stat-row" style="margin-top: 20px; border-top: 3px solid #555; padding-top: 20px;">
-                    <span class="stat-label">Current Rank</span>
-                    <span class="stat-val val-rank" id="ui-rank">Scrawny</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Power Multiplier</span>
-                    <span class="stat-val" style="color: #fff; text-shadow: 0 0 8px #fff;" id="ui-mult">x1.0</span>
-                </div>
+                <div class="stat-row"><span class="stat-label">Total Multiplier</span><span class="stat-val" style="color:#fff; text-shadow:0 0 10px #fff;" id="ui-mult">x1.0</span></div>
+                
                 <div class="progress-wrapper">
-                    <div class="progress-label">
-                        <span id="ui-level-text">Level 1</span>
-                        <span id="ui-exp-text">0 / 100 XP</span>
-                    </div>
-                    <div class="progress-container">
-                        <div id="exp-bar"></div>
-                    </div>
+                    <div class="progress-label"><span id="ui-level-text">Level 1</span><span id="ui-exp-text">0 / 100 XP</span></div>
+                    <div class="progress-container"><div class="progress-bar" id="exp-bar"></div></div>
                 </div>
+                <div class="progress-wrapper" style="margin-top: 10px;">
+                    <div class="progress-label"><span style="color:#FF9800">Energy</span><span id="ui-stm-text">100 / 100</span></div>
+                    <div class="progress-container"><div class="progress-bar stamina" id="stm-bar" style="width:100%"></div></div>
+                </div>
+            </div>
+
+            <div id="zone-panel" class="hud-panel interactive">
+                <div id="zone-title">NOOB BEACH</div>
+                <div id="zone-desc">Gravity: x1.0 | Gain Multiplier: x1.0</div>
             </div>
         </div>
 
         <div id="side-menu" class="interactive">
-            <button class="side-btn" id="btn-shop">
-                <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>
-                Shop
+            <button class="side-btn shop-btn" id="btn-shop">
+                <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg> Shop
+            </button>
+            <button class="side-btn pets-btn" id="btn-pets">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-2-5.5c-.83 0-1.5-.67-1.5-1.5S9.17 11.5 10 11.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM12 17c-1.66 0-3-1.34-3-3h6c0 1.66-1.34 3-3 3z"/></svg> Pets
             </button>
             <button class="side-btn sell-btn" id="btn-sell">
-                <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
-                Sell
+                <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg> Sell
             </button>
             <button class="side-btn rebirth-btn" id="btn-rebirth">
-                <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
-                Rebirth
+                <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg> Rebirth
             </button>
-            <button class="side-btn" id="btn-settings" style="background: linear-gradient(145deg, #607D8B, #455A64);">
-                <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .43-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.49-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-                Config
+            <button class="side-btn settings-btn" id="btn-settings">
+                <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .43-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.49-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg> System
             </button>
         </div>
 
         <div id="bottom-hud">
-            <button id="btn-action" class="interactive">LIFT (CLICK/SPACE)</button>
+            <button id="btn-action" class="interactive">ACTIVATE (SPACE)</button>
             <div id="hotbar" class="interactive">
-                <div class="hotbar-slot active" id="slot-1"><span class="hotbar-num">1</span><span class="hotbar-img">🏋️</span></div>
-                <div class="hotbar-slot" id="slot-2"><span class="hotbar-num">2</span><span class="hotbar-img">🥊</span></div>
-                <div class="hotbar-slot" id="slot-3"><span class="hotbar-num">3</span><span class="hotbar-img">🥤</span></div>
+                <div class="hotbar-slot active" id="slot-1"><span class="hotbar-num">1</span><span class="hotbar-icon">🏋️</span></div>
+                <div class="hotbar-slot" id="slot-2"><span class="hotbar-num">2</span><span class="hotbar-icon">🥊</span></div>
+                <div class="hotbar-slot" id="slot-3"><span class="hotbar-num">3</span><span class="hotbar-icon">🥤</span></div>
             </div>
-            <div id="controls-hint">WASD = Move | Right Click = Look | Scroll = Zoom | 1-3 = Equip | E = Interact</div>
+            <div id="controls-hint">
+                <span class="hl">WASD</span> Move | <span class="hl">RMB</span> Look | <span class="hl">Scroll</span> Zoom | <span class="hl">1-3</span> Equip | <span class="hl">E</span> Interact / Mount Equipment
+            </div>
         </div>
     </div>
 
@@ -207,7 +259,7 @@
 
     <div id="modal-container" class="window-modal interactive">
         <div class="modal-header">
-            <h2 class="modal-title" id="modal-title">Shop Menu</h2>
+            <h2 class="modal-title" id="modal-title">Menu</h2>
             <button class="close-btn" id="btn-close-modal">×</button>
         </div>
         <div class="modal-body">
@@ -220,91 +272,107 @@
 
     <script>
         /* =========================================================================================
-                                     MASSIVE GAME DATABASE
+                                     MASSIVE CONFIGURATION & DATABASES
            ========================================================================================= */
         const DB = {
             weights: [
-                { id: 'w_1', name: 'Pencil', power: 1, cost: 0, scale: 0.8, color: 0xFFD700, type: 'dumbbell' },
-                { id: 'w_2', name: 'Twig', power: 2, cost: 25, scale: 0.9, color: 0x8B4513, type: 'dumbbell' },
-                { id: 'w_3', name: 'Plastic Bottle', power: 5, cost: 100, scale: 1.0, color: 0x4FC3F7, type: 'dumbbell' },
-                { id: 'w_4', name: 'Rock', power: 15, cost: 400, scale: 1.1, color: 0x757575, type: 'dumbbell' },
-                { id: 'w_5', name: 'Brick', power: 40, cost: 1500, scale: 1.2, color: 0xB71C1C, type: 'dumbbell' },
-                { id: 'w_6', name: 'Wooden Dumbbell', power: 100, cost: 5000, scale: 1.3, color: 0x795548, type: 'dumbbell' },
-                { id: 'w_7', name: 'Iron Dumbbell', power: 300, cost: 20000, scale: 1.4, color: 0x607D8B, type: 'dumbbell' },
-                { id: 'w_8', name: 'Steel Barbell', power: 1000, cost: 85000, scale: 1.6, color: 0x9E9E9E, type: 'barbell' },
-                { id: 'w_9', name: 'Bronze Weight', power: 3500, cost: 350000, scale: 1.8, color: 0xCD7F32, type: 'dumbbell' },
-                { id: 'w_10', name: 'Silver Barbell', power: 12000, cost: 1500000, scale: 2.0, color: 0xE0E0E0, type: 'barbell' },
-                { id: 'w_11', name: 'Gold Dumbbell', power: 45000, cost: 8000000, scale: 2.3, color: 0xFFC107, type: 'dumbbell' },
-                { id: 'w_12', name: 'Platinum Barbell', power: 180000, cost: 40000000, scale: 2.6, color: 0xE5E4E2, type: 'barbell' },
-                { id: 'w_13', name: 'Diamond Weight', power: 800000, cost: 250000000, scale: 3.0, color: 0x00E5FF, type: 'dumbbell' },
-                { id: 'w_14', name: 'Emerald Barbell', power: 3500000, cost: 1500000000, scale: 3.5, color: 0x00E676, type: 'barbell' },
-                { id: 'w_15', name: 'Ruby Crusher', power: 15000000, cost: 8000000000, scale: 4.0, color: 0xFF1744, type: 'dumbbell' },
-                { id: 'w_16', name: 'Sapphire Barbell', power: 75000000, cost: 45000000000, scale: 4.5, color: 0x2979FF, type: 'barbell' },
-                { id: 'w_17', name: 'Obsidian Boulder', power: 400000000, cost: 300000000000, scale: 5.2, color: 0x212121, type: 'dumbbell' },
-                { id: 'w_18', name: 'Neon Dumbbell', power: 2500000000, cost: 2000000000000, scale: 6.0, color: 0x76FF03, type: 'dumbbell' },
-                { id: 'w_19', name: 'Plasma Barbell', power: 15000000000, cost: 15000000000000, scale: 7.0, color: 0xD500F9, type: 'barbell' },
-                { id: 'w_20', name: 'Dark Matter', power: 100000000000, cost: 100000000000000, scale: 8.5, color: 0x311B92, type: 'dumbbell' },
-                { id: 'w_21', name: 'Galactic Core', power: 800000000000, cost: 800000000000000, scale: 10.0, color: 0xFF00FF, type: 'barbell' },
-                { id: 'w_22', name: 'Universal Crusher', power: 5000000000000, cost: 6000000000000000, scale: 12.0, color: 0xFFFFFF, type: 'dumbbell' },
-                { id: 'w_23', name: 'Omni Barbell', power: 40000000000000, cost: 50000000000000000, scale: 15.0, color: 0xFF9100, type: 'barbell' },
-                { id: 'w_24', name: 'Godly Dumbbell', power: 350000000000000, cost: 500000000000000000, scale: 18.0, color: 0xFFD700, type: 'dumbbell' },
-                { id: 'w_25', name: 'INFINITY WEIGHT', power: 999999999999999, cost: 999999999999999999, scale: 25.0, color: 0x000000, type: 'dumbbell' }
+                { id: 'w_1', name: 'Plastic Twig', power: 1, cost: 0, scale: 0.8, color: 0x8BC34A, type: 'dumbbell' },
+                { id: 'w_2', name: 'Wooden Log', power: 5, cost: 50, scale: 0.9, color: 0x795548, type: 'dumbbell' },
+                { id: 'w_3', name: 'Stone Brick', power: 15, cost: 250, scale: 1.0, color: 0x9E9E9E, type: 'dumbbell' },
+                { id: 'w_4', name: 'Iron Dumbbell', power: 50, cost: 1000, scale: 1.1, color: 0x607D8B, type: 'dumbbell' },
+                { id: 'w_5', name: 'Steel Barbell', power: 150, cost: 5000, scale: 1.3, color: 0xB0BEC5, type: 'barbell' },
+                { id: 'w_6', name: 'Bronze Weight', power: 500, cost: 25000, scale: 1.5, color: 0xCD7F32, type: 'dumbbell' },
+                { id: 'w_7', name: 'Silver Barbell', power: 2000, cost: 100000, scale: 1.7, color: 0xE0E0E0, type: 'barbell' },
+                { id: 'w_8', name: 'Gold Dumbbell', power: 8000, cost: 500000, scale: 1.9, color: 0xFFC107, type: 'dumbbell' },
+                { id: 'w_9', name: 'Platinum Bar', power: 30000, cost: 2500000, scale: 2.2, color: 0xE5E4E2, type: 'barbell' },
+                { id: 'w_10', name: 'Diamond Weight', power: 120000, cost: 10000000, scale: 2.5, color: 0x00E5FF, type: 'dumbbell' },
+                { id: 'w_11', name: 'Emerald Barbell', power: 500000, cost: 50000000, scale: 2.8, color: 0x00E676, type: 'barbell' },
+                { id: 'w_12', name: 'Ruby Crusher', power: 2500000, cost: 250000000, scale: 3.2, color: 0xFF1744, type: 'dumbbell' },
+                { id: 'w_13', name: 'Sapphire Bar', power: 10000000, cost: 1200000000, scale: 3.6, color: 0x2979FF, type: 'barbell' },
+                { id: 'w_14', name: 'Amethyst Weight', power: 45000000, cost: 6000000000, scale: 4.0, color: 0xD500F9, type: 'dumbbell' },
+                { id: 'w_15', name: 'Obsidian Boulder', power: 200000000, cost: 35000000000, scale: 4.5, color: 0x212121, type: 'barbell' },
+                { id: 'w_16', name: 'Neon Dumbbell', power: 1000000000, cost: 200000000000, scale: 5.0, color: 0x76FF03, type: 'dumbbell' },
+                { id: 'w_17', name: 'Plasma Barbell', power: 5000000000, cost: 1500000000000, scale: 5.8, color: 0xF50057, type: 'barbell' },
+                { id: 'w_18', name: 'Dark Matter', power: 25000000000, cost: 10000000000000, scale: 6.8, color: 0x311B92, type: 'dumbbell' },
+                { id: 'w_19', name: 'Neutron Star', power: 150000000000, cost: 80000000000000, scale: 8.0, color: 0x00B0FF, type: 'barbell' },
+                { id: 'w_20', name: 'Galactic Core', power: 800000000000, cost: 600000000000000, scale: 9.5, color: 0xFF00FF, type: 'dumbbell' },
+                { id: 'w_21', name: 'Universal Crusher', power: 5000000000000, cost: 5000000000000000, scale: 11.5, color: 0xFFFFFF, type: 'barbell' },
+                { id: 'w_22', name: 'Omniversal Weight', power: 30000000000000, cost: 40000000000000000, scale: 14.0, color: 0xFF9100, type: 'dumbbell' },
+                { id: 'w_23', name: 'Divine Barbell', power: 200000000000000, cost: 300000000000000000, scale: 17.0, color: 0xFFD700, type: 'barbell' },
+                { id: 'w_24', name: 'Creator Dumbbell', power: 1500000000000000, cost: 2500000000000000000, scale: 21.0, color: 0x00FF88, type: 'dumbbell' },
+                { id: 'w_25', name: 'INFINITY WEIGHT', power: 9999999999999999, cost: 9999999999999999999, scale: 28.0, color: 0x000000, type: 'barbell' }
             ],
             dna: [
                 { id: 'd_1', name: 'Trash Genetics', mult: 1, cost: 0 },
-                { id: 'd_2', name: 'Poor Genetics', mult: 2, cost: 500 },
-                { id: 'd_3', name: 'Average DNA', mult: 4, cost: 3000 },
-                { id: 'd_4', name: 'Decent Genes', mult: 8, cost: 15000 },
-                { id: 'd_5', name: 'Athletic DNA', mult: 18, cost: 80000 },
-                { id: 'd_6', name: 'Gym Rat Genes', mult: 40, cost: 400000 },
-                { id: 'd_7', name: 'Bodybuilder DNA', mult: 100, cost: 2000000 },
-                { id: 'd_8', name: 'Beast Genetics', mult: 250, cost: 10000000 },
-                { id: 'd_9', name: 'Mutant DNA', mult: 650, cost: 55000000 },
-                { id: 'd_10', name: 'Cyborg Genes', mult: 1800, cost: 300000000 },
-                { id: 'd_11', name: 'Alien DNA', mult: 5000, cost: 1800000000 },
-                { id: 'd_12', name: 'Titan Blood', mult: 15000, cost: 12000000000 },
-                { id: 'd_13', name: 'Demon Genetics', mult: 45000, cost: 85000000000 },
-                { id: 'd_14', name: 'Angel Essence', mult: 150000, cost: 600000000000 },
-                { id: 'd_15', name: 'Godly DNA', mult: 500000, cost: 4500000000000 },
-                { id: 'd_16', name: 'Cosmic Genes', mult: 1800000, cost: 35000000000000 },
-                { id: 'd_17', name: 'Universal DNA', mult: 6500000, cost: 280000000000000 },
-                { id: 'd_18', name: 'Multiversal Blood', mult: 25000000, cost: 2500000000000000 },
-                { id: 'd_19', name: 'Omniversal Essence', mult: 100000000, cost: 20000000000000000 },
-                { id: 'd_20', name: 'INFINITY DNA', mult: 999999999, cost: 999999999999999999 }
+                { id: 'd_2', name: 'Poor Genetics', mult: 2, cost: 800 },
+                { id: 'd_3', name: 'Average DNA', mult: 5, cost: 4000 },
+                { id: 'd_4', name: 'Decent Genes', mult: 12, cost: 25000 },
+                { id: 'd_5', name: 'Athletic DNA', mult: 30, cost: 150000 },
+                { id: 'd_6', name: 'Gym Rat Genes', mult: 80, cost: 800000 },
+                { id: 'd_7', name: 'Pro DNA', mult: 200, cost: 4000000 },
+                { id: 'd_8', name: 'Bodybuilder', mult: 500, cost: 20000000 },
+                { id: 'd_9', name: 'Beast Genetics', mult: 1200, cost: 100000000 },
+                { id: 'd_10', name: 'Monster DNA', mult: 3000, cost: 500000000 },
+                { id: 'd_11', name: 'Mutant Genes', mult: 8000, cost: 2500000000 },
+                { id: 'd_12', name: 'Cyborg DNA', mult: 20000, cost: 15000000000 },
+                { id: 'd_13', name: 'Alien Genetics', mult: 55000, cost: 85000000000 },
+                { id: 'd_14', name: 'Titan Blood', mult: 150000, cost: 500000000000 },
+                { id: 'd_15', name: 'Demon Genetics', mult: 450000, cost: 3500000000000 },
+                { id: 'd_16', name: 'Angel Essence', mult: 1200000, cost: 20000000000000 },
+                { id: 'd_17', name: 'Godly DNA', mult: 3500000, cost: 150000000000000 },
+                { id: 'd_18', name: 'Cosmic Genes', mult: 10000000, cost: 1000000000000000 },
+                { id: 'd_19', name: 'Universal DNA', mult: 30000000, cost: 8000000000000000 },
+                { id: 'd_20', name: 'Multiversal Blood', mult: 100000000, cost: 60000000000000000 },
+                { id: 'd_21', name: 'Omniversal Essence', mult: 350000000, cost: 450000000000000000 },
+                { id: 'd_22', name: 'Divine Genetics', mult: 1200000000, cost: 3000000000000000000 },
+                { id: 'd_23', name: 'Creator DNA', mult: 5000000000, cost: 25000000000000000000 },
+                { id: 'd_24', name: 'Absolute Genes', mult: 20000000000, cost: 180000000000000000000 },
+                { id: 'd_25', name: 'INFINITY DNA', mult: 99999999999, cost: 999999999999999999999 }
             ],
             pets: [
-                { id: 'p_1', name: 'Basic Doge', mult: 1.5, costGems: 100, color: 0xD2B48C },
-                { id: 'p_2', name: 'Gym Cat', mult: 2.5, costGems: 300, color: 0x757575 },
-                { id: 'p_3', name: 'Swol Bunny', mult: 5.0, costGems: 800, color: 0xFFFFFF },
-                { id: 'p_4', name: 'Iron Bear', mult: 12.0, costGems: 2500, color: 0x5D4037 },
-                { id: 'p_5', name: 'Protein Gorilla', mult: 30.0, costGems: 8000, color: 0x212121 },
-                { id: 'p_6', name: 'Neon Tiger', mult: 80.0, costGems: 25000, color: 0x00E676 },
-                { id: 'p_7', name: 'Lava Dragon', mult: 250.0, costGems: 100000, color: 0xFF3D00 },
-                { id: 'p_8', name: 'Ice Phoenix', mult: 800.0, costGems: 400000, color: 0x00B0FF },
-                { id: 'p_9', name: 'Galactic Wolf', mult: 3000.0, costGems: 1500000, color: 0xD500F9 },
-                { id: 'p_10', name: 'Godly Griffin', mult: 10000.0, costGems: 6000000, color: 0xFFD700 }
+                { id: 'p_1', name: 'Noob Dog', mult: 1.5, costGems: 100, color: 0xD2B48C },
+                { id: 'p_2', name: 'Gym Cat', mult: 2.5, costGems: 350, color: 0x757575 },
+                { id: 'p_3', name: 'Swol Bunny', mult: 5.0, costGems: 1000, color: 0xFFFFFF },
+                { id: 'p_4', name: 'Iron Bear', mult: 12.0, costGems: 3000, color: 0x5D4037 },
+                { id: 'p_5', name: 'Protein Ape', mult: 35.0, costGems: 10000, color: 0x212121 },
+                { id: 'p_6', name: 'Neon Tiger', mult: 100.0, costGems: 35000, color: 0x00E676 },
+                { id: 'p_7', name: 'Lava Dragon', mult: 300.0, costGems: 120000, color: 0xFF3D00 },
+                { id: 'p_8', name: 'Ice Phoenix', mult: 1000.0, costGems: 450000, color: 0x00B0FF },
+                { id: 'p_9', name: 'Galactic Wolf', mult: 3500.0, costGems: 2000000, color: 0xD500F9 },
+                { id: 'p_10', name: 'Void Leviathan', mult: 12000.0, costGems: 8000000, color: 0x111111 },
+                { id: 'p_11', name: 'Cosmic Serpent', mult: 45000.0, costGems: 35000000, color: 0x00E5FF },
+                { id: 'p_12', name: 'Universal Titan', mult: 150000.0, costGems: 150000000, color: 0xFF00FF },
+                { id: 'p_13', name: 'Omni God', mult: 600000.0, costGems: 800000000, color: 0xFFD700 },
+                { id: 'p_14', name: 'Creator Entity', mult: 2500000.0, costGems: 4000000000, color: 0xFFFFFF },
+                { id: 'p_15', name: 'INFINITY PET', mult: 15000000.0, costGems: 25000000000, color: 0x000000 }
             ],
             ranks: [
-                { id: 'r_1', name: 'Scrawny', req: 0, color: '#9E9E9E' },
-                { id: 'r_2', name: 'Stick', req: 500, color: '#8D6E63' },
-                { id: 'r_3', name: 'Average', req: 5000, color: '#4CAF50' },
-                { id: 'r_4', name: 'Fit', req: 50000, color: '#00BCD4' },
-                { id: 'r_5', name: 'Athletic', req: 400000, color: '#03A9F4' },
-                { id: 'r_6', name: 'Muscular', req: 3000000, color: '#2196F3' },
-                { id: 'r_7', name: 'Shredded', req: 20000000, color: '#3F51B5' },
-                { id: 'r_8', name: 'Bodybuilder', req: 150000000, color: '#673AB7' },
-                { id: 'r_9', name: 'Mr. Olympia', req: 1000000000, color: '#9C27B0' },
-                { id: 'r_10', name: 'Hulk', req: 8000000000, color: '#4CAF50' },
-                { id: 'r_11', name: 'Beast', req: 60000000000, color: '#FF9800' },
-                { id: 'r_12', name: 'Monster', req: 500000000000, color: '#FF5722' },
-                { id: 'r_13', name: 'Titan', req: 4000000000000, color: '#F44336' },
-                { id: 'r_14', name: 'Demigod', req: 35000000000000, color: '#FFD700' },
-                { id: 'r_15', name: 'God of Gym', req: 250000000000000, color: '#FFFFFF' },
-                { id: 'r_16', name: 'Galactic Lifter', req: 2000000000000000, color: '#E040FB' },
-                { id: 'r_17', name: 'Universal Chad', req: 15000000000000000, color: '#00E5FF' },
-                { id: 'r_18', name: 'Omniversal Deity', req: 100000000000000000, color: '#FF1744' },
-                { id: 'r_19', name: 'Creator', req: 800000000000000000, color: '#76FF03' },
-                { id: 'r_20', name: 'JAAP HIMSELF', req: 999999999999999999, color: '#000000' }
+                { req: 0, name: 'Skin & Bones', color: '#9E9E9E' },
+                { req: 1000, name: 'Twig', color: '#8D6E63' },
+                { req: 10000, name: 'Average Joe', color: '#4CAF50' },
+                { req: 100000, name: 'Fit', color: '#00BCD4' },
+                { req: 1000000, name: 'Athletic', color: '#03A9F4' },
+                { req: 10000000, name: 'Muscular', color: '#2196F3' },
+                { req: 100000000, name: 'Shredded', color: '#3F51B5' },
+                { req: 1000000000, name: 'Bodybuilder', color: '#673AB7' },
+                { req: 15000000000, name: 'Mr. Olympia', color: '#9C27B0' },
+                { req: 250000000000, name: 'Beast', color: '#FF9800' },
+                { req: 4000000000000, name: 'Monster', color: '#FF5722' },
+                { req: 80000000000000, name: 'Hulk', color: '#F44336' },
+                { req: 1500000000000000, name: 'Titan', color: '#D32F2F' },
+                { req: 30000000000000000, name: 'Demigod', color: '#FFD700' },
+                { req: 800000000000000000, name: 'God of Gym', color: '#FFFFFF' },
+                { req: 20000000000000000000, name: 'Galactic Lifter', color: '#E040FB' },
+                { req: 500000000000000000000, name: 'Universal Chad', color: '#00E5FF' },
+                { req: 15000000000000000000000, name: 'Omniversal Deity', color: '#FF1744' },
+                { req: 800000000000000000000000, name: 'Creator', color: '#76FF03' },
+                { req: 9999999999999999999999999, name: 'ABSOLUTE INFINITY', color: '#000000' }
+            ],
+            zones: [
+                { id: 'z1', name: 'Noob Beach', gravity: 1.0, mult: 1.0, req: 0 },
+                { id: 'z2', name: 'Iron Alley', gravity: 2.0, mult: 5.0, req: 10000000 },
+                { id: 'z3', name: 'Titan Peak', gravity: 5.0, mult: 50.0, req: 50000000000 },
+                { id: 'z4', name: 'Cosmic Void', gravity: 15.0, mult: 1000.0, req: 1000000000000000 }
             ]
         };
 
@@ -319,32 +387,34 @@
             rebirths: 0,
             exp: 0,
             level: 1,
+            stamina: 100,
+            maxStamina: 100,
             equipped: { weight: 'w_1', dna: 'd_1', pet: null },
             inventory: { weights: ['w_1'], dna: ['d_1'], pets: [] },
             settings: { shadows: true, particles: true },
-            hotbarSlot: 0, // 0 = unequipped, 1 = lift, 2 = punch, 3 = drink
+            hotbarSlot: 0, 
             isInteracting: false,
             interactTarget: null,
-            animState: 'idle' // idle, walk, run, lift, punch, run_treadmill
+            animState: 'idle',
+            currentZone: 'z1'
         };
 
         function formatNum(n) {
-            if (n >= 1e15) return (n / 1e15).toFixed(2) + 'Qa';
-            if (n >= 1e12) return (n / 1e12).toFixed(2) + 'T';
-            if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
-            if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
-            if (n >= 1e3) return (n / 1e3).toFixed(2) + 'K';
-            return Math.floor(n).toString();
+            if(n < 1000) return Math.floor(n).toString();
+            const suffixes = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc", "Ud", "Dd", "Td", "Qad", "Qid", "Sxd", "Spd", "Ocd", "Nod", "Vig"];
+            const suffixNum = Math.floor(("" + Math.floor(n)).length / 3);
+            let shortValue = parseFloat((suffixNum != 0 ? (n / Math.pow(1000, suffixNum)) : n).toPrecision(3));
+            if (shortValue % 1 != 0) shortValue = shortValue.toFixed(1);
+            return shortValue + suffixes[suffixNum];
         }
 
         function getDB(cat, id) { return DB[cat].find(x => x.id === id); }
 
-        function saveGame() { localStorage.setItem('jaapGym3DSave_Extreme', JSON.stringify(STATE)); }
+        function saveGame() { localStorage.setItem('jaapGym3DSave_Ultra', JSON.stringify(STATE)); }
         function loadGame() {
-            let s = localStorage.getItem('jaapGym3DSave_Extreme');
+            let s = localStorage.getItem('jaapGym3DSave_Ultra');
             if (s) { try { Object.assign(STATE, JSON.parse(s)); } catch(e) {} }
-            STATE.hotbarSlot = 0; // Reset slot on load
-            STATE.isInteracting = false;
+            STATE.hotbarSlot = 0; STATE.isInteracting = false; STATE.stamina = STATE.maxStamina;
         }
         loadGame();
 
@@ -362,13 +432,19 @@
                 lvl: document.getElementById('ui-level-text'),
                 expTxt: document.getElementById('ui-exp-text'),
                 expBar: document.getElementById('exp-bar'),
+                stmTxt: document.getElementById('ui-stm-text'),
+                stmBar: document.getElementById('stm-bar'),
                 modal: document.getElementById('modal-container'),
                 mTitle: document.getElementById('modal-title'),
                 mTabs: document.getElementById('modal-tabs'),
                 mContent: document.getElementById('modal-content'),
                 notif: document.getElementById('notification-container'),
                 prompt: document.getElementById('interaction-prompt'),
-                actionBtn: document.getElementById('btn-action')
+                actionBtn: document.getElementById('btn-action'),
+                actMsg: document.getElementById('action-msg'),
+                actOverlay: document.getElementById('action-overlay'),
+                zTitle: document.getElementById('zone-title'),
+                zDesc: document.getElementById('zone-desc')
             },
 
             update() {
@@ -381,58 +457,66 @@
                 for(let i=0; i<DB.ranks.length; i++) { if (STATE.strength >= DB.ranks[i].req) curRank = DB.ranks[i]; }
                 this.els.rank.innerText = curRank.name;
                 this.els.rank.style.color = curRank.color;
-                this.els.rank.style.textShadow = `0 0 10px ${curRank.color}`;
+                this.els.rank.style.textShadow = `0 0 15px ${curRank.color}`;
 
-                let totalMult = getDB('dna', STATE.equipped.dna).mult * (1 + (STATE.rebirths * 2.0));
-                if(STATE.equipped.pet) totalMult *= getDB('pets', STATE.equipped.pet).mult;
-                this.els.mult.innerText = `x${formatNum(totalMult)}`;
+                let tMult = getDB('dna', STATE.equipped.dna).mult * (1 + (STATE.rebirths * 5.0));
+                if(STATE.equipped.pet) tMult *= getDB('pets', STATE.equipped.pet).mult;
+                let zMult = getDB('zones', STATE.currentZone).mult;
+                tMult *= zMult;
+                this.els.mult.innerText = `x${formatNum(tMult)}`;
 
-                let req = STATE.level * 200;
+                let req = STATE.level * 500;
                 let pct = Math.min((STATE.exp / req) * 100, 100);
-                this.els.lvl.innerText = `Level ${STATE.level}`;
+                this.els.lvl.innerText = `Level ${formatNum(STATE.level)}`;
                 this.els.expTxt.innerText = `${formatNum(STATE.exp)} / ${formatNum(req)} XP`;
                 this.els.expBar.style.width = pct + '%';
+
+                let sPct = Math.max(0, Math.min((STATE.stamina / STATE.maxStamina) * 100, 100));
+                this.els.stmTxt.innerText = `${Math.floor(STATE.stamina)} / ${STATE.maxStamina}`;
+                this.els.stmBar.style.width = sPct + '%';
+                
+                let z = getDB('zones', STATE.currentZone);
+                this.els.zTitle.innerText = z.name;
+                this.els.zDesc.innerText = `Gravity: x${z.gravity} | Multiplier: x${z.mult}`;
             },
 
-            notify(msg, color='#4CAF50') {
-                let d = document.createElement('div');
-                d.className = 'toast';
-                d.innerText = msg;
-                d.style.borderLeftColor = color;
-                this.els.notif.appendChild(d);
-                setTimeout(() => d.remove(), 3000);
+            notify(msg, color='#00FF88') {
+                let d = document.createElement('div'); d.className = 'toast'; d.innerText = msg; d.style.borderLeftColor = color;
+                this.els.notif.appendChild(d); setTimeout(() => d.remove(), 3500);
             },
 
             floatText(val, type='str') {
-                let ft = document.createElement('div');
-                ft.className = `float-text float-${type}`;
-                ft.innerText = `+${formatNum(val)}`;
-                ft.style.left = '50%'; ft.style.top = '40%';
-                document.body.appendChild(ft);
-                setTimeout(()=>ft.remove(), 1000);
+                let ft = document.createElement('div'); ft.className = `float-text float-${type}`; ft.innerText = `+${formatNum(val)}`;
+                ft.style.left = `${45 + Math.random()*10}%`; ft.style.top = `${35 + Math.random()*10}%`;
+                document.body.appendChild(ft); setTimeout(()=>ft.remove(), 1200);
             },
 
             openModal(type) {
-                this.els.modal.classList.add('active');
+                AUDIO.uiClick(); this.els.modal.classList.add('active');
                 if(type === 'shop') this.buildShop();
+                if(type === 'pets') this.buildPets();
                 if(type === 'settings') this.buildSettings();
             },
-            closeModal() { this.els.modal.classList.remove('active'); },
+            closeModal() { AUDIO.uiClick(); this.els.modal.classList.remove('active'); },
 
             buildShop() {
-                this.els.mTitle.innerText = "Shop Menu";
+                this.els.mTitle.innerText = "EQUIPMENT SHOP";
                 this.els.mTabs.innerHTML = `
-                    <button class="tab-btn active" onclick="UI.renderShop('weights', event)">Weights (Coins)</button>
-                    <button class="tab-btn" onclick="UI.renderShop('dna', event)">DNA (Coins)</button>
-                    <button class="tab-btn" onclick="UI.renderShop('pets', event)">Pets (Gems)</button>
+                    <button class="tab-btn active" onclick="UI.renderShop('weights', event); AUDIO.uiClick();">Weights</button>
+                    <button class="tab-btn" onclick="UI.renderShop('dna', event); AUDIO.uiClick();">Genetics (DNA)</button>
                 `;
                 this.renderShop('weights', null);
+            },
+            
+            buildPets() {
+                this.els.mTitle.innerText = "PET STORE (GEMS)";
+                this.els.mTabs.innerHTML = `<button class="tab-btn active">Premium Pets</button>`;
+                this.renderShop('pets', null);
             },
 
             renderShop(cat, e) {
                 if(e) { Array.from(this.els.mTabs.children).forEach(c=>c.classList.remove('active')); e.target.classList.add('active'); }
-                else { this.els.mTabs.children[0].classList.add('active'); }
-
+                
                 this.els.mContent.innerHTML = '';
                 DB[cat].forEach(item => {
                     let owned = STATE.inventory[cat].includes(item.id);
@@ -444,7 +528,7 @@
                     else if(owned) btnHTML = `<button class="buy-btn gems" onclick="GAME.equip('${cat}', '${item.id}')">Equip</button>`;
                     else btnHTML = `<button class="buy-btn ${cat==='pets'?'gems':'coins'}" ${!canBuy?'disabled':''} onclick="GAME.buy('${cat}', '${item.id}')">Buy: ${formatNum(cat==='pets'?item.costGems:item.cost)}</button>`;
 
-                    let txt = cat==='weights' ? `+${formatNum(item.power)} Power` : (cat==='dna' ? `x${formatNum(item.mult)} Multiplier` : `x${formatNum(item.mult)} Total Mult`);
+                    let txt = cat==='weights' ? `+${formatNum(item.power)} Power` : (cat==='dna' ? `x${formatNum(item.mult)} Mult` : `x${formatNum(item.mult)} Global Mult`);
                     let ico = cat==='weights' ? '🏋️' : (cat==='dna' ? '🧬' : '🐶');
 
                     this.els.mContent.innerHTML += `
@@ -459,65 +543,78 @@
             },
 
             buildSettings() {
-                this.els.mTitle.innerText = "Settings";
-                this.els.mTabs.innerHTML = `<button class="tab-btn active">Options</button>`;
+                this.els.mTitle.innerText = "SYSTEM CONFIG";
+                this.els.mTabs.innerHTML = `<button class="tab-btn active">Graphics & Data</button>`;
                 this.els.mContent.innerHTML = `
                     <div class="shop-item" style="grid-column:1/-1; flex-direction:row; justify-content:space-between;">
-                        <div style="text-align:left;">
-                            <div class="item-name">High Quality Shadows</div>
-                            <div style="color:#aaa">Toggle dynamic lighting and shadows.</div>
-                        </div>
-                        <button class="buy-btn coins" style="width:150px" onclick="GAME.toggleShadows()">${STATE.settings.shadows?'ON':'OFF'}</button>
+                        <div style="text-align:left;"><div class="item-name">High Quality Shadows</div><div style="color:#aaa">Toggle dynamic lighting.</div></div>
+                        <button class="buy-btn coins" style="width:180px" onclick="GAME.toggleShadows()">${STATE.settings.shadows?'ENABLED':'DISABLED'}</button>
                     </div>
                     <div class="shop-item" style="grid-column:1/-1; flex-direction:row; justify-content:space-between;">
-                        <div style="text-align:left;">
-                            <div class="item-name">Hard Reset Game</div>
-                            <div style="color:#F44336">Deletes all save data permanently!</div>
-                        </div>
-                        <button class="buy-btn" style="background:#F44336; width:150px; color:white" onclick="GAME.hardReset()">RESET DATA</button>
+                        <div style="text-align:left;"><div class="item-name">Particle Effects</div><div style="color:#aaa">Toggle confetti and sweat.</div></div>
+                        <button class="buy-btn coins" style="width:180px" onclick="GAME.toggleParticles()">${STATE.settings.particles?'ENABLED':'DISABLED'}</button>
+                    </div>
+                    <div class="shop-item" style="grid-column:1/-1; flex-direction:row; justify-content:space-between;">
+                        <div style="text-align:left;"><div class="item-name">HARD RESET</div><div style="color:#F44336">Deletes all save data permanently!</div></div>
+                        <button class="buy-btn danger" style="width:180px" onclick="GAME.hardReset()">RESET DATA</button>
                     </div>
                 `;
             },
 
             setHotbar(slot) {
-                if(STATE.isInteracting) return; // Cant change while on treadmill
-                STATE.hotbarSlot = STATE.hotbarSlot === slot ? 0 : slot; // Toggle
+                if(STATE.isInteracting) { AUDIO.error(); return; }
+                AUDIO.uiClick();
+                STATE.hotbarSlot = STATE.hotbarSlot === slot ? 0 : slot;
                 
                 document.querySelectorAll('.hotbar-slot').forEach(el => el.classList.remove('active'));
                 if(STATE.hotbarSlot > 0) document.getElementById(`slot-${STATE.hotbarSlot}`).classList.add('active');
 
-                this.els.actionBtn.style.display = STATE.hotbarSlot === 1 ? 'block' : 'none';
+                this.els.actionBtn.style.display = STATE.hotbarSlot > 0 ? 'block' : 'none';
+                if(STATE.hotbarSlot === 1) this.els.actionBtn.innerText = "LIFT (SPACE)";
+                if(STATE.hotbarSlot === 2) this.els.actionBtn.innerText = "PUNCH (SPACE)";
+                if(STATE.hotbarSlot === 3) this.els.actionBtn.innerText = "DRINK (SPACE)";
                 
                 if(RENDERER) RENDERER.updateEquippedItem();
-            }
+            },
+            
+            showActionOverlay(msg) {
+                this.els.actMsg.innerText = msg;
+                this.els.actOverlay.style.display = 'flex';
+            },
+            hideActionOverlay() { this.els.actOverlay.style.display = 'none'; }
         };
 
         // UI Event Listeners
         document.getElementById('btn-close-modal').addEventListener('click', () => UI.closeModal());
         document.getElementById('btn-shop').addEventListener('click', () => UI.openModal('shop'));
+        document.getElementById('btn-pets').addEventListener('click', () => UI.openModal('pets'));
         document.getElementById('btn-settings').addEventListener('click', () => UI.openModal('settings'));
         
         document.getElementById('btn-sell').addEventListener('click', () => {
+            AUDIO.uiClick();
             if(STATE.strength > 0) {
-                let amt = STATE.strength * 3;
-                STATE.coins += amt; STATE.strength = 0;
-                UI.notify(`Sold strength for ${formatNum(amt)} coins!`, '#FFD700');
+                let amt = STATE.strength * 5; STATE.coins += amt; STATE.strength = 0;
+                AUDIO.sell(); UI.notify(`Sold strength for ${formatNum(amt)} coins!`, '#FFC107');
                 if(PARTICLES) PARTICLES.spawnConfetti();
                 UI.update(); saveGame();
-            } else { UI.notify("No strength to sell!", '#F44336'); }
+            } else { AUDIO.error(); UI.notify("No strength to sell!", '#F44336'); }
         });
 
         document.getElementById('btn-rebirth').addEventListener('click', () => {
-            let req = 5000000 * Math.pow(10, STATE.rebirths);
+            AUDIO.uiClick();
+            let req = 10000000 * Math.pow(10, STATE.rebirths);
             if(STATE.coins >= req) {
-                if(confirm(`Rebirth for ${formatNum(req)} coins? Stats reset, but gain +2.0x permanent Multiplier & 250 Gems!`)) {
+                if(confirm(`Rebirth for ${formatNum(req)} coins? Stats reset, but gain +5.0x permanent Multiplier & 500 Gems!`)) {
                     STATE.coins = 0; STATE.strength = 0; STATE.speed = 0; STATE.level = 1; STATE.exp = 0;
-                    STATE.rebirths++; STATE.gems += 250;
-                    UI.notify(`REBIRTH SUCCESSFUL!`, '#9C27B0');
+                    STATE.rebirths++; STATE.gems += 500;
+                    AUDIO.rebirth();
+                    document.getElementById('flash-fx').style.opacity = '1';
+                    setTimeout(()=>document.getElementById('flash-fx').style.opacity = '0', 1000);
+                    UI.notify(`REBIRTH SUCCESSFUL!`, '#E040FB');
                     if(PARTICLES) PARTICLES.spawnConfetti();
                     UI.update(); RENDERER.updatePlayerScale(); saveGame();
                 }
-            } else { UI.notify(`Need ${formatNum(req)} coins to Rebirth!`, '#F44336'); }
+            } else { AUDIO.error(); UI.notify(`Need ${formatNum(req)} coins to Rebirth!`, '#F44336'); }
         });
 
         document.getElementById('slot-1').addEventListener('click', () => UI.setHotbar(1));
@@ -533,81 +630,81 @@
                 if(cat==='pets' ? STATE.gems >= cost : STATE.coins >= cost) {
                     if(cat==='pets') STATE.gems -= cost; else STATE.coins -= cost;
                     STATE.inventory[cat].push(id); this.equip(cat, id);
-                    UI.notify(`Purchased ${item.name}!`);
-                }
+                    AUDIO.buy(); UI.notify(`Purchased ${item.name}!`);
+                } else { AUDIO.error(); }
             },
             equip(cat, id) {
+                AUDIO.uiClick();
                 if(cat==='weights') STATE.equipped.weight = id;
                 if(cat==='dna') STATE.equipped.dna = id;
-                if(cat==='pets') STATE.equipped.pet = id;
+                if(cat==='pets') { STATE.equipped.pet = id; if(RENDERER) RENDERER.updatePet(); }
                 UI.renderShop(cat, null); UI.update(); saveGame();
                 if(RENDERER && STATE.hotbarSlot === 1) RENDERER.updateEquippedItem();
             },
-            toggleShadows() {
-                STATE.settings.shadows = !STATE.settings.shadows; UI.buildSettings();
-                if(RENDERER) RENDERER.applyShadowSettings(); saveGame();
-            },
-            hardReset() { localStorage.removeItem('jaapGym3DSave_Extreme'); location.reload(); },
+            toggleShadows() { AUDIO.uiClick(); STATE.settings.shadows = !STATE.settings.shadows; UI.buildSettings(); if(RENDERER) RENDERER.applyShadowSettings(); saveGame(); },
+            toggleParticles() { AUDIO.uiClick(); STATE.settings.particles = !STATE.settings.particles; UI.buildSettings(); saveGame(); },
+            hardReset() { if(confirm("ABSOLUTELY SURE?")) { localStorage.removeItem('jaapGym3DSave_Ultra'); location.reload(); } },
             
+            calcGain() {
+                let w = getDB('weights', STATE.equipped.weight);
+                let d = getDB('dna', STATE.equipped.dna);
+                let p = STATE.equipped.pet ? getDB('pets', STATE.equipped.pet).mult : 1;
+                let z = getDB('zones', STATE.currentZone).mult;
+                return w.power * d.mult * (1 + (STATE.rebirths * 5.0)) * p * z;
+            },
+
             doAction() {
                 if(UI.els.modal.classList.contains('active') || STATE.isInteracting) return;
 
-                if(STATE.hotbarSlot === 1) {
-                    // LIFTING
-                    if(STATE.animState === 'lift') return;
-                    STATE.animState = 'lift';
-                    
-                    let w = getDB('weights', STATE.equipped.weight);
-                    let d = getDB('dna', STATE.equipped.dna);
-                    let p = STATE.equipped.pet ? getDB('pets', STATE.equipped.pet).mult : 1;
-                    
-                    let gain = w.power * d.mult * (1 + (STATE.rebirths * 2.0)) * p;
-                    STATE.strength += gain; STATE.exp += 20;
-                    
-                    this.checkLevelUp(); UI.update(); RENDERER.updatePlayerScale();
-                    PARTICLES.spawnSweat(); UI.floatText(gain, 'str');
+                if(STATE.hotbarSlot === 1) { // LIFT
+                    if(STATE.animState === 'lift' || STATE.stamina < 5) { if(STATE.stamina < 5) AUDIO.error(); return; }
+                    STATE.animState = 'lift'; STATE.stamina -= 5;
+                    let gain = this.calcGain();
+                    STATE.strength += gain; STATE.exp += 50;
+                    AUDIO.lift(); this.checkLevelUp(); UI.update(); RENDERER.updatePlayerScale();
+                    if(Math.random()<0.5) PARTICLES.spawnSweat();
+                    UI.floatText(gain, 'str');
                 }
-                else if(STATE.hotbarSlot === 2) {
-                    // PUNCHING
-                    if(STATE.animState === 'punch') return;
-                    STATE.animState = 'punch';
-                    // Punching gives small strength and speed
-                    let gain = (STATE.level * 10) * (1 + STATE.rebirths);
-                    STATE.strength += gain; STATE.speed += gain * 0.5; STATE.exp += 10;
-                    this.checkLevelUp(); UI.update();
-                    PARTICLES.spawnSweat(); UI.floatText(gain, 'str');
+                else if(STATE.hotbarSlot === 2) { // PUNCH
+                    if(STATE.animState === 'punch' || STATE.stamina < 2) { if(STATE.stamina < 2) AUDIO.error(); return; }
+                    STATE.animState = 'punch'; STATE.stamina -= 2;
+                    let gain = (STATE.level * 50) * (1 + STATE.rebirths) * getDB('zones', STATE.currentZone).mult;
+                    STATE.strength += gain; STATE.speed += gain * 2; STATE.exp += 20;
+                    AUDIO.punch(); this.checkLevelUp(); UI.update();
+                    if(Math.random()<0.3) PARTICLES.spawnSweat();
+                    UI.floatText(gain*2, 'spd');
+                }
+                else if(STATE.hotbarSlot === 3) { // DRINK
+                    if(STATE.animState === 'drink') return;
+                    STATE.animState = 'drink'; AUDIO.uiClick();
+                    STATE.stamina = Math.min(STATE.stamina + 50, STATE.maxStamina);
+                    UI.update(); UI.floatText(50, 'stm');
                 }
             },
 
             checkLevelUp() {
-                let req = STATE.level * 200;
+                let req = STATE.level * 500;
                 if(STATE.exp >= req) {
-                    STATE.exp -= req; STATE.level++;
-                    UI.notify(`LEVEL UP! You are now Level ${STATE.level}`, '#00BCD4');
+                    STATE.exp -= req; STATE.level++; STATE.maxStamina = 100 + (STATE.level * 10);
+                    AUDIO.levelUp(); UI.notify(`LEVEL UP! Now Level ${formatNum(STATE.level)}`, '#00BCD4');
                     PARTICLES.spawnConfetti();
                 }
             },
 
             interact() {
                 if(STATE.isInteracting) {
-                    // Stop interacting
-                    STATE.isInteracting = false;
-                    STATE.interactTarget = null;
-                    STATE.animState = 'idle';
-                    UI.setHotbar(0); // Unequip
+                    // Stop
+                    AUDIO.uiClick(); STATE.isInteracting = false; STATE.interactTarget = null; STATE.animState = 'idle'; UI.setHotbar(0); UI.hideActionOverlay();
+                    // Move player slightly off object
+                    PLAYER.group.position.add(new THREE.Vector3(0,0,5).applyAxisAngle(new THREE.Vector3(0,1,0), PLAYER.group.rotation.y));
                 } else if(INTERACTIONS.currentTarget) {
-                    // Start interacting
-                    STATE.isInteracting = true;
-                    STATE.interactTarget = INTERACTIONS.currentTarget;
-                    UI.setHotbar(0); // Hide weapons
+                    // Start
+                    AUDIO.uiClick(); STATE.isInteracting = true; STATE.interactTarget = INTERACTIONS.currentTarget; UI.setHotbar(0);
+                    PLAYER.group.position.copy(STATE.interactTarget.usePos); PLAYER.group.rotation.y = STATE.interactTarget.useRot;
                     
-                    // Snap player to target position
-                    PLAYER.group.position.copy(STATE.interactTarget.usePos);
-                    PLAYER.group.rotation.y = STATE.interactTarget.useRot;
-                    
-                    if(STATE.interactTarget.type === 'treadmill') {
-                        STATE.animState = 'run_treadmill';
-                    }
+                    if(STATE.interactTarget.type === 'treadmill') { STATE.animState = 'run_treadmill'; UI.showActionOverlay("RUNNING!"); }
+                    if(STATE.interactTarget.type === 'bench') { STATE.animState = 'bench_press'; UI.showActionOverlay("BENCH PRESSING!"); }
+                    if(STATE.interactTarget.type === 'squat') { STATE.animState = 'squatting'; UI.showActionOverlay("SQUATTING!"); }
                 }
             }
         };
@@ -624,196 +721,184 @@
         /* =========================================================================================
                                      THREE.JS ENGINE & PROCEDURAL MAP
            ========================================================================================= */
-        let RENDERER, PARTICLES, PLAYER, INTERACTIONS;
+        let RENDERER, PARTICLES, PLAYER, INTERACTIONS, PET;
 
         function initEngine() {
             const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87CEEB); // Bright day
-            scene.fog = new THREE.FogExp2(0x87CEEB, 0.0015);
+            scene.background = new THREE.Color(0x0a0a14); // Space/Dark sky
+            scene.fog = new THREE.FogExp2(0x0a0a14, 0.0008);
 
-            const camera = new THREE.PerspectiveCamera(65, window.innerWidth/window.innerHeight, 0.1, 3000);
+            const camera = new THREE.PerspectiveCamera(65, window.innerWidth/window.innerHeight, 0.1, 5000);
             
             const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('game-canvas-container').appendChild(renderer.domElement);
 
-            // Bright Lighting
-            const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.8);
-            hemiLight.position.set(0, 500, 0);
-            scene.add(hemiLight);
+            // Lighting
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444455, 0.6);
+            hemiLight.position.set(0, 1000, 0); scene.add(hemiLight);
 
             const dirLight = new THREE.DirectionalLight(0xffffee, 1.5);
-            dirLight.position.set(200, 400, 100);
-            dirLight.shadow.camera.top = 500; dirLight.shadow.camera.bottom = -500;
-            dirLight.shadow.camera.left = -500; dirLight.shadow.camera.right = 500;
-            dirLight.shadow.mapSize.width = 2048; dirLight.shadow.mapSize.height = 2048;
+            dirLight.position.set(500, 800, 300);
+            dirLight.shadow.camera.top = 1000; dirLight.shadow.camera.bottom = -1000;
+            dirLight.shadow.camera.left = -1000; dirLight.shadow.camera.right = 1000;
+            dirLight.shadow.mapSize.width = 4096; dirLight.shadow.mapSize.height = 4096; // Ultra high res shadows
             scene.add(dirLight);
 
             // Material Library
             const Mats = {
-                floorBase: new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9, metalness: 0.1 }),
-                floorWood: new THREE.MeshStandardMaterial({ color: 0x8D6E63, roughness: 0.8 }),
-                wallExt: new THREE.MeshStandardMaterial({ color: 0xE0E0E0, roughness: 1.0 }),
-                wallInt: new THREE.MeshStandardMaterial({ color: 0xFAFAFA, roughness: 0.9 }),
-                glass: new THREE.MeshPhysicalMaterial({ color: 0x87CEEB, transparent: true, opacity: 0.4, roughness: 0.1, metalness: 0.9 }),
-                metalDark: new THREE.MeshStandardMaterial({ color: 0x212121, roughness: 0.4, metalness: 0.8 }),
-                metalLight: new THREE.MeshStandardMaterial({ color: 0x9E9E9E, roughness: 0.3, metalness: 0.9 }),
-                leatherRed: new THREE.MeshStandardMaterial({ color: 0xB71C1C, roughness: 0.7 }),
-                leatherBlack: new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 }),
-                neonGreen: new THREE.MeshStandardMaterial({ color: 0x00E676, emissive: 0x00E676, emissiveIntensity: 0.5 }),
-                belt: new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.9 })
+                floorBase: new THREE.MeshStandardMaterial({ color: 0x11111a, roughness: 0.8, metalness: 0.2 }),
+                floorZone2: new THREE.MeshStandardMaterial({ color: 0x2a1a1a, roughness: 0.9 }),
+                floorZone3: new THREE.MeshStandardMaterial({ color: 0x1a2a3a, roughness: 0.7, metalness: 0.5 }),
+                floorZone4: new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.1, metalness: 0.9, emissive: 0x110022 }),
+                wall: new THREE.MeshStandardMaterial({ color: 0x222233, roughness: 1.0 }),
+                metalDark: new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3, metalness: 0.9 }),
+                metalLight: new THREE.MeshStandardMaterial({ color: 0xaaaaaa, roughness: 0.2, metalness: 1.0 }),
+                leatherRed: new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.8 }),
+                leatherBlack: new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.9 }),
+                neonGreen: new THREE.MeshStandardMaterial({ color: 0x00FF88, emissive: 0x00FF88, emissiveIntensity: 0.8 }),
+                neonPurple: new THREE.MeshStandardMaterial({ color: 0xD500F9, emissive: 0xD500F9, emissiveIntensity: 0.8 }),
+                belt: new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.9 })
             };
 
             const mapGrp = new THREE.Group(); scene.add(mapGrp);
             const interactables = [];
 
-            // Architecture
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), Mats.floorBase);
-            floor.rotation.x = -Math.PI/2; floor.receiveShadow = true; mapGrp.add(floor);
-            
-            const grid = new THREE.GridHelper(1000, 200, 0x000000, 0x222222);
-            grid.position.y = 0.1; grid.material.opacity = 0.5; grid.material.transparent = true; mapGrp.add(grid);
-
-            function addBox(w,h,d, x,y,z, mat, cast=true) {
-                let m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
-                m.position.set(x,y,z); m.castShadow = cast; m.receiveShadow = true;
-                mapGrp.add(m); return m;
+            // Architecture - ZONES
+            function buildFloor(x, z, w, d, mat) {
+                let f = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat);
+                f.rotation.x = -Math.PI/2; f.position.set(x, 0, z); f.receiveShadow = true; mapGrp.add(f);
+                let grid = new THREE.GridHelper(w, w/20, 0x000000, 0x000000); grid.position.set(x, 0.2, z); grid.material.opacity=0.3; grid.material.transparent=true; mapGrp.add(grid);
             }
-
-            // Outer Walls
-            addBox(800, 60, 4, 0, 30, -400, Mats.wallExt); // North
-            addBox(800, 60, 4, 0, 30, 400, Mats.wallExt);  // South
-            addBox(4, 60, 800, -400, 30, 0, Mats.wallExt); // West
-            addBox(4, 60, 800, 400, 30, 0, Mats.wallExt);  // East
-
-            // Huge Windows on South Wall
-            addBox(700, 40, 5, 0, 35, 400, Mats.glass, false);
+            
+            buildFloor(0, 0, 800, 800, Mats.floorBase); // Zone 1
+            buildFloor(1000, 0, 800, 800, Mats.floorZone2); // Zone 2
+            buildFloor(0, 1000, 800, 800, Mats.floorZone3); // Zone 3
+            buildFloor(1000, 1000, 800, 800, Mats.floorZone4); // Zone 4
 
             // --- PROCEDURAL EQUIPMENT GENERATORS ---
             
             function genTreadmill(x, z, rot) {
                 const g = new THREE.Group();
-                let base = new THREE.Mesh(new THREE.BoxGeometry(4, 0.8, 10), Mats.metalDark); base.position.y=0.4; base.castShadow=true;
-                let belt = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.9, 9.5), Mats.belt); belt.position.y=0.4;
-                let armL = new THREE.Mesh(new THREE.BoxGeometry(0.4, 5, 0.6), Mats.metalDark); armL.position.set(-1.8, 2.5, -4); armL.rotation.x=-0.2; armL.castShadow=true;
-                let armR = armL.clone(); armR.position.set(1.8, 2.5, -4);
-                let panel = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 0.3), Mats.metalDark); panel.position.set(0, 5, -4.5); panel.rotation.x=-0.5; panel.castShadow=true;
-                let screen = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 1.6), new THREE.MeshBasicMaterial({color:0x00B0FF})); screen.position.set(0, 5, -4.34); screen.rotation.x=-0.5;
-                g.add(base, belt, armL, armR, panel, screen);
-                g.position.set(x,0,z); g.rotation.y=rot; mapGrp.add(g);
-
-                // Add to interactables
-                let usePos = new THREE.Vector3(x, 0, z).add(new THREE.Vector3(0,0,1).applyAxisAngle(new THREE.Vector3(0,1,0), rot));
-                interactables.push({ type: 'treadmill', pos: new THREE.Vector3(x,0,z), radius: 6, usePos: usePos, useRot: rot, belt: belt });
+                let base = new THREE.Mesh(new THREE.BoxGeometry(4, 0.8, 12), Mats.metalDark); base.position.y=0.4; base.castShadow=true;
+                let belt = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.9, 11.5), Mats.belt); belt.position.y=0.4;
+                let armL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 6, 0.8), Mats.metalDark); armL.position.set(-1.8, 3, -5); armL.rotation.x=-0.2; armL.castShadow=true;
+                let armR = armL.clone(); armR.position.set(1.8, 3, -5);
+                let panel = new THREE.Mesh(new THREE.BoxGeometry(4.5, 2.5, 0.4), Mats.metalDark); panel.position.set(0, 6, -5.5); panel.rotation.x=-0.4; panel.castShadow=true;
+                let screen = new THREE.Mesh(new THREE.PlaneGeometry(4, 2), new THREE.MeshBasicMaterial({color:0x00E5FF})); screen.position.set(0, 6, -5.3); screen.rotation.x=-0.4;
+                g.add(base, belt, armL, armR, panel, screen); g.position.set(x,0,z); g.rotation.y=rot; mapGrp.add(g);
+                let usePos = new THREE.Vector3(x, 0, z).add(new THREE.Vector3(0,0,2).applyAxisAngle(new THREE.Vector3(0,1,0), rot));
+                interactables.push({ type: 'treadmill', pos: new THREE.Vector3(x,0,z), radius: 8, usePos: usePos, useRot: rot, obj: belt });
             }
 
             function genBench(x, z, rot) {
                 const g = new THREE.Group();
-                let pad = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.5, 8), Mats.leatherRed); pad.position.y=2; pad.castShadow=true;
-                let f1 = new THREE.Mesh(new THREE.BoxGeometry(0.5,2,0.5), Mats.metalDark); f1.position.set(0,1,3); f1.castShadow=true;
-                let f2 = f1.clone(); f2.position.set(-1,1,-3); let f3 = f1.clone(); f3.position.set(1,1,-3);
-                let rL = new THREE.Mesh(new THREE.BoxGeometry(0.4,4.5,0.4), Mats.metalDark); rL.position.set(-1.5,2.25,-3); rL.castShadow=true;
-                let rR = rL.clone(); rR.position.set(1.5,2.25,-3);
-                let bar = new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,6), Mats.metalLight); bar.rotation.z=Math.PI/2; bar.position.set(0,4.5,-3); bar.castShadow=true;
-                let p1 = new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,0.3), Mats.metalDark); p1.rotation.z=Math.PI/2; p1.position.set(-2.5,4.5,-3); p1.castShadow=true;
-                let p2 = p1.clone(); p2.position.set(2.5,4.5,-3);
-                g.add(pad, f1, f2, f3, rL, rR, bar, p1, p2);
-                g.position.set(x,0,z); g.rotation.y=rot; mapGrp.add(g);
+                let pad = new THREE.Mesh(new THREE.BoxGeometry(3, 0.6, 10), Mats.leatherRed); pad.position.y=2.5; pad.castShadow=true;
+                let f1 = new THREE.Mesh(new THREE.BoxGeometry(0.8,2.5,0.8), Mats.metalDark); f1.position.set(0,1.25,4); f1.castShadow=true;
+                let f2 = f1.clone(); f2.position.set(-1.2,1.25,-4); let f3 = f1.clone(); f3.position.set(1.2,1.25,-4);
+                let rL = new THREE.Mesh(new THREE.BoxGeometry(0.5,5.5,0.5), Mats.metalDark); rL.position.set(-2,2.75,-4); rL.castShadow=true;
+                let rR = rL.clone(); rR.position.set(2,2.75,-4);
+                let bar = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,8), Mats.metalLight); bar.rotation.z=Math.PI/2; bar.position.set(0,5.5,-4); bar.castShadow=true;
+                let p1 = new THREE.Mesh(new THREE.CylinderGeometry(2,2,0.5), Mats.metalDark); p1.rotation.z=Math.PI/2; p1.position.set(-3.5,5.5,-4); p1.castShadow=true;
+                let p2 = p1.clone(); p2.position.set(3.5,5.5,-4);
+                g.add(pad, f1, f2, f3, rL, rR, bar, p1, p2); g.position.set(x,0,z); g.rotation.y=rot; mapGrp.add(g);
+                let usePos = new THREE.Vector3(x, 0, z).add(new THREE.Vector3(0,0,0).applyAxisAngle(new THREE.Vector3(0,1,0), rot));
+                interactables.push({ type: 'bench', pos: new THREE.Vector3(x,0,z), radius: 8, usePos: usePos, useRot: rot, obj: bar });
             }
 
-            function genPunchingBag(x, z) {
+            function genSquat(x, z, rot) {
                 const g = new THREE.Group();
-                let base = new THREE.Mesh(new THREE.CylinderGeometry(2,2,0.5), Mats.metalDark); base.position.y=0.25; base.castShadow=true;
-                let pole = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,10), Mats.metalDark); pole.position.set(-1.5, 5, 0); pole.castShadow=true;
-                let top = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.2, 0.4), Mats.metalDark); top.position.set(0, 10, 0); top.castShadow=true;
-                let chain = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,1), Mats.metalLight); chain.position.set(1.5, 9.5, 0);
-                let bag = new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,4), Mats.leatherBlack); bag.position.set(1.5, 7, 0); bag.castShadow=true;
-                g.add(base, pole, top, chain, bag);
-                g.position.set(x,0,z); mapGrp.add(g);
+                let pL = new THREE.Mesh(new THREE.BoxGeometry(0.8,10,0.8), Mats.metalDark); pL.position.set(-4,5,0); pL.castShadow=true;
+                let pR = pL.clone(); pR.position.set(4,5,0);
+                let pT = new THREE.Mesh(new THREE.BoxGeometry(8.8,0.8,0.8), Mats.metalDark); pT.position.set(0,10,0); pT.castShadow=true;
+                let bar = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,10), Mats.metalLight); bar.rotation.z=Math.PI/2; bar.position.set(0,7,0); bar.castShadow=true;
+                let w1 = new THREE.Mesh(new THREE.CylinderGeometry(2.5,2.5,0.8), Mats.metalDark); w1.rotation.z=Math.PI/2; w1.position.set(-4.5,7,0); w1.castShadow=true;
+                let w2 = w1.clone(); w2.position.set(4.5,7,0);
+                g.add(pL, pR, pT, bar, w1, w2); g.position.set(x,0,z); g.rotation.y=rot; mapGrp.add(g);
+                let usePos = new THREE.Vector3(x, 0, z).add(new THREE.Vector3(0,0,1).applyAxisAngle(new THREE.Vector3(0,1,0), rot));
+                interactables.push({ type: 'squat', pos: new THREE.Vector3(x,0,z), radius: 10, usePos: usePos, useRot: rot, obj: bar });
             }
 
-            function genDumbbellRack(x, z, rot) {
+            function genSellZone(x, z, size, matOuter) {
                 const g = new THREE.Group();
-                let s1 = new THREE.Mesh(new THREE.BoxGeometry(16, 0.2, 1.5), Mats.metalDark); s1.position.set(0,2,0); s1.rotation.x=0.2; s1.castShadow=true;
-                let s2 = s1.clone(); s2.position.set(0,4,-0.5);
-                let legL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 5, 2), Mats.metalDark); legL.position.set(-8,2.5,0); legL.castShadow=true;
-                let legR = legL.clone(); legR.position.set(8,2.5,0);
-                g.add(s1,s2,legL,legR);
-                for(let i=0; i<8; i++) {
-                    let db = new THREE.Group();
-                    let h = new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,1), Mats.metalLight); h.rotation.z=Math.PI/2;
-                    let w1 = new THREE.Mesh(new THREE.CylinderGeometry(0.4+i*0.05,0.4+i*0.05,0.3), Mats.metalDark); w1.rotation.z=Math.PI/2; w1.position.x=-0.4;
-                    let w2 = w1.clone(); w2.position.x=0.4;
-                    db.add(h,w1,w2); db.castShadow=true;
-                    let d1 = db.clone(); d1.position.set(-7 + i*2, 2.2, 0.2); d1.rotation.x=0.2;
-                    let d2 = db.clone(); d2.scale.set(1.2,1.2,1.2); d2.position.set(-7 + i*2, 4.3, -0.3); d2.rotation.x=0.2;
-                    g.add(d1,d2);
+                let base = new THREE.Mesh(new THREE.CylinderGeometry(size, size, 2, 32), Mats.metalDark); base.position.y=1; base.receiveShadow=true;
+                let ring = new THREE.Mesh(new THREE.TorusGeometry(size-2, 1, 16, 64), matOuter); ring.position.y=2.5; ring.rotation.x=Math.PI/2;
+                let holo = new THREE.Mesh(new THREE.CylinderGeometry(size-2, size-2, 50, 32), new THREE.MeshBasicMaterial({color: matOuter.color, transparent: true, opacity: 0.1, side: THREE.DoubleSide, blending: THREE.AdditiveBlending})); holo.position.y=25;
+                g.add(base, ring, holo); g.position.set(x,0,z); mapGrp.add(g);
+                return { holo, ring }; 
+            }
+
+            // --- POPULATE MAP (HUNDREDS OF OBJECTS) ---
+            const sellZones = [];
+            sellZones.push(genSellZone(0, 0, 30, Mats.neonGreen)); // Zone 1
+            sellZones.push(genSellZone(1000, 0, 40, Mats.neonPurple)); // Zone 2
+            sellZones.push(genSellZone(0, 1000, 50, new THREE.MeshStandardMaterial({color:0xFF3D00, emissive:0xFF3D00}))); // Zone 3
+            sellZones.push(genSellZone(1000, 1000, 80, new THREE.MeshStandardMaterial({color:0xFFFFFF, emissive:0xFFFFFF}))); // Zone 4
+
+            function populateZone(ox, oz) {
+                for(let i=0; i<15; i++) {
+                    genTreadmill(ox + 150, oz - 200 + i*20, -Math.PI/2);
+                    genTreadmill(ox + 200, oz - 200 + i*20, -Math.PI/2);
+                    genBench(ox - 150, oz - 200 + i*30, Math.PI/2);
+                    genBench(ox - 250, oz - 200 + i*30, Math.PI/2);
+                    if(i%2===0) genSquat(ox, oz + 150 + i*20, 0);
                 }
-                g.position.set(x,0,z); g.rotation.y=rot; mapGrp.add(g);
             }
-
-            function genSellZone() {
-                const g = new THREE.Group();
-                let base = new THREE.Mesh(new THREE.CylinderGeometry(20, 20, 1, 32), Mats.metalDark); base.position.y=0.5; base.receiveShadow=true;
-                let ring = new THREE.Mesh(new THREE.TorusGeometry(18, 0.5, 16, 64), Mats.neonGreen); ring.position.y=1.2; ring.rotation.x=Math.PI/2;
-                let holo = new THREE.Mesh(new THREE.CylinderGeometry(18, 18, 30, 32), new THREE.MeshBasicMaterial({color: 0x00E676, transparent: true, opacity: 0.1, side: THREE.DoubleSide, blending: THREE.AdditiveBlending})); holo.position.y=15;
-                g.add(base, ring, holo); g.position.set(0,0,0); mapGrp.add(g);
-                return holo; // for rotation
-            }
-
-            // --- POPULATE MAP ---
-            const holoCylinder = genSellZone();
-
-            // Cardio Zone (Massive)
-            for(let i=0; i<30; i++) {
-                genTreadmill(150, -300 + i*15, -Math.PI/2);
-                genTreadmill(200, -300 + i*15, -Math.PI/2);
-                genTreadmill(250, -300 + i*15, -Math.PI/2);
-            }
-
-            // Weight Zone
-            for(let i=0; i<10; i++) {
-                genBench(-100, -200 + i*25, Math.PI/2);
-                genBench(-160, -200 + i*25, Math.PI/2);
-            }
-            genDumbbellRack(-250, -200, Math.PI/2);
-            genDumbbellRack(-250, -100, Math.PI/2);
-            genDumbbellRack(-250, 0, Math.PI/2);
-
-            // Boxing Zone
-            for(let i=0; i<15; i++) {
-                genPunchingBag(-150 + i*15, 200);
-            }
+            populateZone(0,0); populateZone(1000,0); populateZone(0,1000); populateZone(1000,1000);
 
             // --- PLAYER RIG (ROBLOX R15 STYLE) ---
             const pGrp = new THREE.Group(); scene.add(pGrp);
             PLAYER = { group: pGrp, scale: 1 };
 
-            const skinMat = new THREE.MeshStandardMaterial({color: 0xFFCC99, roughness: 0.6});
-            const shirtMat = new THREE.MeshStandardMaterial({color: 0x1976D2, roughness: 0.8});
-            const pantsMat = new THREE.MeshStandardMaterial({color: 0x212121, roughness: 0.9});
+            const skinMat = new THREE.MeshStandardMaterial({color: 0xFFCC99, roughness: 0.5});
+            const shirtMat = new THREE.MeshStandardMaterial({color: 0x1976D2, roughness: 0.7});
+            const pantsMat = new THREE.MeshStandardMaterial({color: 0x212121, roughness: 0.8});
 
-            const head = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), skinMat); head.position.y=4.2; head.castShadow=true; pGrp.add(head);
-            // Face Decal
-            const face = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.4), new THREE.MeshBasicMaterial({color: 0x000})); face.position.set(0, 4.3, 0.61); pGrp.add(face);
+            const head = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.4), skinMat); head.position.y=4.8; head.castShadow=true; pGrp.add(head);
+            const face = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.5), new THREE.MeshBasicMaterial({color: 0x000})); face.position.set(0, 4.9, 0.71); pGrp.add(face);
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.0, 1.2), shirtMat); torso.position.y=2.8; torso.castShadow=true; pGrp.add(torso);
+            
+            const rArmGrp = new THREE.Group(); rArmGrp.position.set(1.8, 4.0, 0);
+            const rArm = new THREE.Mesh(new THREE.BoxGeometry(1.0, 3.0, 1.0), skinMat); rArm.position.y=-1.2; rArm.castShadow=true; rArmGrp.add(rArm); pGrp.add(rArmGrp);
+            
+            const lArmGrp = new THREE.Group(); lArmGrp.position.set(-1.8, 4.0, 0);
+            const lArm = new THREE.Mesh(new THREE.BoxGeometry(1.0, 3.0, 1.0), skinMat); lArm.position.y=-1.2; lArm.castShadow=true; lArmGrp.add(lArm); pGrp.add(lArmGrp);
+            
+            const rLegGrp = new THREE.Group(); rLegGrp.position.set(0.6, 1.4, 0);
+            const rLeg = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.8, 1.1), pantsMat); rLeg.position.y=-1.4; rLeg.castShadow=true; rLegGrp.add(rLeg); pGrp.add(rLegGrp);
+            
+            const lLegGrp = new THREE.Group(); lLegGrp.position.set(-0.6, 1.4, 0);
+            const lLeg = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.8, 1.1), pantsMat); lLeg.position.y=-1.4; lLeg.castShadow=true; lLegGrp.add(lLeg); pGrp.add(lLegGrp);
 
-            const torso = new THREE.Mesh(new THREE.BoxGeometry(2, 2.5, 1), shirtMat); torso.position.y=2.5; torso.castShadow=true; pGrp.add(torso);
-
-            const rArmGrp = new THREE.Group(); rArmGrp.position.set(1.5, 3.5, 0);
-            const rArm = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.5, 0.8), skinMat); rArm.position.y=-1; rArm.castShadow=true; rArmGrp.add(rArm); pGrp.add(rArmGrp);
-
-            const lArmGrp = new THREE.Group(); lArmGrp.position.set(-1.5, 3.5, 0);
-            const lArm = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.5, 0.8), skinMat); lArm.position.y=-1; lArm.castShadow=true; lArmGrp.add(lArm); pGrp.add(lArmGrp);
-
-            const rLegGrp = new THREE.Group(); rLegGrp.position.set(0.5, 1.25, 0);
-            const rLeg = new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.5, 0.9), pantsMat); rLeg.position.y=-1.25; rLeg.castShadow=true; rLegGrp.add(rLeg); pGrp.add(rLegGrp);
-
-            const lLegGrp = new THREE.Group(); lLegGrp.position.set(-0.5, 1.25, 0);
-            const lLeg = new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.5, 0.9), pantsMat); lLeg.position.y=-1.25; lLeg.castShadow=true; lLegGrp.add(lLeg); pGrp.add(lLegGrp);
-
-            const handAnchor = new THREE.Group(); handAnchor.position.set(0, -2, 0); rArmGrp.add(handAnchor);
+            const handAnchor = new THREE.Group(); handAnchor.position.set(0, -2.5, 0); rArmGrp.add(handAnchor);
             let currentEquip = null;
+
+            // --- PET SYSTEM ---
+            const petGrp = new THREE.Group(); scene.add(petGrp);
+            PET = {
+                mesh: null,
+                update() {
+                    if(!this.mesh && STATE.equipped.pet) {
+                        let pd = getDB('pets', STATE.equipped.pet);
+                        this.mesh = new THREE.Mesh(new THREE.BoxGeometry(1.5,1.5,1.5), new THREE.MeshStandardMaterial({color: pd.color, metalness:0.3, roughness:0.5}));
+                        this.mesh.castShadow=true; petGrp.add(this.mesh);
+                    } else if(this.mesh && !STATE.equipped.pet) {
+                        petGrp.remove(this.mesh); this.mesh.geometry.dispose(); this.mesh.material.dispose(); this.mesh = null;
+                    } else if(this.mesh && STATE.equipped.pet) {
+                        this.mesh.material.color.setHex(getDB('pets', STATE.equipped.pet).color);
+                        // Scale pet based on player scale
+                        let ps = PLAYER.scale * 0.5; this.mesh.scale.set(ps,ps,ps);
+                    }
+                },
+                animate(dt) {
+                    if(!this.mesh) return;
+                    let tgt = pGrp.position.clone().add(new THREE.Vector3(-4*PLAYER.scale, 6*PLAYER.scale, -4*PLAYER.scale).applyAxisAngle(new THREE.Vector3(0,1,0), pGrp.rotation.y));
+                    tgt.y += Math.sin(Date.now()*0.003)*PLAYER.scale; // Hover
+                    this.mesh.position.lerp(tgt, 5*dt);
+                    this.mesh.lookAt(pGrp.position);
+                }
+            };
 
             // --- PARTICLES ---
             const pSysGrp = new THREE.Group(); scene.add(pSysGrp);
@@ -822,28 +907,23 @@
                 spawnConfetti() {
                     if(!STATE.settings.particles) return;
                     const cols = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF, 0x00FFFF];
-                    const g = new THREE.BoxGeometry(0.4, 0.4, 0.4);
-                    for(let i=0; i<50; i++) {
+                    const g = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+                    for(let i=0; i<80; i++) {
                         let m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({color: cols[Math.floor(Math.random()*cols.length)]}));
-                        m.position.copy(pGrp.position); m.position.y += 12 * PLAYER.scale;
-                        pSysGrp.add(m);
-                        pArr.push({ m:m, v:new THREE.Vector3((Math.random()-0.5)*20, Math.random()*30, (Math.random()-0.5)*20), life: 3.0 });
+                        m.position.copy(pGrp.position); m.position.y += 15 * PLAYER.scale;
+                        pSysGrp.add(m); pArr.push({ m:m, v:new THREE.Vector3((Math.random()-0.5)*30, Math.random()*40, (Math.random()-0.5)*30), life: 3.5 });
                     }
                 },
                 spawnSweat() {
                     if(!STATE.settings.particles) return;
-                    let m = new THREE.Mesh(new THREE.SphereGeometry(0.2,4,4), new THREE.MeshBasicMaterial({color:0x87CEEB, transparent:true, opacity:0.7}));
-                    m.position.copy(pGrp.position); m.position.y += 5 * PLAYER.scale;
-                    m.position.x += (Math.random()-0.5)*3; m.position.z += (Math.random()-0.5)*3;
-                    pSysGrp.add(m);
-                    pArr.push({ m:m, v:new THREE.Vector3(0, -8, 0), life: 0.6 });
+                    let m = new THREE.Mesh(new THREE.SphereGeometry(0.3,4,4), new THREE.MeshBasicMaterial({color:0x87CEEB, transparent:true, opacity:0.8}));
+                    m.position.copy(pGrp.position); m.position.y += 6 * PLAYER.scale; m.position.x += (Math.random()-0.5)*4; m.position.z += (Math.random()-0.5)*4;
+                    pSysGrp.add(m); pArr.push({ m:m, v:new THREE.Vector3(0, -10, 0), life: 0.8 });
                 },
                 update(dt) {
                     for(let i=pArr.length-1; i>=0; i--) {
-                        let p = pArr[i]; p.life -= dt;
-                        p.v.y -= 40 * dt; // gravity
-                        p.m.position.addScaledVector(p.v, dt);
-                        p.m.rotation.x += p.v.y*dt; p.m.rotation.y += p.v.x*dt;
+                        let p = pArr[i]; p.life -= dt; p.v.y -= 50 * dt; // grav
+                        p.m.position.addScaledVector(p.v, dt); p.m.rotation.x += p.v.y*dt; p.m.rotation.y += p.v.x*dt;
                         if(p.m.position.y < 0.2) p.m.position.y = 0.2;
                         if(p.life <= 0) { pSysGrp.remove(p.m); p.m.geometry.dispose(); p.m.material.dispose(); pArr.splice(i,1); }
                     }
@@ -853,109 +933,110 @@
             // --- RENDERER EXPORTS ---
             RENDERER = {
                 updatePlayerScale() {
-                    let s = 1 + Math.min(Math.log10(STATE.strength + 1) * 0.12, 5.0);
-                    PLAYER.scale = s;
-                    pGrp.scale.lerp(new THREE.Vector3(s, s, s), 0.1);
+                    let s = 1 + Math.min(Math.log10(STATE.strength + 1) * 0.15, 8.0);
+                    PLAYER.scale = s; pGrp.scale.lerp(new THREE.Vector3(s, s, s), 0.1);
+                    PET.update(); // Update pet scale
                 },
+                updatePet() { PET.update(); },
                 updateEquippedItem() {
                     if(currentEquip) { handAnchor.remove(currentEquip); currentEquip.geometry.dispose(); currentEquip.material.dispose(); currentEquip = null; }
                     
                     if(STATE.hotbarSlot === 1) {
                         let wD = getDB('weights', STATE.equipped.weight);
                         const g = new THREE.Group();
-                        const mat = new THREE.MeshStandardMaterial({color: wD.color, metalness:0.7, roughness:0.3});
-                        const h = new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,1.5), Mats.metalDark);
+                        const mat = new THREE.MeshStandardMaterial({color: wD.color, metalness:0.8, roughness:0.2});
+                        const h = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,2.0), Mats.metalDark);
                         
                         if(wD.type === 'dumbbell') {
-                            let w1 = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.4), mat); w1.position.y=0.75;
-                            let w2 = w1.clone(); w2.position.y=-0.75;
-                            g.add(h, w1, w2);
+                            let w1 = new THREE.Mesh(new THREE.CylinderGeometry(0.8,0.8,0.6), mat); w1.position.y=1.0;
+                            let w2 = w1.clone(); w2.position.y=-1.0; g.add(h, w1, w2);
                         } else {
-                            h.scale.y = 3.5;
-                            let w1 = new THREE.Mesh(new THREE.CylinderGeometry(1.0,1.0,0.3), mat); w1.position.y=2.5;
-                            let w2 = w1.clone(); w2.position.y=-2.5;
-                            g.add(h, w1, w2);
+                            h.scale.y = 4.0;
+                            let w1 = new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,0.5), mat); w1.position.y=3.5;
+                            let w2 = w1.clone(); w2.position.y=-3.5; g.add(h, w1, w2);
                         }
                         
-                        g.scale.set(wD.scale, wD.scale, wD.scale);
-                        g.rotation.x = Math.PI/2; g.position.z = 0.5;
+                        g.scale.set(wD.scale, wD.scale, wD.scale); g.rotation.x = Math.PI/2; g.position.z = 0.8;
                         currentEquip = g; handAnchor.add(currentEquip);
+                    } else if(STATE.hotbarSlot === 3) {
+                        const g = new THREE.Group();
+                        const b = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,1.2), new THREE.MeshStandardMaterial({color:0x00BCD4, transparent:true, opacity:0.8}));
+                        b.rotation.x = Math.PI/2; b.position.z = 0.5;
+                        currentEquip = b; handAnchor.add(currentEquip);
                     }
                 },
                 applyShadowSettings() {
-                    renderer.shadowMap.enabled = STATE.settings.shadows;
-                    dirLight.castShadow = STATE.settings.shadows;
+                    renderer.shadowMap.enabled = STATE.settings.shadows; dirLight.castShadow = STATE.settings.shadows;
                     scene.traverse(c => { if(c.isMesh && c.geometry.type !== 'PlaneGeometry') { c.castShadow = STATE.settings.shadows; c.receiveShadow = STATE.settings.shadows; } });
                 }
             };
 
             INTERACTIONS = {
-                list: interactables,
-                currentTarget: null,
-                check(playerPos) {
+                list: interactables, currentTarget: null,
+                check(pPos) {
                     let found = null;
                     for(let i=0; i<this.list.length; i++) {
-                        if(playerPos.distanceTo(this.list[i].pos) < this.list[i].radius * PLAYER.scale) {
-                            found = this.list[i]; break;
-                        }
+                        if(pPos.distanceTo(this.list[i].pos) < this.list[i].radius * Math.max(1, PLAYER.scale*0.5)) { found = this.list[i]; break; }
                     }
-                    if(found && !STATE.isInteracting) {
-                        UI.els.prompt.style.display = 'block';
-                        this.currentTarget = found;
-                    } else if(!STATE.isInteracting) {
-                        UI.els.prompt.style.display = 'none';
-                        this.currentTarget = null;
-                    }
+                    if(found && !STATE.isInteracting) { UI.els.prompt.style.display = 'block'; UI.els.prompt.innerHTML = `<span class="key-btn">E</span> USE ${found.type.toUpperCase()}`; this.currentTarget = found; document.getElementById('crosshair').classList.add('active'); }
+                    else if(!STATE.isInteracting) { UI.els.prompt.style.display = 'none'; this.currentTarget = null; document.getElementById('crosshair').classList.remove('active'); }
                 }
             };
 
-            // Init Visuals
-            RENDERER.updateEquippedItem(); RENDERER.applyShadowSettings();
+            // Init
+            RENDERER.updateEquippedItem(); RENDERER.applyShadowSettings(); PET.update();
 
             // Inputs
             const keys = { w:false, a:false, s:false, d:false, shift:false };
             document.addEventListener('keydown', e => { let k=e.key.toLowerCase(); if(keys.hasOwnProperty(k)) keys[k]=true; });
             document.addEventListener('keyup', e => { let k=e.key.toLowerCase(); if(keys.hasOwnProperty(k)) keys[k]=false; });
 
-            let camP = { radius: 30, theta: Math.PI/4, phi: Math.PI/3 };
-            let isDrag = false;
+            let camP = { radius: 35, theta: Math.PI/4, phi: Math.PI/3 }; let isDrag = false;
             document.getElementById('game-canvas-container').addEventListener('mousedown', e => { if(e.button===2 || e.button===0) isDrag=true; });
             document.addEventListener('mouseup', () => isDrag=false);
             document.addEventListener('mousemove', e => {
                 if(isDrag && !UI.els.modal.classList.contains('active')) {
                     camP.theta -= e.movementX * 0.005; camP.phi -= e.movementY * 0.005;
-                    camP.phi = Math.max(0.1, Math.min(Math.PI/2.1, camP.phi));
+                    camP.phi = Math.max(0.05, Math.min(Math.PI/2.1, camP.phi));
                 }
             });
-            document.addEventListener('wheel', e => { camP.radius += e.deltaY * 0.05; camP.radius = Math.max(10, Math.min(100, camP.radius)); });
+            document.addEventListener('wheel', e => { camP.radius += e.deltaY * 0.08; camP.radius = Math.max(15, Math.min(200, camP.radius)); });
             document.addEventListener('contextmenu', e => e.preventDefault());
 
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
+            window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
 
             setTimeout(() => {
-                document.getElementById('loading-screen').style.opacity = '0';
-                setTimeout(()=>document.getElementById('loading-screen').style.display = 'none', 1000);
-            }, 500);
+                document.getElementById('loading-bar').style.width = '100%';
+                setTimeout(() => { document.getElementById('loading-screen').style.opacity = '0'; setTimeout(()=>document.getElementById('loading-screen').style.display = 'none', 800); }, 500);
+            }, 1000);
 
             // --- MAIN LOOP ---
-            const clock = new THREE.Clock();
-            let vel = new THREE.Vector3();
-            let animTime = 0;
-            let liftPhase = 0;
-            let punchPhase = 0;
+            const clock = new THREE.Clock(); let vel = new THREE.Vector3(); let animTime = 0; let actionPhase = 0;
 
             function animate() {
                 requestAnimationFrame(animate);
                 let dt = Math.min(clock.getDelta(), 0.1);
 
-                holoCylinder.rotation.y += dt * 0.5;
+                // Rotate Sell Zones
+                sellZones.forEach((z,i) => { z.holo.rotation.y -= dt*(0.5+i*0.1); z.ring.rotation.z += dt; });
+
+                // Check Zone & Sell
+                let px = pGrp.position.x; let pz = pGrp.position.z;
+                let newZone = 'z1';
+                if(px > 500 && pz < 500) newZone = 'z2'; else if(px < 500 && pz > 500) newZone = 'z3'; else if(px > 500 && pz > 500) newZone = 'z4';
+                if(newZone !== STATE.currentZone) {
+                    if(STATE.strength >= getDB('zones', newZone).req) { STATE.currentZone = newZone; UI.notify(`ENTERED ${getDB('zones', newZone).name}!`, '#E040FB'); UI.update(); }
+                    else { // Push back
+                        vel.x *= -2; vel.z *= -2; pGrp.position.add(new THREE.Vector3(-Math.sign(px-500)*10, 0, -Math.sign(pz-500)*10));
+                        UI.notify(`NEED ${formatNum(getDB('zones', newZone).req)} POWER TO ENTER`, '#F44336');
+                    }
+                }
+
+                // Stamina Regen
+                if(STATE.animState === 'idle' || STATE.animState === 'walk') { STATE.stamina = Math.min(STATE.stamina + dt*5, STATE.maxStamina); }
 
                 // Physics & Movement
                 if(!UI.els.modal.classList.contains('active')) {
-                    
                     if(!STATE.isInteracting) {
                         let dir = new THREE.Vector3();
                         if(keys.w) dir.z -= 1; if(keys.s) dir.z += 1;
@@ -967,11 +1048,11 @@
                             let cRight = new THREE.Vector3().crossVectors(cDir, new THREE.Vector3(0,1,0)).normalize();
                             let mVec = new THREE.Vector3().addScaledVector(cRight, dir.x).addScaledVector(cDir, -dir.z).normalize();
                             
-                            let spd = 40.0 + (STATE.speed * 0.05); // Speed stat makes you faster
+                            let zG = getDB('zones', STATE.currentZone).gravity;
+                            let spd = (50.0 + (STATE.speed * 0.02)) / zG; // Speed affected by zone gravity
                             vel.x = mVec.x * spd; vel.z = mVec.z * spd;
 
-                            let tRot = Math.atan2(vel.x, vel.z);
-                            let dRot = tRot - pGrp.rotation.y;
+                            let tRot = Math.atan2(vel.x, vel.z); let dRot = tRot - pGrp.rotation.y;
                             while(dRot < -Math.PI) dRot += Math.PI*2; while(dRot > Math.PI) dRot -= Math.PI*2;
                             pGrp.rotation.y += dRot * 15 * dt;
 
@@ -981,72 +1062,115 @@
                             if(STATE.animState === 'walk') STATE.animState = 'idle';
                         }
 
-                        pGrp.position.x += vel.x * dt;
-                        pGrp.position.z += vel.z * dt;
+                        pGrp.position.x += vel.x * dt; pGrp.position.z += vel.z * dt;
 
                         // Bounds
-                        let b = 390;
-                        if(pGrp.position.x > b) pGrp.position.x = b; if(pGrp.position.x < -b) pGrp.position.x = -b;
-                        if(pGrp.position.z > b) pGrp.position.z = b; if(pGrp.position.z < -b) pGrp.position.z = -b;
+                        let b = 1390;
+                        if(pGrp.position.x > b) pGrp.position.x = b; if(pGrp.position.x < -100) pGrp.position.x = -100;
+                        if(pGrp.position.z > b) pGrp.position.z = b; if(pGrp.position.z < -100) pGrp.position.z = -100;
                         
                         INTERACTIONS.check(pGrp.position);
                     } else {
-                        // Is Interacting Logic
+                        // Interacting processing
                         if(STATE.interactTarget.type === 'treadmill') {
-                            STATE.speed += (1 + STATE.rebirths) * dt * 10;
-                            STATE.exp += 5 * dt;
-                            if(Math.random() < 0.05) PARTICLES.spawnSweat();
-                            GAME.checkLevelUp();
-                            
-                            // Scroll texture
-                            STATE.interactTarget.belt.material.map && (STATE.interactTarget.belt.material.map.offset.y -= dt);
+                            STATE.stamina -= dt*2;
+                            if(STATE.stamina <= 0) { GAME.interact(); UI.notify("OUT OF ENERGY!", "#F44336"); }
+                            else {
+                                let gain = ((10 + STATE.level*2) * (1 + STATE.rebirths) * getDB('zones', STATE.currentZone).mult) * dt;
+                                STATE.speed += gain; STATE.exp += 15 * dt;
+                                if(Math.random() < 0.1) PARTICLES.spawnSweat();
+                                GAME.checkLevelUp();
+                                STATE.interactTarget.obj.material.map && (STATE.interactTarget.obj.material.map.offset.y -= dt*2);
+                            }
+                        } else if(STATE.interactTarget.type === 'bench') {
+                            if(STATE.animState === 'bench_press') {
+                                STATE.stamina -= dt*10;
+                                if(STATE.stamina <= 0) { GAME.interact(); UI.notify("OUT OF ENERGY!", "#F44336"); }
+                                else {
+                                    actionPhase += dt * 3;
+                                    let p = Math.abs(Math.sin(actionPhase * Math.PI));
+                                    STATE.interactTarget.obj.position.y = 5.5 + (p * 2); // Move bar up and down
+                                    rArmGrp.rotation.x = -Math.PI/2 - (p * 0.5); lArmGrp.rotation.x = -Math.PI/2 - (p * 0.5); // Arms push
+                                    if(p < 0.1 && actionPhase > 1) { // 1 rep complete
+                                        actionPhase = 0;
+                                        let gain = GAME.calcGain() * 2; // Bench gives 2x
+                                        STATE.strength += gain; STATE.exp += 100;
+                                        AUDIO.lift(); GAME.checkLevelUp(); UI.floatText(gain, 'str');
+                                        if(Math.random()<0.5) PARTICLES.spawnSweat();
+                                    }
+                                }
+                            }
+                        } else if(STATE.interactTarget.type === 'squat') {
+                            if(STATE.animState === 'squatting') {
+                                STATE.stamina -= dt*12;
+                                if(STATE.stamina <= 0) { GAME.interact(); UI.notify("OUT OF ENERGY!", "#F44336"); }
+                                else {
+                                    actionPhase += dt * 2.5;
+                                    let p = Math.abs(Math.sin(actionPhase * Math.PI));
+                                    STATE.interactTarget.obj.position.y = 7 - (p * 2); // Bar goes down
+                                    pGrp.position.y = -(p * 2); // Player goes down
+                                    rLegGrp.rotation.x = p * 1.5; lLegGrp.rotation.x = p * 1.5; // Knees bend
+                                    if(p < 0.1 && actionPhase > 1) {
+                                        actionPhase = 0;
+                                        let gain = GAME.calcGain() * 3; // Squat gives 3x
+                                        STATE.strength += gain; STATE.speed += gain*0.1; STATE.exp += 150;
+                                        AUDIO.lift(); GAME.checkLevelUp(); UI.floatText(gain, 'str');
+                                        if(Math.random()<0.6) PARTICLES.spawnSweat();
+                                    }
+                                }
+                            }
                         }
                     }
                 }
 
-                RENDERER.updatePlayerScale();
+                RENDERER.updatePlayerScale(); PET.animate(dt);
 
                 // --- ANIMATION STATE MACHINE ---
                 if(STATE.animState === 'walk' || STATE.animState === 'run_treadmill') {
-                    let speedMult = STATE.animState === 'run_treadmill' ? 25 : 15;
+                    let speedMult = STATE.animState === 'run_treadmill' ? 30 : 18;
                     animTime += dt * speedMult;
-                    rLegGrp.rotation.x = Math.sin(animTime)*0.8; lLegGrp.rotation.x = Math.sin(animTime+Math.PI)*0.8;
-                    rArmGrp.rotation.x = Math.sin(animTime+Math.PI)*0.6; lArmGrp.rotation.x = Math.sin(animTime)*0.6;
+                    rLegGrp.rotation.x = Math.sin(animTime)*0.9; lLegGrp.rotation.x = Math.sin(animTime+Math.PI)*0.9;
+                    rArmGrp.rotation.x = Math.sin(animTime+Math.PI)*0.7; lArmGrp.rotation.x = Math.sin(animTime)*0.7;
+                    if(STATE.animState === 'run_treadmill') pGrp.position.y = Math.abs(Math.sin(animTime*2))*0.2;
                 } 
                 else if(STATE.animState === 'lift') {
-                    liftPhase += dt * 5;
-                    let p = Math.sin(liftPhase * Math.PI);
-                    rArmGrp.rotation.x = -p * Math.PI * 0.8; lArmGrp.rotation.x = -p * Math.PI * 0.8;
-                    if(liftPhase >= 1) { STATE.animState = 'idle'; liftPhase = 0; }
+                    actionPhase += dt * 6; let p = Math.sin(actionPhase * Math.PI);
+                    rArmGrp.rotation.x = -p * Math.PI * 0.9; lArmGrp.rotation.x = -p * Math.PI * 0.9;
+                    if(actionPhase >= 1) { STATE.animState = 'idle'; actionPhase = 0; }
                 }
                 else if(STATE.animState === 'punch') {
-                    punchPhase += dt * 8;
-                    let p = Math.sin(punchPhase * Math.PI);
-                    rArmGrp.rotation.x = -p * Math.PI * 0.5; rArmGrp.rotation.z = p * 0.5;
-                    if(punchPhase >= 1) { STATE.animState = 'idle'; punchPhase = 0; }
+                    actionPhase += dt * 10; let p = Math.sin(actionPhase * Math.PI);
+                    rArmGrp.rotation.x = -p * Math.PI * 0.6; rArmGrp.rotation.z = p * 0.6;
+                    if(actionPhase >= 1) { STATE.animState = 'idle'; actionPhase = 0; }
                 }
-                else {
-                    // Idle
-                    rLegGrp.rotation.x = THREE.MathUtils.lerp(rLegGrp.rotation.x, 0, dt*10);
-                    lLegGrp.rotation.x = THREE.MathUtils.lerp(lLegGrp.rotation.x, 0, dt*10);
-                    rArmGrp.rotation.x = THREE.MathUtils.lerp(rArmGrp.rotation.x, 0, dt*10);
-                    lArmGrp.rotation.x = THREE.MathUtils.lerp(lArmGrp.rotation.x, 0, dt*10);
-                    rArmGrp.rotation.z = THREE.MathUtils.lerp(rArmGrp.rotation.z, 0, dt*10);
+                else if(STATE.animState === 'drink') {
+                    actionPhase += dt * 3; let p = Math.sin(actionPhase * Math.PI);
+                    rArmGrp.rotation.x = -p * Math.PI * 0.8; rArmGrp.rotation.z = -p * 0.2;
+                    if(actionPhase >= 1) { STATE.animState = 'idle'; actionPhase = 0; }
+                }
+                else if(!STATE.isInteracting) {
+                    // Idle Reset
+                    rLegGrp.rotation.x = THREE.MathUtils.lerp(rLegGrp.rotation.x, 0, dt*12);
+                    lLegGrp.rotation.x = THREE.MathUtils.lerp(lLegGrp.rotation.x, 0, dt*12);
+                    rArmGrp.rotation.x = THREE.MathUtils.lerp(rArmGrp.rotation.x, 0, dt*12);
+                    lArmGrp.rotation.x = THREE.MathUtils.lerp(lArmGrp.rotation.x, 0, dt*12);
+                    rArmGrp.rotation.z = THREE.MathUtils.lerp(rArmGrp.rotation.z, 0, dt*12);
+                    pGrp.position.y = THREE.MathUtils.lerp(pGrp.position.y, 0, dt*12);
                 }
 
                 // Camera Update
                 let pS = PLAYER.scale;
-                let tgt = pGrp.position.clone().add(new THREE.Vector3(0, 5 * pS, 0));
+                let tgt = pGrp.position.clone().add(new THREE.Vector3(0, 6 * pS, 0));
                 let ox = camP.radius * pS * Math.sin(camP.phi) * Math.sin(camP.theta);
                 let oy = camP.radius * pS * Math.cos(camP.phi);
                 let oz = camP.radius * pS * Math.sin(camP.phi) * Math.cos(camP.theta);
 
-                camera.position.lerp(new THREE.Vector3(tgt.x+ox, tgt.y+oy, tgt.z+oz), 0.15);
+                camera.position.lerp(new THREE.Vector3(tgt.x+ox, tgt.y+oy, tgt.z+oz), 0.2);
                 camera.lookAt(tgt);
 
                 PARTICLES.update(dt);
                 
-                // Throttle UI Updates for performance
+                // Throttle UI Update
                 if(Math.random() < 0.1) UI.update();
 
                 renderer.render(scene, camera);
@@ -1056,7 +1180,6 @@
 
         UI.update();
         initEngine();
-
     </script>
 </body>
 </html>
