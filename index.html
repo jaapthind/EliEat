@@ -1,276 +1,629 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>CUNION CLIMB - Protocol Edition</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JaapGym - 3D Fitness Simulator</title>
     <style>
-        body { margin: 0; background: #010101; overflow: hidden; font-family: 'Courier New', monospace; cursor: none; }
-        canvas { display: block; }
-        #ui-container { position: absolute; top: 20px; left: 20px; color: #0ff; pointer-events: none; z-index: 10; }
-        .stat-text { font-size: 20px; font-weight: bold; text-shadow: 0 0 10px #0ff; margin-bottom: 5px; }
-        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 100; cursor: default; }
-        .menu-box { padding: 40px; border: 2px solid #0ff; background: #000; text-align: center; box-shadow: 0 0 20px #0ff; min-width: 320px; }
-        input { background: #000; border: 1px solid #0ff; color: #fff; padding: 10px; font-family: 'Courier New'; margin: 10px; width: 200px; outline: none; }
-        button { background: #0ff; border: none; padding: 10px 20px; font-family: 'Courier New'; font-weight: bold; cursor: pointer; margin: 5px; width: 100%; max-width: 240px; transition: 0.2s; }
-        button:hover { background: #fff; box-shadow: 0 0 15px #fff; }
-        #skin-list { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        .skin-item { border: 2px solid #333; padding: 15px; background: #050505; transition: 0.3s; }
-        .hidden { display: none !important; }
-        #sync-notice { color: #f0f; font-size: 10px; margin-top: 10px; height: 12px; }
-        .mode-select { display: flex; gap: 5px; justify-content: center; margin: 10px 0; }
-        .m-btn { background: #111; color: #444; border: 1px solid #333; padding: 5px 10px; cursor: pointer; font-size: 10px; }
-        .m-btn.active { color: #0ff; border-color: #0ff; box-shadow: 0 0 5px #0ff; }
-        .m-btn.lava-on { color: #f44; border-color: #f44; box-shadow: 0 0 5px #f44; }
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #87CEEB;
+            user-select: none;
+        }
+        #game-canvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .hud-panel {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #4CAF50;
+            border-radius: 10px;
+            padding: 15px;
+            color: white;
+            pointer-events: auto;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        #stats-panel {
+            width: 250px;
+        }
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .stat-value {
+            color: #FFD700;
+        }
+        #controls-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            font-size: 1.1rem;
+            text-shadow: 1px 1px 2px black;
+        }
+        #upgrade-menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 20, 30, 0.95);
+            border: 3px solid #FF9800;
+            border-radius: 15px;
+            padding: 30px;
+            width: 400px;
+            color: white;
+            display: none;
+            pointer-events: auto;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 100;
+        }
+        .menu-title {
+            text-align: center;
+            font-size: 2rem;
+            color: #FF9800;
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+        .upgrade-btn {
+            background: linear-gradient(to bottom, #4CAF50, #45a049);
+            border: none;
+            border-radius: 5px;
+            padding: 15px;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+        }
+        .upgrade-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.6);
+        }
+        .upgrade-btn:active {
+            transform: scale(0.95);
+        }
+        .upgrade-btn.locked {
+            background: linear-gradient(to bottom, #555, #333);
+            color: #888;
+            cursor: not-allowed;
+        }
+        #close-menu {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            margin-top: 10px;
+        }
+        #close-menu:hover { background: #d32f2f; }
+        .notification {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2.5rem;
+            color: #00FF00;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px #000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
     </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
 </head>
 <body>
-
-    <div id="overlay">
-        <div class="menu-box" id="main-menu">
-            <h1 style="color:#0ff; margin:0;">CUNION CLIMB</h1>
-            <p style="color:#0ff; font-size: 10px; letter-spacing: 2px; margin-bottom: 10px;">UPLINK STABLE</p>
-            <input type="text" id="name-input" placeholder="Pilot ID..." maxlength="12">
-            <input type="password" id="pass-input" placeholder="Access Key..." maxlength="12">
-            <div class="mode-select">
-                <div id="m-std" class="m-btn active" onclick="setProtocol('STD')">STANDARD</div>
-                <div id="m-lava" class="m-btn" onclick="setProtocol('LAVA')">LAVA CLIMB</div>
-            </div>
-            <button id="launch-btn" onclick="startGame()">LAUNCH ENGINE</button>
-            <button onclick="showSkins()">SKIN PROTOCOLS</button>
-            <div id="sync-notice"></div>
+    <div id="ui-layer">
+        <div id="stats-panel" class="hud-panel">
+            <div class="stat-line"><span>Strength:</span> <span id="val-strength" class="stat-value">0</span></div>
+            <div class="stat-line"><span>Coins:</span> <span id="val-coins" class="stat-value">0</span></div>
+            <div class="stat-line"><span>Multiplier:</span> <span id="val-mult" class="stat-value">x1</span></div>
+            <div class="stat-line"><span>Weight:</span> <span id="val-weight" class="stat-value">1 kg</span></div>
+            <button id="btn-open-upgrades" style="width:100%; margin-top:15px; padding:10px; background:#FF9800; border:none; border-radius:5px; color:white; font-weight:bold; cursor:pointer;">UPGRADES (U)</button>
         </div>
-        <div class="menu-box hidden" id="pause-menu">
-            <h1 style="color:#0ff; margin:0;">PAUSED</h1>
-            <button onclick="resumeGame()">RESUME</button>
-            <button onclick="showSkins()">SKIN PROTOCOLS</button>
-            <button onclick="logout()" style="background:#f00; color:#fff;">LOG OUT</button>
-        </div>
-        <div class="menu-box hidden" id="skin-menu">
-            <h2 style="color:#f0f; margin:0;">EQUIPMENT BAY</h2>
-            <p style="color:#fff">Credits: <span id="credit-count" style="color:#0f0">0</span></p>
-            <div id="skin-list"></div>
-            <br>
-            <button onclick="backFromSkins()" style="background:#f0f; color:#000;">BACK</button>
+        <div id="controls-hint" class="hud-panel">
+            W,A,S,D / Arrows to Move | SPACE to Lift | U to Open Shop
         </div>
     </div>
 
-    <div id="ui-container">
-        <div class="stat-text">PILOT: <span id="d-name">---</span></div>
-        <div class="stat-text">ALTITUDE: <span id="height">0</span>m</div>
-        <div class="stat-text" style="color:#f0f">BEST: <span id="best-height">0</span>m</div>
-        <div id="lava-counter" class="stat-text hidden" style="color:#f44">LAVA DIST: <span id="lava-dist">0</span>m</div>
+    <div id="upgrade-menu">
+        <h2 class="menu-title">Gym Shop</h2>
+        <button class="upgrade-btn" id="upg-weight" onclick="purchaseUpgrade('weight')">
+            <span>Heavier Weight</span>
+            <span id="cost-weight">10 Coins</span>
+        </button>
+        <button class="upgrade-btn" id="upg-dna" onclick="purchaseUpgrade('dna')">
+            <span>Muscle DNA (Multiplier)</span>
+            <span id="cost-dna">100 Coins</span>
+        </button>
+        <button class="upgrade-btn" id="upg-sell" onclick="sellStrength()" style="background: linear-gradient(to bottom, #2196F3, #1976D2); margin-top: 20px;">
+            <span>Sell Strength for Coins</span>
+            <span>(Max Profit)</span>
+        </button>
+        <button id="close-menu" onclick="toggleMenu()">Close</button>
     </div>
 
-    <canvas id="canvas"></canvas>
+    <div id="level-up-text" class="notification">LEVEL UP!</div>
 
-<script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyHJkxAWX4UT-PNL4OgwPxy6NX_U3VWCepesdlQ4h5BDY1FqVw1peosoFD2bIew1QBJ7A/exec"; 
-const CREDIT_MULTIPLIER = 0.1; 
+    <script type="module">
+        import * as THREE from 'three';
 
-let gameActive = false, isPaused = false, gameMode = "STD", lavaY = 10000; 
-let user = { name: "Guest", pass: "", best: 0, credits: 0, color: "#0ff", unlocked: ["#0ff"] };
+        // --- GAME STATE ---
+        const gameState = {
+            strength: 0,
+            coins: 0,
+            multiplier: 1,
+            weightPower: 1,
+            costs: {
+                weight: 10,
+                dna: 100
+            },
+            lifting: false,
+            liftCooldown: 0,
+            isMenuOpen: false
+        };
 
-const skinData = [
-    { name: "NEON_DEFAULT", color: "#0ff", cost: 0 },
-    { name: "VIOLET_PULSE", color: "#f0f", cost: 1000 },
-    { name: "SOLAR_FLARE", color: "#ff0", cost: 3000 },
-    { name: "PHANTOM_ICE", color: "#fff", cost: 6000 }
-];
+        // --- THREE.JS SETUP ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.Fog(0x87CEEB, 20, 100);
 
-async function syncCloud() {
-    if (user.name === "Guest") return;
-    try {
-        await fetch(SCRIPT_URL, { 
-            method: "POST", 
-            body: JSON.stringify({ 
-                type: "saveScore", name: user.name, pass: user.pass, 
-                score: user.best, credits: Math.floor(user.credits), 
-                skins: user.unlocked.join(", ") 
-            }), 
-            mode: "no-cors" 
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        // --- LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        dirLight.position.set(20, 50, -20);
+        dirLight.castShadow = true;
+        dirLight.shadow.camera.top = 50;
+        dirLight.shadow.camera.bottom = -50;
+        dirLight.shadow.camera.left = -50;
+        dirLight.shadow.camera.right = 50;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        scene.add(dirLight);
+
+        // --- ENVIRONMENT (GYM) ---
+        const floorGeo = new THREE.PlaneGeometry(200, 200);
+        const floorMat = new THREE.MeshStandardMaterial({ 
+            color: 0x333333,
+            roughness: 0.8,
+            metalness: 0.2
         });
-    } catch (e) {}
-}
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
+        scene.add(floor);
 
-async function startGame() {
-    const name = document.getElementById('name-input').value.trim();
-    const pass = document.getElementById('pass-input').value.trim();
-    if (!name || !pass) return;
-    document.getElementById('sync-notice').innerText = "SYNCING PROFILE...";
-    try {
-        const response = await fetch(SCRIPT_URL, {
-            method: "POST",
-            body: JSON.stringify({ type: "loadUser", name: name, pass: pass }),
-            headers: { "Content-Type": "text/plain" }
+        // Grid lines to make it look like gym mats
+        const gridHelper = new THREE.GridHelper(200, 100, 0x000000, 0x111111);
+        gridHelper.position.y = 0.01;
+        scene.add(gridHelper);
+
+        // Walls
+        function createWall(w, h, d, x, y, z) {
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mat = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.9 });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, y, z);
+            mesh.receiveShadow = true;
+            mesh.castShadow = true;
+            scene.add(mesh);
+        }
+        createWall(100, 20, 2, 0, 10, -50); // North
+        createWall(100, 20, 2, 0, 10, 50);  // South
+        createWall(2, 20, 100, -50, 10, 0); // West
+        createWall(2, 20, 100, 50, 10, 0);  // East
+
+        // Gym Equipment Props (Visual only)
+        function createDumbbellRack(x, z) {
+            const rackGroup = new THREE.Group();
+            
+            // Frame
+            const frameGeo = new THREE.BoxGeometry(10, 3, 2);
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8, roughness: 0.2 });
+            const frame = new THREE.Mesh(frameGeo, frameMat);
+            frame.position.y = 1.5;
+            frame.castShadow = true;
+            rackGroup.add(frame);
+
+            // Dumbbells
+            for(let i=0; i<4; i++) {
+                const dbGroup = new THREE.Group();
+                const handleGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.8);
+                const weightGeo = new THREE.CylinderGeometry(0.4 + (i*0.1), 0.4 + (i*0.1), 0.3);
+                const dbMat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.6 });
+                
+                const handle = new THREE.Mesh(handleGeo, dbMat);
+                handle.rotation.z = Math.PI / 2;
+                
+                const w1 = new THREE.Mesh(weightGeo, dbMat);
+                w1.rotation.z = Math.PI / 2;
+                w1.position.x = -0.4;
+                
+                const w2 = new THREE.Mesh(weightGeo, dbMat);
+                w2.rotation.z = Math.PI / 2;
+                w2.position.x = 0.4;
+
+                dbGroup.add(handle, w1, w2);
+                dbGroup.position.set(-3.5 + (i * 2.3), 3.3, 0);
+                dbGroup.castShadow = true;
+                rackGroup.add(dbGroup);
+            }
+            
+            rackGroup.position.set(x, 0, z);
+            scene.add(rackGroup);
+        }
+
+        createDumbbellRack(-20, -30);
+        createDumbbellRack(-20, -20);
+        createDumbbellRack(20, -30);
+
+        // Bench Press
+        function createBench(x, z, rot) {
+            const benchGrp = new THREE.Group();
+            const padGeo = new THREE.BoxGeometry(2, 0.5, 6);
+            const padMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.9 });
+            const pad = new THREE.Mesh(padGeo, padMat);
+            pad.position.y = 1.5;
+            pad.castShadow = true;
+            benchGrp.add(pad);
+
+            const legGeo = new THREE.CylinderGeometry(0.2, 0.2, 1.5);
+            const legMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.7 });
+            const l1 = new THREE.Mesh(legGeo, legMat); l1.position.set(-0.8, 0.75, -2.5);
+            const l2 = new THREE.Mesh(legGeo, legMat); l2.position.set(0.8, 0.75, -2.5);
+            const l3 = new THREE.Mesh(legGeo, legMat); l3.position.set(0, 0.75, 2.5);
+            benchGrp.add(l1, l2, l3);
+
+            const barGeo = new THREE.CylinderGeometry(0.1, 0.1, 5);
+            const bar = new THREE.Mesh(barGeo, legMat);
+            bar.rotation.z = Math.PI / 2;
+            bar.position.set(0, 3, -2);
+            benchGrp.add(bar);
+
+            const plateGeo = new THREE.CylinderGeometry(1, 1, 0.3);
+            const pMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            const p1 = new THREE.Mesh(plateGeo, pMat); p1.rotation.z = Math.PI/2; p1.position.set(-2, 3, -2);
+            const p2 = new THREE.Mesh(plateGeo, pMat); p2.rotation.z = Math.PI/2; p2.position.set(2, 3, -2);
+            benchGrp.add(p1, p2);
+
+            benchGrp.position.set(x, 0, z);
+            benchGrp.rotation.y = rot;
+            scene.add(benchGrp);
+        }
+
+        createBench(15, 10, 0);
+        createBench(25, 10, 0);
+        createBench(15, 20, 0);
+
+        // --- PLAYER CHARACTER (ROBLOX STYLE BLOCKY) ---
+        const playerGroup = new THREE.Group();
+        scene.add(playerGroup);
+
+        const skinColor = 0xffcc99;
+        const shirtColor = 0x2196F3;
+        const pantsColor = 0x333333;
+
+        const headGeo = new THREE.BoxGeometry(1, 1, 1);
+        const skinMat = new THREE.MeshStandardMaterial({ color: skinColor, roughness: 0.6 });
+        const head = new THREE.Mesh(headGeo, skinMat);
+        head.position.y = 3.5;
+        head.castShadow = true;
+        playerGroup.add(head);
+
+        const torsoGeo = new THREE.BoxGeometry(2, 2, 1);
+        const torsoMat = new THREE.MeshStandardMaterial({ color: shirtColor });
+        const torso = new THREE.Mesh(torsoGeo, torsoMat);
+        torso.position.y = 2;
+        torso.castShadow = true;
+        playerGroup.add(torso);
+
+        // Arms structure for animation
+        const armGeo = new THREE.BoxGeometry(0.8, 2, 0.8);
+        
+        const leftArmGroup = new THREE.Group();
+        leftArmGroup.position.set(-1.5, 2.5, 0);
+        const leftArm = new THREE.Mesh(armGeo, skinMat);
+        leftArm.position.y = -0.5; // Offset for pivot
+        leftArm.castShadow = true;
+        leftArmGroup.add(leftArm);
+        playerGroup.add(leftArmGroup);
+
+        const rightArmGroup = new THREE.Group();
+        rightArmGroup.position.set(1.5, 2.5, 0);
+        const rightArm = new THREE.Mesh(armGeo, skinMat);
+        rightArm.position.y = -0.5;
+        rightArm.castShadow = true;
+        rightArmGroup.add(rightArm);
+        playerGroup.add(rightArmGroup);
+
+        const legGeo = new THREE.BoxGeometry(0.9, 2, 0.9);
+        const legMat = new THREE.MeshStandardMaterial({ color: pantsColor });
+        
+        const leftLegGroup = new THREE.Group();
+        leftLegGroup.position.set(-0.5, 1, 0);
+        const leftLeg = new THREE.Mesh(legGeo, legMat);
+        leftLeg.position.y = -0.5;
+        leftLeg.castShadow = true;
+        leftLegGroup.add(leftLeg);
+        playerGroup.add(leftLegGroup);
+
+        const rightLegGroup = new THREE.Group();
+        rightLegGroup.position.set(0.5, 1, 0);
+        const rightLeg = new THREE.Mesh(legGeo, legMat);
+        rightLeg.position.y = -0.5;
+        rightLeg.castShadow = true;
+        rightLegGroup.add(rightLeg);
+        playerGroup.add(rightLegGroup);
+
+        // Equipped Dumbbell
+        const equipGroup = new THREE.Group();
+        const eHandleGeo = new THREE.CylinderGeometry(0.1, 0.1, 1);
+        const eWeightGeo = new THREE.BoxGeometry(0.6, 0.6, 0.4);
+        const eMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+        const eHandle = new THREE.Mesh(eHandleGeo, eMat);
+        const ew1 = new THREE.Mesh(eWeightGeo, eMat); ew1.position.y = 0.4;
+        const ew2 = new THREE.Mesh(eWeightGeo, eMat); ew2.position.y = -0.4;
+        equipGroup.add(eHandle, ew1, ew2);
+        
+        // Attach to right hand
+        equipGroup.position.set(0, -1.2, 0.5);
+        equipGroup.rotation.x = Math.PI / 2;
+        rightArmGroup.add(equipGroup);
+
+        // Camera Setup (3rd Person Spring Arm)
+        const cameraOffset = new THREE.Vector3(0, 5, 12);
+        const cameraTarget = new THREE.Vector3(0, 2, 0);
+
+        // --- INPUT HANDLING ---
+        const keys = { w: false, a: false, s: false, d: false, arrowup: false, arrowdown: false, arrowleft: false, arrowright: false, space: false };
+        
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if(keys.hasOwnProperty(key)) keys[key] = true;
+            if(key === 'u') toggleMenu();
+            if(key === ' ' || key === 'space') doLift();
         });
-        const cloudData = await response.json();
-        if (cloudData.exists) {
-            user = { name: name, pass: pass, best: cloudData.best || 0, credits: cloudData.credits || 0, color: user.color || "#0ff", unlocked: cloudData.skins ? cloudData.skins.split(", ") : ["#0ff"] };
+
+        window.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            if(keys.hasOwnProperty(key)) keys[key] = false;
+        });
+
+        document.getElementById('btn-open-upgrades').addEventListener('click', toggleMenu);
+
+        // --- GAME LOGIC ---
+        window.toggleMenu = function() {
+            gameState.isMenuOpen = !gameState.isMenuOpen;
+            document.getElementById('upgrade-menu').style.display = gameState.isMenuOpen ? 'flex' : 'none';
         }
-    } catch (e) {}
-    document.getElementById('d-name').innerText = user.name;
-    document.getElementById('best-height').innerText = user.best;
-    document.getElementById('sync-notice').innerText = "";
-    document.getElementById('overlay').classList.add('hidden');
-    player.x = canvas.width / 2; player.y = FLOOR_Y - 30; player.vx = 0; player.vy = 0; player.history = [];
-    lavaY = FLOOR_Y + 600; 
-    gameActive = true; isPaused = false;
-}
 
-function setProtocol(m) {
-    gameMode = m;
-    document.getElementById('m-std').className = m === 'STD' ? 'm-btn active' : 'm-btn';
-    document.getElementById('m-lava').className = m === 'LAVA' ? 'm-btn lava-on' : 'm-btn';
-    document.getElementById('lava-counter').classList.toggle('hidden', m !== 'LAVA');
-}
-
-function logout() {
-    syncCloud(); gameActive = false;
-    document.getElementById('pause-menu').classList.add('hidden');
-    document.getElementById('main-menu').classList.remove('hidden');
-    document.getElementById('overlay').classList.remove('hidden');
-}
-
-function renderSkins() {
-    document.getElementById('credit-count').innerText = Math.floor(user.credits);
-    const list = document.getElementById('skin-list'); list.innerHTML = "";
-    skinData.forEach(s => {
-        const bought = user.unlocked.includes(s.color);
-        list.innerHTML += `<div class="skin-item" style="border-color: ${s.color};">
-            <div style="color:${s.color}; font-size: 12px;">${s.name}</div>
-            ${bought ? `<button onclick="setSkin('${s.color}')" style="background:${s.color}; color:#000;">EQUIP</button>` : `<button onclick="buySkin('${s.color}',${s.cost})">BUY ${s.cost}</button>`}
-        </div>`;
-    });
-}
-function buySkin(c, cost) { if(user.credits >= cost) { user.credits -= cost; user.unlocked.push(c); syncCloud(); renderSkins(); } }
-function setSkin(c) { user.color = c; backFromSkins(); }
-function resumeGame() { isPaused = false; document.getElementById('overlay').classList.add('hidden'); }
-function showSkins() { document.getElementById('main-menu').classList.add('hidden'); document.getElementById('pause-menu').classList.add('hidden'); document.getElementById('skin-menu').classList.remove('hidden'); renderSkins(); }
-function backFromSkins() { document.getElementById('skin-menu').classList.add('hidden'); if (gameActive) document.getElementById('pause-menu').classList.remove('hidden'); else document.getElementById('main-menu').classList.remove('hidden'); }
-
-const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-const GRAVITY = 0.28, FRICTION_AIR = 0.985, FRICTION_GROUND = 0.85;
-const WALK_SPEED = 0.7, JUMP_FORCE = -10, SWING_FORCE = 0.6, HOOK_RANGE = 380;
-const FLOOR_Y = canvas.height - 50;
-
-let player = { x: canvas.width/2, y: FLOOR_Y-30, vx: 0, vy: 0, hookedTo: null, ropeLen: 0, radius: 15, onGround: false, history: [], rotation: 0 };
-let mouse = { x: 0, y: 0 }, currentTarget = null, keys = {}, anchors = [];
-
-for (let i = 0; i < 2000; i++) { anchors.push({ x: Math.random() * (canvas.width - 200) + 100, y: (canvas.height - 250) - (i * 180) }); }
-
-window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
-window.addEventListener('mousedown', () => { if(!gameActive || isPaused || !currentTarget) return; player.hookedTo = currentTarget; player.ropeLen = Math.sqrt((player.x-currentTarget.x)**2+(player.y-currentTarget.y)**2); });
-window.addEventListener('mouseup', () => player.hookedTo = null);
-window.addEventListener('keydown', e => { keys[e.code] = true; if (e.code === 'Escape') togglePause(); });
-window.addEventListener('keyup', e => keys[e.code] = false);
-
-function togglePause() { if (!gameActive) return; isPaused = !isPaused; document.getElementById('overlay').classList.toggle('hidden', !isPaused); document.getElementById('pause-menu').classList.toggle('hidden', !isPaused); if(isPaused) syncCloud(); }
-
-function update() {
-    if (!gameActive || isPaused) return;
-    let h = Math.floor(Math.max(0, (FLOOR_Y - player.radius - player.y)/10));
-    if (gameMode === "LAVA") {
-        lavaY -= (0.8 + (h / 600));
-        let dist = Math.max(0, Math.floor((lavaY - (player.y + player.radius))/10));
-        document.getElementById('lava-dist').innerText = dist;
-        if (player.y + player.radius > lavaY) { gameActive = false; alert("MISSION FAILURE: " + h + "m"); logout(); return; }
-    }
-    player.rotation += player.vx * 0.05;
-    player.history.push({x: player.x, y: player.y});
-    if (player.history.length > 20) player.history.shift();
-    let camY = Math.min(0, player.y - canvas.height * 0.7);
-    currentTarget = null;
-    anchors.forEach(a => {
-        let d = Math.sqrt((mouse.x - a.x)**2 + (mouse.y - (a.y - camY))**2);
-        if (d < 55 && Math.sqrt((player.x - a.x)**2 + (player.y - a.y)**2) < HOOK_RANGE) currentTarget = a;
-    });
-    if (player.hookedTo) {
-        let dx = player.x-player.hookedTo.x, dy = player.y-player.hookedTo.y, dist = Math.sqrt(dx*dx+dy*dy);
-        if (dist > player.ropeLen) {
-            let angle = Math.atan2(dy, dx);
-            player.x = player.hookedTo.x + Math.cos(angle)*player.ropeLen;
-            player.y = player.hookedTo.y + Math.sin(angle)*player.ropeLen;
-            let vDot = player.vx*Math.cos(angle) + player.vy*Math.sin(angle);
-            player.vx -= vDot*Math.cos(angle)*1.1; player.vy -= vDot*Math.sin(angle)*1.1;
+        window.doLift = function() {
+            if(gameState.lifting || gameState.isMenuOpen) return;
+            gameState.lifting = true;
+            
+            // Add strength based on weight power and DNA multiplier
+            const gain = gameState.weightPower * gameState.multiplier;
+            gameState.strength += gain;
+            
+            // Update UI
+            updateUI();
+            
+            // Animation reset handled in main loop
+            gameState.liftCooldown = 0.5; // seconds
         }
-        if (keys['KeyA'] || keys['ArrowLeft']) player.vx -= SWING_FORCE;
-        if (keys['KeyD'] || keys['ArrowRight']) player.vx += SWING_FORCE;
-    } else if (player.onGround) {
-        if (keys['KeyA'] || keys['ArrowLeft']) player.vx -= WALK_SPEED;
-        if (keys['KeyD'] || keys['ArrowRight']) player.vx += WALK_SPEED;
-        if (keys['Space'] || keys['ArrowUp'] || keys['KeyW']) player.vy = JUMP_FORCE;
-        player.vx *= FRICTION_GROUND;
-    }
-    player.vy += GRAVITY; player.vx *= FRICTION_AIR; player.vy *= FRICTION_AIR;
-    player.x += player.vx; player.y += player.vy;
-    if (player.y > FLOOR_Y - player.radius) { player.y = FLOOR_Y-player.radius; player.vy = 0; player.onGround = true; } else { player.onGround = false; }
-    if (player.x < player.radius || player.x > canvas.width-player.radius) { player.vx *= -0.5; player.x = (player.x < player.radius) ? player.radius : canvas.width-player.radius; }
-    document.getElementById('height').innerText = h;
-    if(h > user.best) { 
-        user.credits += (h - user.best) * CREDIT_MULTIPLIER;
-        user.best = h; document.getElementById('best-height').innerText = h; 
-        if(h % 50 === 0) syncCloud();
-    }
-}
 
-function draw() {
-    let camY = Math.min(0, player.y - canvas.height * 0.7);
-    ctx.fillStyle = "#010101"; ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = "#0a0a0a"; ctx.fillRect(0, FLOOR_Y-camY, canvas.width, 300);
-    ctx.strokeStyle = "#0ff"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0, FLOOR_Y-camY); ctx.lineTo(canvas.width, FLOOR_Y-camY); ctx.stroke();
-
-    if (gameMode === "LAVA") {
-        let lG = ctx.createLinearGradient(0, lavaY-camY, 0, lavaY-camY+600);
-        lG.addColorStop(0, "rgba(255,40,0,1)"); lG.addColorStop(0.2, "rgba(255,100,0,0.8)"); lG.addColorStop(1, "transparent");
-        ctx.fillStyle = lG; ctx.fillRect(0, lavaY-camY, canvas.width, 1000);
-    }
-    anchors.forEach(a => {
-        let isT = (a === currentTarget || a === player.hookedTo);
-        ctx.beginPath(); ctx.arc(a.x, a.y-camY, isT?10:5, 0, Math.PI*2);
-        ctx.fillStyle = isT?"#fff":"#333"; ctx.fill();
-    });
-    if (player.hookedTo) {
-        ctx.beginPath(); ctx.moveTo(player.x, player.y-camY); ctx.lineTo(player.hookedTo.x, player.hookedTo.y-camY);
-        ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.stroke();
-        ctx.strokeStyle = user.color; ctx.lineWidth = 1; ctx.stroke();
-    }
-
-    // --- RE-INTEGRATED BEST SCRIPT RENDERING ---
-    ctx.save(); ctx.translate(player.x, player.y - camY);
-    if (user.color === "#ff0") { // SOLAR_FLARE
-        let pulse = (Math.sin(Date.now() * 0.015) + 1) / 2;
-        let glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 40 + (pulse * 10));
-        glow.addColorStop(0, "#fff"); glow.addColorStop(0.2, "rgba(255, 255, 0, 0.9)"); glow.addColorStop(1, "rgba(255, 0, 0, 0)");
-        ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 0, 50, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI * 2); ctx.fill();
-    } else if (user.color === "#f0f") { // VIOLET_PULSE
-        ctx.save(); ctx.rotate(Date.now()*0.002 - (player.vx*0.1));
-        for(let i=0; i<8; i++) {
-            ctx.save(); ctx.rotate(i*(Math.PI/4)); ctx.translate(35,0);
-            ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0,0,4,0,Math.PI*2); ctx.fill();
-            ctx.strokeStyle = "#f0f"; ctx.stroke(); ctx.restore();
+        window.purchaseUpgrade = function(type) {
+            const cost = gameState.costs[type];
+            if(gameState.coins >= cost) {
+                gameState.coins -= cost;
+                
+                if(type === 'weight') {
+                    gameState.weightPower += 1;
+                    gameState.costs.weight = Math.floor(gameState.costs.weight * 1.5);
+                    // Make dumbbell bigger visually
+                    const scale = 1 + (gameState.weightPower * 0.1);
+                    ew1.scale.set(scale, scale, scale);
+                    ew2.scale.set(scale, scale, scale);
+                    
+                    // Make player slightly bigger
+                    const pScale = 1 + (gameState.weightPower * 0.05);
+                    if(pScale < 3) playerGroup.scale.set(pScale, pScale, pScale);
+                } 
+                else if(type === 'dna') {
+                    gameState.multiplier += 1;
+                    gameState.costs.dna = Math.floor(gameState.costs.dna * 2.5);
+                    showNotification("DNA UPGRADED!");
+                }
+                updateUI();
+            }
         }
-        ctx.restore();
-        ctx.rotate(player.rotation);
-        ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = user.color; ctx.lineWidth = 2.5; ctx.stroke();
-    } else { // DEFAULT & PHANTOM
-        ctx.rotate(player.rotation);
-        ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = user.color; ctx.lineWidth = 2.5; ctx.stroke();
-        let pulse = (Math.sin(Date.now()*0.01) + 1) / 2;
-        ctx.beginPath(); ctx.arc(0, 0, player.radius * 0.5, 0, Math.PI*2);
-        ctx.fillStyle = user.color; ctx.globalAlpha = 0.3 + (pulse * 0.4); ctx.fill();
-    }
-    ctx.restore();
 
-    if (!isPaused && gameActive) {
-        ctx.beginPath(); ctx.arc(mouse.x, mouse.y, 45, 0, Math.PI*2);
-        ctx.strokeStyle = "#0ff"; ctx.lineWidth = 2; ctx.setLineDash([10, 5]); ctx.stroke(); ctx.setLineDash([]);
-    }
-    update(); requestAnimationFrame(draw);
-}
-draw();
-</script>
+        window.sellStrength = function() {
+            if(gameState.strength > 0) {
+                const earned = Math.floor(gameState.strength * 2);
+                gameState.coins += earned;
+                gameState.strength = 0;
+                showNotification(`SOLD FOR ${earned} COINS!`);
+                updateUI();
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('val-strength').innerText = Math.floor(gameState.strength);
+            document.getElementById('val-coins').innerText = Math.floor(gameState.coins);
+            document.getElementById('val-mult').innerText = `x${gameState.multiplier}`;
+            document.getElementById('val-weight').innerText = `${gameState.weightPower * 5} kg`;
+
+            // Button states
+            const btnWeight = document.getElementById('upg-weight');
+            document.getElementById('cost-weight').innerText = `${gameState.costs.weight} Coins`;
+            if(gameState.coins >= gameState.costs.weight) btnWeight.classList.remove('locked');
+            else btnWeight.classList.add('locked');
+
+            const btnDna = document.getElementById('upg-dna');
+            document.getElementById('cost-dna').innerText = `${gameState.costs.dna} Coins`;
+            if(gameState.coins >= gameState.costs.dna) btnDna.classList.remove('locked');
+            else btnDna.classList.add('locked');
+        }
+
+        function showNotification(text) {
+            const notif = document.getElementById('level-up-text');
+            notif.innerText = text;
+            notif.style.opacity = 1;
+            setTimeout(() => { notif.style.opacity = 0; }, 1500);
+        }
+
+        // --- MAIN LOOP ---
+        const clock = new THREE.Clock();
+        const moveSpeed = 15;
+        const rotSpeed = 5;
+        let walkTime = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const dt = clock.getDelta();
+
+            if(!gameState.isMenuOpen) {
+                // Movement
+                let isMoving = false;
+                const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerGroup.quaternion);
+                const right = new THREE.Vector3(1, 0, 0).applyQuaternion(playerGroup.quaternion);
+
+                const velocity = new THREE.Vector3();
+
+                if(keys.w || keys.arrowup) { velocity.add(forward); isMoving = true; }
+                if(keys.s || keys.arrowdown) { velocity.sub(forward); isMoving = true; }
+                
+                // Rotational movement for A/D
+                if(keys.a || keys.arrowleft) playerGroup.rotation.y += rotSpeed * dt;
+                if(keys.d || keys.arrowright) playerGroup.rotation.y -= rotSpeed * dt;
+
+                if(isMoving) {
+                    velocity.normalize().multiplyScalar(moveSpeed * dt);
+                    
+                    // Simple boundary collision
+                    const nextPos = playerGroup.position.clone().add(velocity);
+                    if(Math.abs(nextPos.x) < 48 && Math.abs(nextPos.z) < 48) {
+                        playerGroup.position.copy(nextPos);
+                    }
+
+                    // Walking animation
+                    walkTime += dt * 15;
+                    leftLegGroup.rotation.x = Math.sin(walkTime) * 0.5;
+                    rightLegGroup.rotation.x = Math.sin(walkTime + Math.PI) * 0.5;
+                    if(!gameState.lifting) {
+                        leftArmGroup.rotation.x = Math.sin(walkTime + Math.PI) * 0.5;
+                        rightArmGroup.rotation.x = Math.sin(walkTime) * 0.5;
+                    }
+                } else {
+                    walkTime = 0;
+                    leftLegGroup.rotation.x = 0;
+                    rightLegGroup.rotation.x = 0;
+                    if(!gameState.lifting) {
+                        leftArmGroup.rotation.x = 0;
+                        rightArmGroup.rotation.x = 0;
+                    }
+                }
+
+                // Lifting Animation Logic
+                if(gameState.lifting) {
+                    gameState.liftCooldown -= dt;
+                    // Bicep curl motion
+                    const animProgress = 1 - (gameState.liftCooldown / 0.5);
+                    if(animProgress < 0.5) {
+                        // Up
+                        rightArmGroup.rotation.x = -Math.PI * (animProgress * 2);
+                        leftArmGroup.rotation.x = -Math.PI * (animProgress * 2); // Do both arms for fun
+                    } else {
+                        // Down
+                        rightArmGroup.rotation.x = -Math.PI * ((1 - animProgress) * 2);
+                        leftArmGroup.rotation.x = -Math.PI * ((1 - animProgress) * 2);
+                    }
+
+                    if(gameState.liftCooldown <= 0) {
+                        gameState.lifting = false;
+                        rightArmGroup.rotation.x = 0;
+                        leftArmGroup.rotation.x = 0;
+                    }
+                }
+            }
+
+            // Update Camera (Smoothly follow player)
+            const idealOffset = cameraOffset.clone().applyQuaternion(playerGroup.quaternion);
+            idealOffset.add(playerGroup.position);
+            
+            const idealLookat = cameraTarget.clone().applyQuaternion(playerGroup.quaternion);
+            idealLookat.add(playerGroup.position);
+
+            const t = 1.0 - Math.pow(0.001, dt);
+            camera.position.lerp(idealOffset, t);
+            
+            // Look at player head area
+            const currentLookat = new THREE.Vector3(0,0,0);
+            camera.getWorldDirection(currentLookat);
+            currentLookat.add(camera.position);
+            currentLookat.lerp(idealLookat, t);
+            camera.lookAt(currentLookat);
+
+            renderer.render(scene, camera);
+        }
+
+        // Handle Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Initialize UI values
+        updateUI();
+
+        // Start Loop
+        animate();
+    </script>
 </body>
 </html>
