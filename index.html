@@ -1,1185 +1,1006 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JaapGym - Ultimate 3D Fitness Simulator (Extreme Edition)</title>
-    <style>
-        /* ==========================================================================
-           CORE CSS & RESET
-           ========================================================================== */
-        *, *::before, *::after { box-sizing: border-box; user-select: none; -webkit-user-drag: none; margin: 0; padding: 0; }
-        body, html { width: 100vw; height: 100vh; overflow: hidden; background-color: #0d0d1a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
-        
-        /* ==========================================================================
-           3D CANVAS & CROSSHAIR
-           ========================================================================== */
-        #game-canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 8px; height: 8px; background-color: #fff; border: 2px solid #000; border-radius: 50%; z-index: 10; pointer-events: none; transition: 0.2s; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
-        #crosshair.active { transform: translate(-50%, -50%) scale(1.5); background-color: #00FF88; border-color: #fff; }
-        
-        /* ==========================================================================
-           INTERACTION PROMPT
-           ========================================================================== */
-        #interaction-prompt { position: absolute; top: 55%; left: 50%; transform: translateX(-50%); background: rgba(10, 15, 25, 0.9); color: #fff; padding: 15px 30px; border-radius: 12px; font-weight: 900; font-size: 1.5rem; display: none; z-index: 10; border: 3px solid #00FF88; box-shadow: 0 10px 30px rgba(0, 255, 136, 0.4); text-transform: uppercase; letter-spacing: 2px; animation: pulsePrompt 1s infinite alternate; }
-        @keyframes pulsePrompt { 0% { transform: translateX(-50%) scale(1); box-shadow: 0 10px 20px rgba(0,255,136,0.3); } 100% { transform: translateX(-50%) scale(1.05); box-shadow: 0 15px 40px rgba(0,255,136,0.6); } }
-        .key-btn { background: #fff; color: #000; padding: 4px 12px; border-radius: 6px; border-bottom: 4px solid #aaa; font-family: 'Courier New', Courier, monospace; margin-right: 10px; font-weight: 900; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chicken Clicker</title>
+<style>
+    :root {
+        --bg-dark: #121212;
+        --bg-panel: #1e1e1e;
+        --bg-panel-hover: #2a2a2a;
+        --text-main: #ffffff;
+        --text-muted: #aaaaaa;
+        --accent: #f39c12;
+        --accent-hover: #e67e22;
+        --border-color: #333333;
+        --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-        /* ==========================================================================
-           LOADING SCREEN
-           ========================================================================== */
-        #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, #1a1a2e, #0a0a14); z-index: 99999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; transition: opacity 0.8s ease-out; }
-        .loader-ring { width: 150px; height: 150px; border: 15px solid rgba(255, 255, 255, 0.1); border-radius: 50%; border-top-color: #FFEB3B; border-bottom-color: #E91E63; border-left-color: #00FF88; animation: spin 1s linear infinite; margin-bottom: 40px; box-shadow: 0 0 50px rgba(255, 255, 255, 0.2); }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #loading-text { font-size: 4rem; font-weight: 900; letter-spacing: 8px; text-transform: uppercase; text-shadow: 0 0 20px rgba(255,255,255,0.8); }
-        #loading-sub { font-size: 1.5rem; color: #00FF88; margin-top: 15px; font-family: monospace; }
-        #loading-bar-container { width: 400px; height: 20px; background: #111; border: 2px solid #444; border-radius: 10px; margin-top: 20px; overflow: hidden; }
-        #loading-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #00FF88, #00BCD4); transition: width 0.1s; }
+    * {
+        box-sizing: border-box;
+        user-select: none;
+    }
 
-        /* ==========================================================================
-           HEADS UP DISPLAY (HUD)
-           ========================================================================== */
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: none; padding: 25px; display: flex; flex-direction: column; justify-content: space-between; }
-        .interactive { pointer-events: auto; }
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg-dark);
+        color: var(--text-main);
+        font-family: var(--font-main);
+        overflow: hidden;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
 
-        /* Top HUD */
-        #top-hud { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; }
-        
-        .hud-panel { background: rgba(15, 20, 30, 0.85); border: 4px solid #2a2a35; border-radius: 16px; padding: 25px; color: #fff; box-shadow: 0 15px 35px rgba(0,0,0,0.6); backdrop-filter: blur(10px); min-width: 340px; position: relative; overflow: hidden; }
-        .hud-panel::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #FF5252, #00E676, #00BCD4); }
-        
-        .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .stat-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-        .stat-label { font-weight: 900; color: #aaa; text-transform: uppercase; font-size: 1.1rem; letter-spacing: 2px; }
-        .stat-val { font-weight: 900; font-family: 'Courier New', Courier, monospace; font-size: 1.8rem; }
-        .val-str { color: #FF5722; text-shadow: 0 0 10px rgba(255, 87, 34, 0.6); }
-        .val-spd { color: #00E676; text-shadow: 0 0 10px rgba(0, 230, 118, 0.6); }
-        .val-stm { color: #FFEB3B; text-shadow: 0 0 10px rgba(255, 235, 59, 0.6); }
-        .val-coin { color: #FFC107; text-shadow: 0 0 10px rgba(255, 193, 7, 0.6); }
-        .val-gem { color: #00E5FF; text-shadow: 0 0 10px rgba(0, 229, 255, 0.6); }
-        
-        .progress-wrapper { width: 100%; margin-top: 20px; }
-        .progress-label { display: flex; justify-content: space-between; font-size: 1.1rem; color: #fff; margin-bottom: 8px; font-weight: 900; text-shadow: 2px 2px 4px #000; text-transform: uppercase; }
-        .progress-container { width: 100%; height: 24px; background: #0a0a10; border-radius: 12px; overflow: hidden; border: 3px solid #333; position: relative; }
-        .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #4CAF50, #8BC34A); transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 0 15px rgba(76, 175, 80, 0.8); }
-        .progress-bar.stamina { background: linear-gradient(90deg, #FF9800, #FFEB3B); box-shadow: 0 0 15px rgba(255, 193, 7, 0.8); }
+    #game-container {
+        display: flex;
+        flex: 1;
+        height: 100%;
+        width: 100%;
+    }
 
-        /* Zones Panel */
-        #zone-panel { min-width: 250px; text-align: center; border-top: 4px solid #9C27B0; }
-        #zone-title { font-size: 1.8rem; font-weight: 900; color: #E040FB; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 15px rgba(224, 64, 251, 0.6); margin-bottom: 10px; }
-        #zone-desc { font-size: 1rem; color: #ccc; font-weight: bold; }
+    .column {
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        border-right: 1px solid var(--border-color);
+    }
 
-        /* Side Menu */
-        #side-menu { position: absolute; left: 25px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 20px; }
-        .side-btn { width: 90px; height: 90px; border-radius: 24px; background: linear-gradient(145deg, #2a2a35, #1e1e25); border: 4px solid #444; color: white; cursor: pointer; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; justify-content: center; align-items: center; flex-direction: column; font-size: 0.85rem; font-weight: 900; text-transform: uppercase; box-shadow: 0 10px 30px rgba(0,0,0,0.6); position: relative; overflow: hidden; }
-        .side-btn::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent); transform: rotate(45deg); transition: 0.5s; }
-        .side-btn:hover::after { left: 100%; }
-        .side-btn:hover { border-color: #fff; transform: scale(1.15) translateX(20px); z-index: 10; }
-        .side-btn.shop-btn { background: linear-gradient(145deg, #00C853, #00796B); border-color: #69F0AE; }
-        .side-btn.sell-btn { background: linear-gradient(145deg, #2962FF, #0D47A1); border-color: #82B1FF; }
-        .side-btn.rebirth-btn { background: linear-gradient(145deg, #AA00FF, #4A148C); border-color: #E040FB; }
-        .side-btn.pets-btn { background: linear-gradient(145deg, #FF6D00, #E65100); border-color: #FFAB40; }
-        .side-btn.settings-btn { background: linear-gradient(145deg, #455A64, #263238); border-color: #90A4AE; }
-        .side-btn svg { width: 36px; height: 36px; fill: white; margin-bottom: 8px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+    .column::-webkit-scrollbar {
+        width: 8px;
+    }
 
-        /* Bottom Controls / Hotbar */
-        #bottom-hud { display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 25px; position: relative; gap: 20px; }
-        #hotbar { display: flex; gap: 15px; background: rgba(10, 15, 25, 0.8); padding: 15px; border-radius: 20px; border: 3px solid #333; box-shadow: 0 15px 40px rgba(0,0,0,0.7); backdrop-filter: blur(10px); }
-        .hotbar-slot { width: 80px; height: 80px; background: rgba(255,255,255,0.05); border: 3px solid #555; border-radius: 12px; display: flex; justify-content: center; align-items: center; position: relative; cursor: pointer; transition: 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .hotbar-slot.active { border-color: #00FF88; background: rgba(0, 255, 136, 0.2); transform: translateY(-10px) scale(1.1); box-shadow: 0 10px 25px rgba(0, 255, 136, 0.5); }
-        .hotbar-num { position: absolute; top: 4px; left: 6px; font-size: 0.9rem; font-weight: 900; color: #fff; background: #000; padding: 2px 8px; border-radius: 6px; border: 1px solid #444; }
-        .hotbar-icon { font-size: 2.5rem; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.5)); }
-        
-        #btn-action { background: linear-gradient(180deg, #FF5252, #B71C1C); border: 6px solid #FF8A80; padding: 25px 100px; border-radius: 60px; color: white; font-size: 2.8rem; font-weight: 900; cursor: pointer; box-shadow: 0 20px 40px rgba(183, 28, 28, 0.7), inset 0 8px 20px rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 5px; transition: all 0.1s; text-shadow: 3px 3px 6px rgba(0,0,0,0.6); display: none; }
-        #btn-action:active { transform: translateY(12px) scale(0.95); box-shadow: 0 8px 15px rgba(183, 28, 28, 0.7), inset 0 3px 10px rgba(255,255,255,0.5); }
-        
-        #controls-hint { position: absolute; bottom: 0; right: 25px; background: rgba(10, 15, 25, 0.9); padding: 15px 30px; border-radius: 16px; color: #fff; font-size: 1.1rem; font-weight: 900; text-align: right; border: 3px solid #444; box-shadow: 0 10px 25px rgba(0,0,0,0.6); letter-spacing: 1px; }
-        .hl { color: #00FF88; }
+    .column::-webkit-scrollbar-track {
+        background: var(--bg-dark);
+    }
 
-        /* Status Effects / Action UI */
-        #action-overlay { position: absolute; top: 65%; left: 50%; transform: translateX(-50%); display: none; flex-direction: column; align-items: center; z-index: 90; }
-        .action-text { font-size: 2.5rem; font-weight: 900; color: #FFEB3B; text-transform: uppercase; text-shadow: 0 0 20px #FF9800, 2px 2px 0 #000; letter-spacing: 3px; animation: pumpText 0.5s infinite alternate; }
-        @keyframes pumpText { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
+    .column::-webkit-scrollbar-thumb {
+        background: #555;
+        border-radius: 4px;
+    }
 
-        /* Notifications & Floating Text */
-        #notification-container { position: absolute; top: 120px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 15px; align-items: center; pointer-events: none; z-index: 1000; width: 100%; }
-        .toast { background: rgba(20, 25, 35, 0.95); border-left: 10px solid #00FF88; padding: 25px 50px; border-radius: 16px; color: white; font-weight: 900; font-size: 1.8rem; box-shadow: 0 20px 40px rgba(0,0,0,0.8); animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, fadeOut 0.5s ease-in 3s forwards; opacity: 0; text-transform: uppercase; letter-spacing: 2px; border-right: 2px solid #333; border-top: 2px solid #333; border-bottom: 2px solid #333; }
-        @keyframes slideDown { 0% { transform: translateY(-80px) scale(0.8); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
-        @keyframes fadeOut { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-50px) scale(0.9); } }
+    /* LEFT COLUMN - THE CHICKEN */
+    #left-column {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        background: radial-gradient(circle, #3a2e1d 0%, var(--bg-dark) 70%);
+    }
 
-        .float-text { position: absolute; pointer-events: none; font-weight: 900; font-size: 3.5rem; text-shadow: 3px 3px 0 #000, -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 0 10px 25px rgba(0,0,0,0.9); z-index: 500; animation: floatUpExt 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        .float-str { color: #FF5252; } .float-spd { color: #00E676; } .float-coin { color: #FFD700; } .float-exp { color: #00BCD4; }
-        @keyframes floatUpExt { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; } 30% { transform: translate(-50%, -150%) scale(1.4); opacity: 1; } 100% { transform: translate(-50%, -400%) scale(0.8); opacity: 0; } }
+    #score-container {
+        text-align: center;
+        margin-top: 50px;
+        z-index: 10;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 20px;
+        border-radius: 15px;
+        width: 80%;
+    }
 
-        /* ==========================================================================
-           MODALS (SHOP, REBIRTH, ETC)
-           ========================================================================== */
-        .window-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.7); background: rgba(15, 20, 25, 0.98); border: 5px solid #333; border-radius: 30px; width: 1200px; height: 850px; display: none; flex-direction: column; z-index: 500; box-shadow: 0 40px 100px rgba(0,0,0,0.95), 0 0 0 100vw rgba(0,0,0,0.85); opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); overflow: hidden; }
-        .window-modal.active { display: flex; opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 30px 50px; background: linear-gradient(90deg, #11111a, #1a1a2e); border-bottom: 5px solid #00FF88; position: relative; }
-        .modal-title { font-size: 3.5rem; font-weight: 900; color: white; margin: 0; text-transform: uppercase; letter-spacing: 5px; text-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
-        .close-btn { background: #D32F2F; border: 4px solid #B71C1C; width: 70px; height: 70px; border-radius: 50%; color: white; font-size: 3rem; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; box-shadow: 0 8px 20px rgba(211, 47, 47, 0.6); }
-        .close-btn:hover { background: #F44336; transform: rotate(90deg) scale(1.15); border-color: #fff; }
-        
-        .modal-body { display: flex; flex: 1; overflow: hidden; }
-        .modal-tabs { width: 320px; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; padding: 25px; gap: 20px; border-right: 4px solid #222; overflow-y: auto; }
-        .modal-tabs::-webkit-scrollbar { width: 8px; } .modal-tabs::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
-        .tab-btn { background: rgba(255,255,255,0.03); border: 4px solid transparent; color: #888; padding: 25px 20px; text-align: left; font-size: 1.4rem; font-weight: 900; cursor: pointer; border-radius: 16px; transition: 0.2s; text-transform: uppercase; letter-spacing: 2px; }
-        .tab-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
-        .tab-btn.active { background: linear-gradient(90deg, rgba(0, 255, 136, 0.2), transparent); border-left-color: #00FF88; color: white; text-shadow: 0 0 10px rgba(0, 255, 136, 0.8); }
-        
-        .modal-content-area { flex: 1; padding: 40px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 30px; align-content: start; background: radial-gradient(circle at top left, #1a1a24, #0d0d14); }
-        .modal-content-area::-webkit-scrollbar { width: 16px; } .modal-content-area::-webkit-scrollbar-track { background: #0a0a10; border-left: 2px solid #222; } .modal-content-area::-webkit-scrollbar-thumb { background: #555; border-radius: 8px; border: 4px solid #0a0a10; }
+    #eggs-count {
+        font-size: 3rem;
+        font-weight: bold;
+        color: var(--accent);
+        text-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
+        margin: 0;
+    }
 
-        /* Items */
-        .shop-item { background: linear-gradient(180deg, #22222d, #15151c); border: 4px solid #333; border-radius: 24px; padding: 30px; display: flex; flex-direction: column; align-items: center; text-align: center; transition: 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 15px 35px rgba(0,0,0,0.8); position: relative; overflow: hidden; }
-        .shop-item::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 40%; background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent); pointer-events: none; }
-        .shop-item:hover { border-color: #00FF88; transform: translateY(-10px); box-shadow: 0 25px 50px rgba(0, 255, 136, 0.25); z-index: 5; }
-        .item-icon-container { width: 140px; height: 140px; background: radial-gradient(circle, #333, #111); border-radius: 50%; margin-bottom: 25px; display: flex; justify-content: center; align-items: center; font-size: 5rem; border: 5px solid #444; box-shadow: inset 0 0 40px rgba(0,0,0,0.9), 0 10px 20px rgba(0,0,0,0.5); }
-        .item-name { font-weight: 900; color: white; font-size: 1.8rem; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
-        .item-desc { color: #00E676; font-weight: 900; font-size: 1.4rem; margin-bottom: 30px; flex: 1; text-shadow: 0 0 10px rgba(0, 230, 118, 0.5); }
-        .buy-btn { width: 100%; padding: 20px; border: none; border-radius: 16px; font-weight: 900; font-size: 1.5rem; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
-        .buy-btn.coins { background: linear-gradient(180deg, #FFD54F, #FFB300); color: #000; border: 3px solid #FF8F00; }
-        .buy-btn.gems { background: linear-gradient(180deg, #4DD0E1, #00ACC1); color: #000; border: 3px solid #00838F; }
-        .buy-btn.danger { background: linear-gradient(180deg, #EF5350, #C62828); color: #fff; border: 3px solid #B71C1C; }
-        .buy-btn:hover:not(:disabled) { transform: scale(1.08); filter: brightness(1.2); }
-        .buy-btn:active:not(:disabled) { transform: scale(0.95); }
-        .buy-btn:disabled { background: #2a2a35; color: #555; cursor: not-allowed; border: 3px solid #444; box-shadow: none; }
-        .equipped-badge { display: none; background: linear-gradient(90deg, #00C853, #009688); color: #fff; padding: 20px; border-radius: 16px; font-size: 1.5rem; font-weight: 900; margin-top: 20px; width: 100%; text-transform: uppercase; box-shadow: 0 0 25px rgba(0, 200, 83, 0.6); border: 3px solid #fff; letter-spacing: 2px; }
+    #cps-count {
+        font-size: 1.2rem;
+        color: var(--text-muted);
+        margin: 5px 0 0 0;
+    }
 
-        /* Full Screen Flash */
-        #flash-fx { position: absolute; top:0; left:0; width:100%; height:100%; background: #fff; opacity: 0; pointer-events: none; z-index: 80000; transition: opacity 0.5s; }
-    </style>
+    #chicken-container {
+        margin-top: auto;
+        margin-bottom: auto;
+        position: relative;
+        cursor: pointer;
+        transition: transform 0.05s ease-in-out;
+    }
+
+    #chicken-container:active {
+        transform: scale(0.95);
+    }
+
+    .chicken-art {
+        font-family: monospace;
+        white-space: pre;
+        color: white;
+        font-size: 12px;
+        line-height: 12px;
+        text-align: center;
+        pointer-events: none;
+        text-shadow: 0 0 5px #000;
+        animation: breathe 4s infinite ease-in-out;
+    }
+
+    @keyframes breathe {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.02) translateY(-5px); }
+        100% { transform: scale(1); }
+    }
+
+    .particle {
+        position: absolute;
+        pointer-events: none;
+        font-size: 20px;
+        font-weight: bold;
+        color: var(--text-main);
+        text-shadow: 0 0 5px #000;
+        animation: floatUp 1.5s forwards ease-out;
+        z-index: 100;
+    }
+
+    @keyframes floatUp {
+        0% { opacity: 1; transform: translateY(0) scale(1); }
+        100% { opacity: 0; transform: translateY(-150px) scale(1.5); }
+    }
+
+    /* MIDDLE COLUMN - UPGRADES & STATS */
+    #middle-column {
+        flex: 1;
+        background-color: var(--bg-dark);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .section-title {
+        background-color: var(--border-color);
+        margin: 0;
+        padding: 15px;
+        font-size: 1.5rem;
+        text-align: center;
+        border-bottom: 2px solid var(--accent);
+        position: sticky;
+        top: 0;
+        z-index: 5;
+    }
+
+    #upgrades-container {
+        display: flex;
+        flex-wrap: wrap;
+        padding: 10px;
+        gap: 10px;
+        align-content: flex-start;
+    }
+
+    .upgrade-btn {
+        width: 60px;
+        height: 60px;
+        background-color: var(--bg-panel);
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        position: relative;
+        transition: all 0.2s;
+    }
+
+    .upgrade-btn:hover {
+        background-color: var(--bg-panel-hover);
+        border-color: var(--accent);
+    }
+
+    .upgrade-btn.purchased {
+        border-color: #27ae60;
+        opacity: 0.5;
+        cursor: default;
+    }
+
+    .upgrade-btn.locked {
+        display: none;
+    }
+
+    .tooltip {
+        position: absolute;
+        bottom: 110%;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #000;
+        color: #fff;
+        padding: 10px;
+        border-radius: 5px;
+        width: 200px;
+        text-align: center;
+        font-size: 14px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+        z-index: 1000;
+        border: 1px solid var(--accent);
+    }
+
+    .upgrade-btn:hover .tooltip, .building-btn:hover .tooltip {
+        opacity: 1;
+    }
+
+    .tooltip-title {
+        font-weight: bold;
+        color: var(--accent);
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    .tooltip-cost {
+        color: #e74c3c;
+        font-weight: bold;
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .tooltip-desc {
+        color: var(--text-muted);
+        font-size: 12px;
+    }
+
+    /* RIGHT COLUMN - BUILDINGS */
+    #right-column {
+        flex: 1;
+        background-color: var(--bg-dark);
+        display: flex;
+        flex-direction: column;
+    }
+
+    #buildings-container {
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .building-btn {
+        background-color: var(--bg-panel);
+        border: 2px solid var(--border-color);
+        border-radius: 10px;
+        padding: 15px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: all 0.2s;
+        position: relative;
+    }
+
+    .building-btn:hover {
+        background-color: var(--bg-panel-hover);
+        border-color: var(--accent);
+    }
+
+    .building-btn.locked {
+        filter: brightness(0.2);
+        cursor: not-allowed;
+    }
+
+    .building-icon {
+        font-size: 40px;
+        margin-right: 15px;
+        width: 50px;
+        text-align: center;
+    }
+
+    .building-info {
+        flex: 1;
+    }
+
+    .building-name {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin: 0 0 5px 0;
+    }
+
+    .building-cost {
+        color: #e74c3c;
+        font-weight: bold;
+        margin: 0;
+        font-size: 0.9rem;
+    }
+
+    .building-count {
+        font-size: 2rem;
+        font-weight: bold;
+        color: var(--text-muted);
+        opacity: 0.5;
+    }
+
+    /* HEADER / TICKER */
+    #header {
+        height: 40px;
+        background-color: #000;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        padding: 0 20px;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    #ticker-text {
+        color: var(--text-main);
+        font-family: monospace;
+        font-size: 14px;
+        animation: ticker 30s linear infinite;
+    }
+
+    @keyframes ticker {
+        0% { transform: translateX(100vw); }
+        100% { transform: translateX(-100%); }
+    }
+
+    /* CONTROLS */
+    #controls {
+        display: flex;
+        justify-content: space-around;
+        padding: 10px;
+        border-top: 1px solid var(--border-color);
+        background-color: var(--bg-panel);
+    }
+
+    .control-btn {
+        background-color: transparent;
+        border: 1px solid var(--text-muted);
+        color: var(--text-main);
+        padding: 5px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .control-btn:hover {
+        background-color: var(--border-color);
+    }
+
+    .control-btn.danger {
+        color: #e74c3c;
+        border-color: #e74c3c;
+    }
+    
+    .control-btn.danger:hover {
+        background-color: rgba(231, 76, 60, 0.2);
+    }
+
+    /* TOAST NOTIFICATIONS */
+    #toast-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        z-index: 9999;
+    }
+
+    .toast {
+        background-color: var(--bg-panel);
+        border-left: 5px solid var(--accent);
+        color: var(--text-main);
+        padding: 15px 20px;
+        border-radius: 5px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        animation: slideIn 0.3s forwards, fadeOut 0.5s forwards 3s;
+        min-width: 250px;
+    }
+
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; display: none; }
+    }
+</style>
 </head>
 <body>
 
-    <script>
-        const AUDIO = {
-            ctx: null,
-            init() { if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
-            playTone(freq, type, duration, vol=0.1) {
-                if(!this.ctx) return;
-                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
-                osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
-                osc.connect(gain); gain.connect(this.ctx.destination);
-                osc.start(); osc.stop(this.ctx.currentTime + duration);
-            },
-            uiClick() { this.playTone(600, 'sine', 0.1, 0.1); },
-            uiHover() { this.playTone(400, 'sine', 0.05, 0.05); },
-            lift() { this.playTone(150, 'triangle', 0.2, 0.2); setTimeout(()=>this.playTone(100, 'square', 0.3, 0.2), 100); },
-            punch() { this.playTone(100, 'sawtooth', 0.1, 0.3); setTimeout(()=>this.playTone(50, 'square', 0.2, 0.3), 50); },
-            buy() { this.playTone(800, 'sine', 0.1, 0.1); setTimeout(()=>this.playTone(1200, 'sine', 0.2, 0.1), 100); },
-            error() { this.playTone(200, 'sawtooth', 0.3, 0.2); },
-            levelUp() { [400, 500, 600, 800, 1200].forEach((f,i) => setTimeout(()=>this.playTone(f, 'sine', 0.2, 0.2), i*100)); },
-            sell() { [800, 1000, 1500].forEach((f,i) => setTimeout(()=>this.playTone(f, 'square', 0.1, 0.1), i*80)); },
-            rebirth() { [200,300,400,500,600,800,1000,1500,2000].forEach((f,i)=>setTimeout(()=>this.playTone(f, 'sawtooth', 0.5, 0.3), i*150)); }
-        };
-        document.addEventListener('click', () => AUDIO.init(), {once:true});
-    </script>
+<div id="header">
+    <div id="ticker-text">Welcome to Chicken Clicker! The most egg-cellent game on the web. Click the chicken to begin your poultry empire.</div>
+</div>
 
-    <div id="flash-fx"></div>
+<div id="game-container">
+    
+    <div id="left-column" class="column">
+        <div id="score-container">
+            <div id="eggs-count">0</div>
+            <div id="cps-count">0 eggs per second</div>
+        </div>
 
-    <div id="loading-screen">
-        <div class="loader-ring"></div>
-        <div id="loading-text">JAAPGYM 3D: EXTREME</div>
-        <div id="loading-sub">Initializing World Generator...</div>
-        <div id="loading-bar-container"><div id="loading-bar"></div></div>
-    </div>
-
-    <div id="game-canvas-container"></div>
-    <div id="crosshair"></div>
-    <div id="interaction-prompt"><span class="key-btn">E</span> USE EQUIPMENT</div>
-
-    <div id="action-overlay">
-        <div class="action-text" id="action-msg">LIFTING!</div>
-    </div>
-
-    <div id="ui-layer">
-        <div id="top-hud">
-            <div id="player-stats" class="hud-panel interactive">
-                <div class="stat-row"><span class="stat-label">Power Level</span><span class="stat-val val-str" id="ui-strength">0</span></div>
-                <div class="stat-row"><span class="stat-label">Agility (Speed)</span><span class="stat-val val-spd" id="ui-speed">0</span></div>
-                <div class="stat-row"><span class="stat-label">Coins</span><span class="stat-val val-coin" id="ui-coins">0</span></div>
-                <div class="stat-row"><span class="stat-label">Gems</span><span class="stat-val val-gem" id="ui-gems">0</span></div>
-                <div class="stat-row" style="margin-top: 20px; border-top: 4px solid #444; padding-top: 20px;">
-                    <span class="stat-label">Global Rank</span><span class="stat-val val-rank" id="ui-rank">Peasant</span>
-                </div>
-                <div class="stat-row"><span class="stat-label">Total Multiplier</span><span class="stat-val" style="color:#fff; text-shadow:0 0 10px #fff;" id="ui-mult">x1.0</span></div>
-                
-                <div class="progress-wrapper">
-                    <div class="progress-label"><span id="ui-level-text">Level 1</span><span id="ui-exp-text">0 / 100 XP</span></div>
-                    <div class="progress-container"><div class="progress-bar" id="exp-bar"></div></div>
-                </div>
-                <div class="progress-wrapper" style="margin-top: 10px;">
-                    <div class="progress-label"><span style="color:#FF9800">Energy</span><span id="ui-stm-text">100 / 100</span></div>
-                    <div class="progress-container"><div class="progress-bar stamina" id="stm-bar" style="width:100%"></div></div>
-                </div>
-            </div>
-
-            <div id="zone-panel" class="hud-panel interactive">
-                <div id="zone-title">NOOB BEACH</div>
-                <div id="zone-desc">Gravity: x1.0 | Gain Multiplier: x1.0</div>
+        <div id="chicken-container">
+            <div class="chicken-art" id="big-chicken">
+                                     @@@@@@@@@@@@@@@@@@@@                                     
+                                  @@@@@@@@@@@@@@@@@@@@@@@@@@@                                 
+                                @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                               
+                              @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                             
+                            @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                           
+                           @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                          
+                          @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                         
+                         @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                        
+                         @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                        
+                        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                       
+                        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                       
+                        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                       
+                        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                       
+                        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                       
+                        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                       
+                         @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                        
+                         @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                        
+                          @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                         
+                           @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                          
+                            @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                           
+                              @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                             
+                                @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                               
+                                  @@@@@@@@@@@@@@@@@@@@@@@@@@@                                 
+                                     @@@@@@@@@@@@@@@@@@@@                                     
             </div>
         </div>
-
-        <div id="side-menu" class="interactive">
-            <button class="side-btn shop-btn" id="btn-shop">
-                <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg> Shop
-            </button>
-            <button class="side-btn pets-btn" id="btn-pets">
-                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-2-5.5c-.83 0-1.5-.67-1.5-1.5S9.17 11.5 10 11.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM12 17c-1.66 0-3-1.34-3-3h6c0 1.66-1.34 3-3 3z"/></svg> Pets
-            </button>
-            <button class="side-btn sell-btn" id="btn-sell">
-                <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg> Sell
-            </button>
-            <button class="side-btn rebirth-btn" id="btn-rebirth">
-                <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg> Rebirth
-            </button>
-            <button class="side-btn settings-btn" id="btn-settings">
-                <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .43-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.49-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg> System
-            </button>
-        </div>
-
-        <div id="bottom-hud">
-            <button id="btn-action" class="interactive">ACTIVATE (SPACE)</button>
-            <div id="hotbar" class="interactive">
-                <div class="hotbar-slot active" id="slot-1"><span class="hotbar-num">1</span><span class="hotbar-icon">🏋️</span></div>
-                <div class="hotbar-slot" id="slot-2"><span class="hotbar-num">2</span><span class="hotbar-icon">🥊</span></div>
-                <div class="hotbar-slot" id="slot-3"><span class="hotbar-num">3</span><span class="hotbar-icon">🥤</span></div>
-            </div>
-            <div id="controls-hint">
-                <span class="hl">WASD</span> Move | <span class="hl">RMB</span> Look | <span class="hl">Scroll</span> Zoom | <span class="hl">1-3</span> Equip | <span class="hl">E</span> Interact / Mount Equipment
-            </div>
-        </div>
-    </div>
-
-    <div id="notification-container"></div>
-
-    <div id="modal-container" class="window-modal interactive">
-        <div class="modal-header">
-            <h2 class="modal-title" id="modal-title">Menu</h2>
-            <button class="close-btn" id="btn-close-modal">×</button>
-        </div>
-        <div class="modal-body">
-            <div class="modal-tabs" id="modal-tabs"></div>
-            <div class="modal-content-area" id="modal-content"></div>
-        </div>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-    <script>
-        /* =========================================================================================
-                                     MASSIVE CONFIGURATION & DATABASES
-           ========================================================================================= */
-        const DB = {
-            weights: [
-                { id: 'w_1', name: 'Plastic Twig', power: 1, cost: 0, scale: 0.8, color: 0x8BC34A, type: 'dumbbell' },
-                { id: 'w_2', name: 'Wooden Log', power: 5, cost: 50, scale: 0.9, color: 0x795548, type: 'dumbbell' },
-                { id: 'w_3', name: 'Stone Brick', power: 15, cost: 250, scale: 1.0, color: 0x9E9E9E, type: 'dumbbell' },
-                { id: 'w_4', name: 'Iron Dumbbell', power: 50, cost: 1000, scale: 1.1, color: 0x607D8B, type: 'dumbbell' },
-                { id: 'w_5', name: 'Steel Barbell', power: 150, cost: 5000, scale: 1.3, color: 0xB0BEC5, type: 'barbell' },
-                { id: 'w_6', name: 'Bronze Weight', power: 500, cost: 25000, scale: 1.5, color: 0xCD7F32, type: 'dumbbell' },
-                { id: 'w_7', name: 'Silver Barbell', power: 2000, cost: 100000, scale: 1.7, color: 0xE0E0E0, type: 'barbell' },
-                { id: 'w_8', name: 'Gold Dumbbell', power: 8000, cost: 500000, scale: 1.9, color: 0xFFC107, type: 'dumbbell' },
-                { id: 'w_9', name: 'Platinum Bar', power: 30000, cost: 2500000, scale: 2.2, color: 0xE5E4E2, type: 'barbell' },
-                { id: 'w_10', name: 'Diamond Weight', power: 120000, cost: 10000000, scale: 2.5, color: 0x00E5FF, type: 'dumbbell' },
-                { id: 'w_11', name: 'Emerald Barbell', power: 500000, cost: 50000000, scale: 2.8, color: 0x00E676, type: 'barbell' },
-                { id: 'w_12', name: 'Ruby Crusher', power: 2500000, cost: 250000000, scale: 3.2, color: 0xFF1744, type: 'dumbbell' },
-                { id: 'w_13', name: 'Sapphire Bar', power: 10000000, cost: 1200000000, scale: 3.6, color: 0x2979FF, type: 'barbell' },
-                { id: 'w_14', name: 'Amethyst Weight', power: 45000000, cost: 6000000000, scale: 4.0, color: 0xD500F9, type: 'dumbbell' },
-                { id: 'w_15', name: 'Obsidian Boulder', power: 200000000, cost: 35000000000, scale: 4.5, color: 0x212121, type: 'barbell' },
-                { id: 'w_16', name: 'Neon Dumbbell', power: 1000000000, cost: 200000000000, scale: 5.0, color: 0x76FF03, type: 'dumbbell' },
-                { id: 'w_17', name: 'Plasma Barbell', power: 5000000000, cost: 1500000000000, scale: 5.8, color: 0xF50057, type: 'barbell' },
-                { id: 'w_18', name: 'Dark Matter', power: 25000000000, cost: 10000000000000, scale: 6.8, color: 0x311B92, type: 'dumbbell' },
-                { id: 'w_19', name: 'Neutron Star', power: 150000000000, cost: 80000000000000, scale: 8.0, color: 0x00B0FF, type: 'barbell' },
-                { id: 'w_20', name: 'Galactic Core', power: 800000000000, cost: 600000000000000, scale: 9.5, color: 0xFF00FF, type: 'dumbbell' },
-                { id: 'w_21', name: 'Universal Crusher', power: 5000000000000, cost: 5000000000000000, scale: 11.5, color: 0xFFFFFF, type: 'barbell' },
-                { id: 'w_22', name: 'Omniversal Weight', power: 30000000000000, cost: 40000000000000000, scale: 14.0, color: 0xFF9100, type: 'dumbbell' },
-                { id: 'w_23', name: 'Divine Barbell', power: 200000000000000, cost: 300000000000000000, scale: 17.0, color: 0xFFD700, type: 'barbell' },
-                { id: 'w_24', name: 'Creator Dumbbell', power: 1500000000000000, cost: 2500000000000000000, scale: 21.0, color: 0x00FF88, type: 'dumbbell' },
-                { id: 'w_25', name: 'INFINITY WEIGHT', power: 9999999999999999, cost: 9999999999999999999, scale: 28.0, color: 0x000000, type: 'barbell' }
-            ],
-            dna: [
-                { id: 'd_1', name: 'Trash Genetics', mult: 1, cost: 0 },
-                { id: 'd_2', name: 'Poor Genetics', mult: 2, cost: 800 },
-                { id: 'd_3', name: 'Average DNA', mult: 5, cost: 4000 },
-                { id: 'd_4', name: 'Decent Genes', mult: 12, cost: 25000 },
-                { id: 'd_5', name: 'Athletic DNA', mult: 30, cost: 150000 },
-                { id: 'd_6', name: 'Gym Rat Genes', mult: 80, cost: 800000 },
-                { id: 'd_7', name: 'Pro DNA', mult: 200, cost: 4000000 },
-                { id: 'd_8', name: 'Bodybuilder', mult: 500, cost: 20000000 },
-                { id: 'd_9', name: 'Beast Genetics', mult: 1200, cost: 100000000 },
-                { id: 'd_10', name: 'Monster DNA', mult: 3000, cost: 500000000 },
-                { id: 'd_11', name: 'Mutant Genes', mult: 8000, cost: 2500000000 },
-                { id: 'd_12', name: 'Cyborg DNA', mult: 20000, cost: 15000000000 },
-                { id: 'd_13', name: 'Alien Genetics', mult: 55000, cost: 85000000000 },
-                { id: 'd_14', name: 'Titan Blood', mult: 150000, cost: 500000000000 },
-                { id: 'd_15', name: 'Demon Genetics', mult: 450000, cost: 3500000000000 },
-                { id: 'd_16', name: 'Angel Essence', mult: 1200000, cost: 20000000000000 },
-                { id: 'd_17', name: 'Godly DNA', mult: 3500000, cost: 150000000000000 },
-                { id: 'd_18', name: 'Cosmic Genes', mult: 10000000, cost: 1000000000000000 },
-                { id: 'd_19', name: 'Universal DNA', mult: 30000000, cost: 8000000000000000 },
-                { id: 'd_20', name: 'Multiversal Blood', mult: 100000000, cost: 60000000000000000 },
-                { id: 'd_21', name: 'Omniversal Essence', mult: 350000000, cost: 450000000000000000 },
-                { id: 'd_22', name: 'Divine Genetics', mult: 1200000000, cost: 3000000000000000000 },
-                { id: 'd_23', name: 'Creator DNA', mult: 5000000000, cost: 25000000000000000000 },
-                { id: 'd_24', name: 'Absolute Genes', mult: 20000000000, cost: 180000000000000000000 },
-                { id: 'd_25', name: 'INFINITY DNA', mult: 99999999999, cost: 999999999999999999999 }
-            ],
-            pets: [
-                { id: 'p_1', name: 'Noob Dog', mult: 1.5, costGems: 100, color: 0xD2B48C },
-                { id: 'p_2', name: 'Gym Cat', mult: 2.5, costGems: 350, color: 0x757575 },
-                { id: 'p_3', name: 'Swol Bunny', mult: 5.0, costGems: 1000, color: 0xFFFFFF },
-                { id: 'p_4', name: 'Iron Bear', mult: 12.0, costGems: 3000, color: 0x5D4037 },
-                { id: 'p_5', name: 'Protein Ape', mult: 35.0, costGems: 10000, color: 0x212121 },
-                { id: 'p_6', name: 'Neon Tiger', mult: 100.0, costGems: 35000, color: 0x00E676 },
-                { id: 'p_7', name: 'Lava Dragon', mult: 300.0, costGems: 120000, color: 0xFF3D00 },
-                { id: 'p_8', name: 'Ice Phoenix', mult: 1000.0, costGems: 450000, color: 0x00B0FF },
-                { id: 'p_9', name: 'Galactic Wolf', mult: 3500.0, costGems: 2000000, color: 0xD500F9 },
-                { id: 'p_10', name: 'Void Leviathan', mult: 12000.0, costGems: 8000000, color: 0x111111 },
-                { id: 'p_11', name: 'Cosmic Serpent', mult: 45000.0, costGems: 35000000, color: 0x00E5FF },
-                { id: 'p_12', name: 'Universal Titan', mult: 150000.0, costGems: 150000000, color: 0xFF00FF },
-                { id: 'p_13', name: 'Omni God', mult: 600000.0, costGems: 800000000, color: 0xFFD700 },
-                { id: 'p_14', name: 'Creator Entity', mult: 2500000.0, costGems: 4000000000, color: 0xFFFFFF },
-                { id: 'p_15', name: 'INFINITY PET', mult: 15000000.0, costGems: 25000000000, color: 0x000000 }
-            ],
-            ranks: [
-                { req: 0, name: 'Skin & Bones', color: '#9E9E9E' },
-                { req: 1000, name: 'Twig', color: '#8D6E63' },
-                { req: 10000, name: 'Average Joe', color: '#4CAF50' },
-                { req: 100000, name: 'Fit', color: '#00BCD4' },
-                { req: 1000000, name: 'Athletic', color: '#03A9F4' },
-                { req: 10000000, name: 'Muscular', color: '#2196F3' },
-                { req: 100000000, name: 'Shredded', color: '#3F51B5' },
-                { req: 1000000000, name: 'Bodybuilder', color: '#673AB7' },
-                { req: 15000000000, name: 'Mr. Olympia', color: '#9C27B0' },
-                { req: 250000000000, name: 'Beast', color: '#FF9800' },
-                { req: 4000000000000, name: 'Monster', color: '#FF5722' },
-                { req: 80000000000000, name: 'Hulk', color: '#F44336' },
-                { req: 1500000000000000, name: 'Titan', color: '#D32F2F' },
-                { req: 30000000000000000, name: 'Demigod', color: '#FFD700' },
-                { req: 800000000000000000, name: 'God of Gym', color: '#FFFFFF' },
-                { req: 20000000000000000000, name: 'Galactic Lifter', color: '#E040FB' },
-                { req: 500000000000000000000, name: 'Universal Chad', color: '#00E5FF' },
-                { req: 15000000000000000000000, name: 'Omniversal Deity', color: '#FF1744' },
-                { req: 800000000000000000000000, name: 'Creator', color: '#76FF03' },
-                { req: 9999999999999999999999999, name: 'ABSOLUTE INFINITY', color: '#000000' }
-            ],
-            zones: [
-                { id: 'z1', name: 'Noob Beach', gravity: 1.0, mult: 1.0, req: 0 },
-                { id: 'z2', name: 'Iron Alley', gravity: 2.0, mult: 5.0, req: 10000000 },
-                { id: 'z3', name: 'Titan Peak', gravity: 5.0, mult: 50.0, req: 50000000000 },
-                { id: 'z4', name: 'Cosmic Void', gravity: 15.0, mult: 1000.0, req: 1000000000000000 }
-            ]
-        };
-
-        /* =========================================================================================
-                                     STATE & DATA MANAGEMENT
-           ========================================================================================= */
-        const STATE = {
-            strength: 0,
-            speed: 0,
-            coins: 0,
-            gems: 0,
-            rebirths: 0,
-            exp: 0,
-            level: 1,
-            stamina: 100,
-            maxStamina: 100,
-            equipped: { weight: 'w_1', dna: 'd_1', pet: null },
-            inventory: { weights: ['w_1'], dna: ['d_1'], pets: [] },
-            settings: { shadows: true, particles: true },
-            hotbarSlot: 0, 
-            isInteracting: false,
-            interactTarget: null,
-            animState: 'idle',
-            currentZone: 'z1'
-        };
-
-        function formatNum(n) {
-            if(n < 1000) return Math.floor(n).toString();
-            const suffixes = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc", "Ud", "Dd", "Td", "Qad", "Qid", "Sxd", "Spd", "Ocd", "Nod", "Vig"];
-            const suffixNum = Math.floor(("" + Math.floor(n)).length / 3);
-            let shortValue = parseFloat((suffixNum != 0 ? (n / Math.pow(1000, suffixNum)) : n).toPrecision(3));
-            if (shortValue % 1 != 0) shortValue = shortValue.toFixed(1);
-            return shortValue + suffixes[suffixNum];
-        }
-
-        function getDB(cat, id) { return DB[cat].find(x => x.id === id); }
-
-        function saveGame() { localStorage.setItem('jaapGym3DSave_Ultra', JSON.stringify(STATE)); }
-        function loadGame() {
-            let s = localStorage.getItem('jaapGym3DSave_Ultra');
-            if (s) { try { Object.assign(STATE, JSON.parse(s)); } catch(e) {} }
-            STATE.hotbarSlot = 0; STATE.isInteracting = false; STATE.stamina = STATE.maxStamina;
-        }
-        loadGame();
-
-        /* =========================================================================================
-                                     UI CONTROLLER
-           ========================================================================================= */
-        const UI = {
-            els: {
-                str: document.getElementById('ui-strength'),
-                spd: document.getElementById('ui-speed'),
-                coin: document.getElementById('ui-coins'),
-                gem: document.getElementById('ui-gems'),
-                rank: document.getElementById('ui-rank'),
-                mult: document.getElementById('ui-mult'),
-                lvl: document.getElementById('ui-level-text'),
-                expTxt: document.getElementById('ui-exp-text'),
-                expBar: document.getElementById('exp-bar'),
-                stmTxt: document.getElementById('ui-stm-text'),
-                stmBar: document.getElementById('stm-bar'),
-                modal: document.getElementById('modal-container'),
-                mTitle: document.getElementById('modal-title'),
-                mTabs: document.getElementById('modal-tabs'),
-                mContent: document.getElementById('modal-content'),
-                notif: document.getElementById('notification-container'),
-                prompt: document.getElementById('interaction-prompt'),
-                actionBtn: document.getElementById('btn-action'),
-                actMsg: document.getElementById('action-msg'),
-                actOverlay: document.getElementById('action-overlay'),
-                zTitle: document.getElementById('zone-title'),
-                zDesc: document.getElementById('zone-desc')
-            },
-
-            update() {
-                this.els.str.innerText = formatNum(STATE.strength);
-                this.els.spd.innerText = formatNum(STATE.speed);
-                this.els.coin.innerText = formatNum(STATE.coins);
-                this.els.gem.innerText = formatNum(STATE.gems);
-                
-                let curRank = DB.ranks[0];
-                for(let i=0; i<DB.ranks.length; i++) { if (STATE.strength >= DB.ranks[i].req) curRank = DB.ranks[i]; }
-                this.els.rank.innerText = curRank.name;
-                this.els.rank.style.color = curRank.color;
-                this.els.rank.style.textShadow = `0 0 15px ${curRank.color}`;
-
-                let tMult = getDB('dna', STATE.equipped.dna).mult * (1 + (STATE.rebirths * 5.0));
-                if(STATE.equipped.pet) tMult *= getDB('pets', STATE.equipped.pet).mult;
-                let zMult = getDB('zones', STATE.currentZone).mult;
-                tMult *= zMult;
-                this.els.mult.innerText = `x${formatNum(tMult)}`;
-
-                let req = STATE.level * 500;
-                let pct = Math.min((STATE.exp / req) * 100, 100);
-                this.els.lvl.innerText = `Level ${formatNum(STATE.level)}`;
-                this.els.expTxt.innerText = `${formatNum(STATE.exp)} / ${formatNum(req)} XP`;
-                this.els.expBar.style.width = pct + '%';
-
-                let sPct = Math.max(0, Math.min((STATE.stamina / STATE.maxStamina) * 100, 100));
-                this.els.stmTxt.innerText = `${Math.floor(STATE.stamina)} / ${STATE.maxStamina}`;
-                this.els.stmBar.style.width = sPct + '%';
-                
-                let z = getDB('zones', STATE.currentZone);
-                this.els.zTitle.innerText = z.name;
-                this.els.zDesc.innerText = `Gravity: x${z.gravity} | Multiplier: x${z.mult}`;
-            },
-
-            notify(msg, color='#00FF88') {
-                let d = document.createElement('div'); d.className = 'toast'; d.innerText = msg; d.style.borderLeftColor = color;
-                this.els.notif.appendChild(d); setTimeout(() => d.remove(), 3500);
-            },
-
-            floatText(val, type='str') {
-                let ft = document.createElement('div'); ft.className = `float-text float-${type}`; ft.innerText = `+${formatNum(val)}`;
-                ft.style.left = `${45 + Math.random()*10}%`; ft.style.top = `${35 + Math.random()*10}%`;
-                document.body.appendChild(ft); setTimeout(()=>ft.remove(), 1200);
-            },
-
-            openModal(type) {
-                AUDIO.uiClick(); this.els.modal.classList.add('active');
-                if(type === 'shop') this.buildShop();
-                if(type === 'pets') this.buildPets();
-                if(type === 'settings') this.buildSettings();
-            },
-            closeModal() { AUDIO.uiClick(); this.els.modal.classList.remove('active'); },
-
-            buildShop() {
-                this.els.mTitle.innerText = "EQUIPMENT SHOP";
-                this.els.mTabs.innerHTML = `
-                    <button class="tab-btn active" onclick="UI.renderShop('weights', event); AUDIO.uiClick();">Weights</button>
-                    <button class="tab-btn" onclick="UI.renderShop('dna', event); AUDIO.uiClick();">Genetics (DNA)</button>
-                `;
-                this.renderShop('weights', null);
-            },
-            
-            buildPets() {
-                this.els.mTitle.innerText = "PET STORE (GEMS)";
-                this.els.mTabs.innerHTML = `<button class="tab-btn active">Premium Pets</button>`;
-                this.renderShop('pets', null);
-            },
-
-            renderShop(cat, e) {
-                if(e) { Array.from(this.els.mTabs.children).forEach(c=>c.classList.remove('active')); e.target.classList.add('active'); }
-                
-                this.els.mContent.innerHTML = '';
-                DB[cat].forEach(item => {
-                    let owned = STATE.inventory[cat].includes(item.id);
-                    let eq = STATE.equipped[cat==='weights'?'weight':(cat==='dna'?'dna':'pet')] === item.id;
-                    let canBuy = cat==='pets' ? STATE.gems >= item.costGems : STATE.coins >= item.cost;
-                    
-                    let btnHTML = '';
-                    if(eq) btnHTML = `<div class="equipped-badge" style="display:block">Equipped</div>`;
-                    else if(owned) btnHTML = `<button class="buy-btn gems" onclick="GAME.equip('${cat}', '${item.id}')">Equip</button>`;
-                    else btnHTML = `<button class="buy-btn ${cat==='pets'?'gems':'coins'}" ${!canBuy?'disabled':''} onclick="GAME.buy('${cat}', '${item.id}')">Buy: ${formatNum(cat==='pets'?item.costGems:item.cost)}</button>`;
-
-                    let txt = cat==='weights' ? `+${formatNum(item.power)} Power` : (cat==='dna' ? `x${formatNum(item.mult)} Mult` : `x${formatNum(item.mult)} Global Mult`);
-                    let ico = cat==='weights' ? '🏋️' : (cat==='dna' ? '🧬' : '🐶');
-
-                    this.els.mContent.innerHTML += `
-                        <div class="shop-item">
-                            <div class="item-icon-container">${ico}</div>
-                            <div class="item-name">${item.name}</div>
-                            <div class="item-desc">${txt}</div>
-                            ${btnHTML}
-                        </div>
-                    `;
-                });
-            },
-
-            buildSettings() {
-                this.els.mTitle.innerText = "SYSTEM CONFIG";
-                this.els.mTabs.innerHTML = `<button class="tab-btn active">Graphics & Data</button>`;
-                this.els.mContent.innerHTML = `
-                    <div class="shop-item" style="grid-column:1/-1; flex-direction:row; justify-content:space-between;">
-                        <div style="text-align:left;"><div class="item-name">High Quality Shadows</div><div style="color:#aaa">Toggle dynamic lighting.</div></div>
-                        <button class="buy-btn coins" style="width:180px" onclick="GAME.toggleShadows()">${STATE.settings.shadows?'ENABLED':'DISABLED'}</button>
-                    </div>
-                    <div class="shop-item" style="grid-column:1/-1; flex-direction:row; justify-content:space-between;">
-                        <div style="text-align:left;"><div class="item-name">Particle Effects</div><div style="color:#aaa">Toggle confetti and sweat.</div></div>
-                        <button class="buy-btn coins" style="width:180px" onclick="GAME.toggleParticles()">${STATE.settings.particles?'ENABLED':'DISABLED'}</button>
-                    </div>
-                    <div class="shop-item" style="grid-column:1/-1; flex-direction:row; justify-content:space-between;">
-                        <div style="text-align:left;"><div class="item-name">HARD RESET</div><div style="color:#F44336">Deletes all save data permanently!</div></div>
-                        <button class="buy-btn danger" style="width:180px" onclick="GAME.hardReset()">RESET DATA</button>
-                    </div>
-                `;
-            },
-
-            setHotbar(slot) {
-                if(STATE.isInteracting) { AUDIO.error(); return; }
-                AUDIO.uiClick();
-                STATE.hotbarSlot = STATE.hotbarSlot === slot ? 0 : slot;
-                
-                document.querySelectorAll('.hotbar-slot').forEach(el => el.classList.remove('active'));
-                if(STATE.hotbarSlot > 0) document.getElementById(`slot-${STATE.hotbarSlot}`).classList.add('active');
-
-                this.els.actionBtn.style.display = STATE.hotbarSlot > 0 ? 'block' : 'none';
-                if(STATE.hotbarSlot === 1) this.els.actionBtn.innerText = "LIFT (SPACE)";
-                if(STATE.hotbarSlot === 2) this.els.actionBtn.innerText = "PUNCH (SPACE)";
-                if(STATE.hotbarSlot === 3) this.els.actionBtn.innerText = "DRINK (SPACE)";
-                
-                if(RENDERER) RENDERER.updateEquippedItem();
-            },
-            
-            showActionOverlay(msg) {
-                this.els.actMsg.innerText = msg;
-                this.els.actOverlay.style.display = 'flex';
-            },
-            hideActionOverlay() { this.els.actOverlay.style.display = 'none'; }
-        };
-
-        // UI Event Listeners
-        document.getElementById('btn-close-modal').addEventListener('click', () => UI.closeModal());
-        document.getElementById('btn-shop').addEventListener('click', () => UI.openModal('shop'));
-        document.getElementById('btn-pets').addEventListener('click', () => UI.openModal('pets'));
-        document.getElementById('btn-settings').addEventListener('click', () => UI.openModal('settings'));
         
-        document.getElementById('btn-sell').addEventListener('click', () => {
-            AUDIO.uiClick();
-            if(STATE.strength > 0) {
-                let amt = STATE.strength * 5; STATE.coins += amt; STATE.strength = 0;
-                AUDIO.sell(); UI.notify(`Sold strength for ${formatNum(amt)} coins!`, '#FFC107');
-                if(PARTICLES) PARTICLES.spawnConfetti();
-                UI.update(); saveGame();
-            } else { AUDIO.error(); UI.notify("No strength to sell!", '#F44336'); }
-        });
+        <div id="controls">
+            <button class="control-btn" onclick="Game.save()">Save</button>
+            <button class="control-btn" onclick="Game.load()">Load</button>
+            <button class="control-btn danger" onclick="Game.wipe()">Hard Reset</button>
+        </div>
+    </div>
 
-        document.getElementById('btn-rebirth').addEventListener('click', () => {
-            AUDIO.uiClick();
-            let req = 10000000 * Math.pow(10, STATE.rebirths);
-            if(STATE.coins >= req) {
-                if(confirm(`Rebirth for ${formatNum(req)} coins? Stats reset, but gain +5.0x permanent Multiplier & 500 Gems!`)) {
-                    STATE.coins = 0; STATE.strength = 0; STATE.speed = 0; STATE.level = 1; STATE.exp = 0;
-                    STATE.rebirths++; STATE.gems += 500;
-                    AUDIO.rebirth();
-                    document.getElementById('flash-fx').style.opacity = '1';
-                    setTimeout(()=>document.getElementById('flash-fx').style.opacity = '0', 1000);
-                    UI.notify(`REBIRTH SUCCESSFUL!`, '#E040FB');
-                    if(PARTICLES) PARTICLES.spawnConfetti();
-                    UI.update(); RENDERER.updatePlayerScale(); saveGame();
-                }
-            } else { AUDIO.error(); UI.notify(`Need ${formatNum(req)} coins to Rebirth!`, '#F44336'); }
-        });
+    <div id="middle-column" class="column">
+        <h2 class="section-title">Upgrades</h2>
+        <div id="upgrades-container">
+            </div>
+        <h2 class="section-title" style="margin-top: 20px;">Stats</h2>
+        <div style="padding: 20px; color: var(--text-muted); font-size: 1.1rem; line-height: 1.6;">
+            <div>Total Eggs Baked: <span id="stat-total-eggs" style="color:#fff">0</span></div>
+            <div>Hand Clicks: <span id="stat-clicks" style="color:#fff">0</span></div>
+            <div>Play Time: <span id="stat-time" style="color:#fff">0s</span></div>
+            <div>Upgrades Unlocked: <span id="stat-upgrades" style="color:#fff">0</span></div>
+        </div>
+    </div>
 
-        document.getElementById('slot-1').addEventListener('click', () => UI.setHotbar(1));
-        document.getElementById('slot-2').addEventListener('click', () => UI.setHotbar(2));
-        document.getElementById('slot-3').addEventListener('click', () => UI.setHotbar(3));
+    <div id="right-column" class="column">
+        <h2 class="section-title">Buildings</h2>
+        <div id="buildings-container">
+            </div>
+    </div>
 
-        /* =========================================================================================
-                                     GAME LOGIC CONTROLLER
-           ========================================================================================= */
-        const GAME = {
-            buy(cat, id) {
-                let item = getDB(cat, id); let cost = cat==='pets' ? item.costGems : item.cost;
-                if(cat==='pets' ? STATE.gems >= cost : STATE.coins >= cost) {
-                    if(cat==='pets') STATE.gems -= cost; else STATE.coins -= cost;
-                    STATE.inventory[cat].push(id); this.equip(cat, id);
-                    AUDIO.buy(); UI.notify(`Purchased ${item.name}!`);
-                } else { AUDIO.error(); }
-            },
-            equip(cat, id) {
-                AUDIO.uiClick();
-                if(cat==='weights') STATE.equipped.weight = id;
-                if(cat==='dna') STATE.equipped.dna = id;
-                if(cat==='pets') { STATE.equipped.pet = id; if(RENDERER) RENDERER.updatePet(); }
-                UI.renderShop(cat, null); UI.update(); saveGame();
-                if(RENDERER && STATE.hotbarSlot === 1) RENDERER.updateEquippedItem();
-            },
-            toggleShadows() { AUDIO.uiClick(); STATE.settings.shadows = !STATE.settings.shadows; UI.buildSettings(); if(RENDERER) RENDERER.applyShadowSettings(); saveGame(); },
-            toggleParticles() { AUDIO.uiClick(); STATE.settings.particles = !STATE.settings.particles; UI.buildSettings(); saveGame(); },
-            hardReset() { if(confirm("ABSOLUTELY SURE?")) { localStorage.removeItem('jaapGym3DSave_Ultra'); location.reload(); } },
-            
-            calcGain() {
-                let w = getDB('weights', STATE.equipped.weight);
-                let d = getDB('dna', STATE.equipped.dna);
-                let p = STATE.equipped.pet ? getDB('pets', STATE.equipped.pet).mult : 1;
-                let z = getDB('zones', STATE.currentZone).mult;
-                return w.power * d.mult * (1 + (STATE.rebirths * 5.0)) * p * z;
-            },
+</div>
 
-            doAction() {
-                if(UI.els.modal.classList.contains('active') || STATE.isInteracting) return;
+<div id="toast-container"></div>
 
-                if(STATE.hotbarSlot === 1) { // LIFT
-                    if(STATE.animState === 'lift' || STATE.stamina < 5) { if(STATE.stamina < 5) AUDIO.error(); return; }
-                    STATE.animState = 'lift'; STATE.stamina -= 5;
-                    let gain = this.calcGain();
-                    STATE.strength += gain; STATE.exp += 50;
-                    AUDIO.lift(); this.checkLevelUp(); UI.update(); RENDERER.updatePlayerScale();
-                    if(Math.random()<0.5) PARTICLES.spawnSweat();
-                    UI.floatText(gain, 'str');
-                }
-                else if(STATE.hotbarSlot === 2) { // PUNCH
-                    if(STATE.animState === 'punch' || STATE.stamina < 2) { if(STATE.stamina < 2) AUDIO.error(); return; }
-                    STATE.animState = 'punch'; STATE.stamina -= 2;
-                    let gain = (STATE.level * 50) * (1 + STATE.rebirths) * getDB('zones', STATE.currentZone).mult;
-                    STATE.strength += gain; STATE.speed += gain * 2; STATE.exp += 20;
-                    AUDIO.punch(); this.checkLevelUp(); UI.update();
-                    if(Math.random()<0.3) PARTICLES.spawnSweat();
-                    UI.floatText(gain*2, 'spd');
-                }
-                else if(STATE.hotbarSlot === 3) { // DRINK
-                    if(STATE.animState === 'drink') return;
-                    STATE.animState = 'drink'; AUDIO.uiClick();
-                    STATE.stamina = Math.min(STATE.stamina + 50, STATE.maxStamina);
-                    UI.update(); UI.floatText(50, 'stm');
-                }
-            },
+<script>
+/**
+ * CHICKEN CLICKER GAME ENGINE
+ * Massive monolithic script block.
+ */
 
-            checkLevelUp() {
-                let req = STATE.level * 500;
-                if(STATE.exp >= req) {
-                    STATE.exp -= req; STATE.level++; STATE.maxStamina = 100 + (STATE.level * 10);
-                    AUDIO.levelUp(); UI.notify(`LEVEL UP! Now Level ${formatNum(STATE.level)}`, '#00BCD4');
-                    PARTICLES.spawnConfetti();
-                }
-            },
+// --- CORE GAME OBJECT ---
+const Game = {
+    eggs: 0,
+    totalEggs: 0,
+    cps: 0,
+    clickPower: 1,
+    clickCount: 0,
+    startTime: Date.now(),
+    lastSave: Date.now(),
+    lastTick: Date.now(),
+    fps: 30,
+    
+    // Multipliers
+    globalMultiplier: 1,
+    clickMultiplier: 1,
 
-            interact() {
-                if(STATE.isInteracting) {
-                    // Stop
-                    AUDIO.uiClick(); STATE.isInteracting = false; STATE.interactTarget = null; STATE.animState = 'idle'; UI.setHotbar(0); UI.hideActionOverlay();
-                    // Move player slightly off object
-                    PLAYER.group.position.add(new THREE.Vector3(0,0,5).applyAxisAngle(new THREE.Vector3(0,1,0), PLAYER.group.rotation.y));
-                } else if(INTERACTIONS.currentTarget) {
-                    // Start
-                    AUDIO.uiClick(); STATE.isInteracting = true; STATE.interactTarget = INTERACTIONS.currentTarget; UI.setHotbar(0);
-                    PLAYER.group.position.copy(STATE.interactTarget.usePos); PLAYER.group.rotation.y = STATE.interactTarget.useRot;
-                    
-                    if(STATE.interactTarget.type === 'treadmill') { STATE.animState = 'run_treadmill'; UI.showActionOverlay("RUNNING!"); }
-                    if(STATE.interactTarget.type === 'bench') { STATE.animState = 'bench_press'; UI.showActionOverlay("BENCH PRESSING!"); }
-                    if(STATE.interactTarget.type === 'squat') { STATE.animState = 'squatting'; UI.showActionOverlay("SQUATTING!"); }
-                }
+    // Data stores
+    buildings: [],
+    upgrades: [],
+    achievements: [],
+    
+    // DOM Elements
+    el: {
+        eggs: document.getElementById('eggs-count'),
+        cps: document.getElementById('cps-count'),
+        chicken: document.getElementById('chicken-container'),
+        buildings: document.getElementById('buildings-container'),
+        upgrades: document.getElementById('upgrades-container'),
+        ticker: document.getElementById('ticker-text'),
+        statTotalEggs: document.getElementById('stat-total-eggs'),
+        statClicks: document.getElementById('stat-clicks'),
+        statTime: document.getElementById('stat-time'),
+        statUpgrades: document.getElementById('stat-upgrades'),
+        toast: document.getElementById('toast-container')
+    },
+
+    // Initialize Game
+    init: function() {
+        this.defineBuildings();
+        this.defineUpgrades();
+        this.defineAchievements();
+        this.defineNews();
+        
+        this.load();
+        
+        this.renderBuildings();
+        this.renderUpgrades();
+        
+        this.el.chicken.addEventListener('mousedown', this.click.bind(this));
+        
+        // Game Loop
+        setInterval(this.update.bind(this), 1000 / this.fps);
+        setInterval(this.updateUI.bind(this), 100);
+        setInterval(this.save.bind(this), 60000); // Autosave every 60s
+        setInterval(this.updateNews.bind(this), 15000);
+        
+        this.updateNews();
+        this.notify("Game Started!", "Welcome to Chicken Clicker!");
+    },
+
+    // --- DEFINITIONS ---
+    
+    defineBuildings: function() {
+        class Building {
+            constructor(id, name, baseCost, baseCps, icon, description) {
+                this.id = id;
+                this.name = name;
+                this.baseCost = baseCost;
+                this.baseCps = baseCps;
+                this.icon = icon;
+                this.description = description;
+                this.count = 0;
+                this.multiplier = 1;
+                this.free = 0;
             }
-        };
-
-        document.getElementById('btn-action').addEventListener('mousedown', () => GAME.doAction());
-        document.addEventListener('keydown', e => {
-            if(e.code === 'Space' && !STATE.isInteracting) { e.preventDefault(); GAME.doAction(); }
-            if(e.code === 'Digit1') UI.setHotbar(1);
-            if(e.code === 'Digit2') UI.setHotbar(2);
-            if(e.code === 'Digit3') UI.setHotbar(3);
-            if(e.code === 'KeyE') GAME.interact();
-        });
-
-        /* =========================================================================================
-                                     THREE.JS ENGINE & PROCEDURAL MAP
-           ========================================================================================= */
-        let RENDERER, PARTICLES, PLAYER, INTERACTIONS, PET;
-
-        function initEngine() {
-            const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0a0a14); // Space/Dark sky
-            scene.fog = new THREE.FogExp2(0x0a0a14, 0.0008);
-
-            const camera = new THREE.PerspectiveCamera(65, window.innerWidth/window.innerHeight, 0.1, 5000);
-            
-            const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            document.getElementById('game-canvas-container').appendChild(renderer.domElement);
-
-            // Lighting
-            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444455, 0.6);
-            hemiLight.position.set(0, 1000, 0); scene.add(hemiLight);
-
-            const dirLight = new THREE.DirectionalLight(0xffffee, 1.5);
-            dirLight.position.set(500, 800, 300);
-            dirLight.shadow.camera.top = 1000; dirLight.shadow.camera.bottom = -1000;
-            dirLight.shadow.camera.left = -1000; dirLight.shadow.camera.right = 1000;
-            dirLight.shadow.mapSize.width = 4096; dirLight.shadow.mapSize.height = 4096; // Ultra high res shadows
-            scene.add(dirLight);
-
-            // Material Library
-            const Mats = {
-                floorBase: new THREE.MeshStandardMaterial({ color: 0x11111a, roughness: 0.8, metalness: 0.2 }),
-                floorZone2: new THREE.MeshStandardMaterial({ color: 0x2a1a1a, roughness: 0.9 }),
-                floorZone3: new THREE.MeshStandardMaterial({ color: 0x1a2a3a, roughness: 0.7, metalness: 0.5 }),
-                floorZone4: new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.1, metalness: 0.9, emissive: 0x110022 }),
-                wall: new THREE.MeshStandardMaterial({ color: 0x222233, roughness: 1.0 }),
-                metalDark: new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3, metalness: 0.9 }),
-                metalLight: new THREE.MeshStandardMaterial({ color: 0xaaaaaa, roughness: 0.2, metalness: 1.0 }),
-                leatherRed: new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.8 }),
-                leatherBlack: new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.9 }),
-                neonGreen: new THREE.MeshStandardMaterial({ color: 0x00FF88, emissive: 0x00FF88, emissiveIntensity: 0.8 }),
-                neonPurple: new THREE.MeshStandardMaterial({ color: 0xD500F9, emissive: 0xD500F9, emissiveIntensity: 0.8 }),
-                belt: new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.9 })
-            };
-
-            const mapGrp = new THREE.Group(); scene.add(mapGrp);
-            const interactables = [];
-
-            // Architecture - ZONES
-            function buildFloor(x, z, w, d, mat) {
-                let f = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat);
-                f.rotation.x = -Math.PI/2; f.position.set(x, 0, z); f.receiveShadow = true; mapGrp.add(f);
-                let grid = new THREE.GridHelper(w, w/20, 0x000000, 0x000000); grid.position.set(x, 0.2, z); grid.material.opacity=0.3; grid.material.transparent=true; mapGrp.add(grid);
+            getCost() {
+                return Math.ceil(this.baseCost * Math.pow(1.15, this.count));
             }
-            
-            buildFloor(0, 0, 800, 800, Mats.floorBase); // Zone 1
-            buildFloor(1000, 0, 800, 800, Mats.floorZone2); // Zone 2
-            buildFloor(0, 1000, 800, 800, Mats.floorZone3); // Zone 3
-            buildFloor(1000, 1000, 800, 800, Mats.floorZone4); // Zone 4
-
-            // --- PROCEDURAL EQUIPMENT GENERATORS ---
-            
-            function genTreadmill(x, z, rot) {
-                const g = new THREE.Group();
-                let base = new THREE.Mesh(new THREE.BoxGeometry(4, 0.8, 12), Mats.metalDark); base.position.y=0.4; base.castShadow=true;
-                let belt = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.9, 11.5), Mats.belt); belt.position.y=0.4;
-                let armL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 6, 0.8), Mats.metalDark); armL.position.set(-1.8, 3, -5); armL.rotation.x=-0.2; armL.castShadow=true;
-                let armR = armL.clone(); armR.position.set(1.8, 3, -5);
-                let panel = new THREE.Mesh(new THREE.BoxGeometry(4.5, 2.5, 0.4), Mats.metalDark); panel.position.set(0, 6, -5.5); panel.rotation.x=-0.4; panel.castShadow=true;
-                let screen = new THREE.Mesh(new THREE.PlaneGeometry(4, 2), new THREE.MeshBasicMaterial({color:0x00E5FF})); screen.position.set(0, 6, -5.3); screen.rotation.x=-0.4;
-                g.add(base, belt, armL, armR, panel, screen); g.position.set(x,0,z); g.rotation.y=rot; mapGrp.add(g);
-                let usePos = new THREE.Vector3(x, 0, z).add(new THREE.Vector3(0,0,2).applyAxisAngle(new THREE.Vector3(0,1,0), rot));
-                interactables.push({ type: 'treadmill', pos: new THREE.Vector3(x,0,z), radius: 8, usePos: usePos, useRot: rot, obj: belt });
+            getCps() {
+                return this.baseCps * this.count * this.multiplier;
             }
-
-            function genBench(x, z, rot) {
-                const g = new THREE.Group();
-                let pad = new THREE.Mesh(new THREE.BoxGeometry(3, 0.6, 10), Mats.leatherRed); pad.position.y=2.5; pad.castShadow=true;
-                let f1 = new THREE.Mesh(new THREE.BoxGeometry(0.8,2.5,0.8), Mats.metalDark); f1.position.set(0,1.25,4); f1.castShadow=true;
-                let f2 = f1.clone(); f2.position.set(-1.2,1.25,-4); let f3 = f1.clone(); f3.position.set(1.2,1.25,-4);
-                let rL = new THREE.Mesh(new THREE.BoxGeometry(0.5,5.5,0.5), Mats.metalDark); rL.position.set(-2,2.75,-4); rL.castShadow=true;
-                let rR = rL.clone(); rR.position.set(2,2.75,-4);
-                let bar = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,8), Mats.metalLight); bar.rotation.z=Math.PI/2; bar.position.set(0,5.5,-4); bar.castShadow=true;
-                let p1 = new THREE.Mesh(new THREE.CylinderGeometry(2,2,0.5), Mats.metalDark); p1.rotation.z=Math.PI/2; p1.position.set(-3.5,5.5,-4); p1.castShadow=true;
-                let p2 = p1.clone(); p2.position.set(3.5,5.5,-4);
-                g.add(pad, f1, f2, f3, rL, rR, bar, p1, p2); g.position.set(x,0,z); g.rotation.y=rot; mapGrp.add(g);
-                let usePos = new THREE.Vector3(x, 0, z).add(new THREE.Vector3(0,0,0).applyAxisAngle(new THREE.Vector3(0,1,0), rot));
-                interactables.push({ type: 'bench', pos: new THREE.Vector3(x,0,z), radius: 8, usePos: usePos, useRot: rot, obj: bar });
+            buy() {
+                let cost = this.getCost();
+                if (Game.eggs >= cost) {
+                    Game.eggs -= cost;
+                    this.count++;
+                    Game.recalculateCPS();
+                    Game.renderBuildings();
+                    Game.renderUpgrades();
+                    return true;
+                }
+                return false;
             }
-
-            function genSquat(x, z, rot) {
-                const g = new THREE.Group();
-                let pL = new THREE.Mesh(new THREE.BoxGeometry(0.8,10,0.8), Mats.metalDark); pL.position.set(-4,5,0); pL.castShadow=true;
-                let pR = pL.clone(); pR.position.set(4,5,0);
-                let pT = new THREE.Mesh(new THREE.BoxGeometry(8.8,0.8,0.8), Mats.metalDark); pT.position.set(0,10,0); pT.castShadow=true;
-                let bar = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,10), Mats.metalLight); bar.rotation.z=Math.PI/2; bar.position.set(0,7,0); bar.castShadow=true;
-                let w1 = new THREE.Mesh(new THREE.CylinderGeometry(2.5,2.5,0.8), Mats.metalDark); w1.rotation.z=Math.PI/2; w1.position.set(-4.5,7,0); w1.castShadow=true;
-                let w2 = w1.clone(); w2.position.set(4.5,7,0);
-                g.add(pL, pR, pT, bar, w1, w2); g.position.set(x,0,z); g.rotation.y=rot; mapGrp.add(g);
-                let usePos = new THREE.Vector3(x, 0, z).add(new THREE.Vector3(0,0,1).applyAxisAngle(new THREE.Vector3(0,1,0), rot));
-                interactables.push({ type: 'squat', pos: new THREE.Vector3(x,0,z), radius: 10, usePos: usePos, useRot: rot, obj: bar });
-            }
-
-            function genSellZone(x, z, size, matOuter) {
-                const g = new THREE.Group();
-                let base = new THREE.Mesh(new THREE.CylinderGeometry(size, size, 2, 32), Mats.metalDark); base.position.y=1; base.receiveShadow=true;
-                let ring = new THREE.Mesh(new THREE.TorusGeometry(size-2, 1, 16, 64), matOuter); ring.position.y=2.5; ring.rotation.x=Math.PI/2;
-                let holo = new THREE.Mesh(new THREE.CylinderGeometry(size-2, size-2, 50, 32), new THREE.MeshBasicMaterial({color: matOuter.color, transparent: true, opacity: 0.1, side: THREE.DoubleSide, blending: THREE.AdditiveBlending})); holo.position.y=25;
-                g.add(base, ring, holo); g.position.set(x,0,z); mapGrp.add(g);
-                return { holo, ring }; 
-            }
-
-            // --- POPULATE MAP (HUNDREDS OF OBJECTS) ---
-            const sellZones = [];
-            sellZones.push(genSellZone(0, 0, 30, Mats.neonGreen)); // Zone 1
-            sellZones.push(genSellZone(1000, 0, 40, Mats.neonPurple)); // Zone 2
-            sellZones.push(genSellZone(0, 1000, 50, new THREE.MeshStandardMaterial({color:0xFF3D00, emissive:0xFF3D00}))); // Zone 3
-            sellZones.push(genSellZone(1000, 1000, 80, new THREE.MeshStandardMaterial({color:0xFFFFFF, emissive:0xFFFFFF}))); // Zone 4
-
-            function populateZone(ox, oz) {
-                for(let i=0; i<15; i++) {
-                    genTreadmill(ox + 150, oz - 200 + i*20, -Math.PI/2);
-                    genTreadmill(ox + 200, oz - 200 + i*20, -Math.PI/2);
-                    genBench(ox - 150, oz - 200 + i*30, Math.PI/2);
-                    genBench(ox - 250, oz - 200 + i*30, Math.PI/2);
-                    if(i%2===0) genSquat(ox, oz + 150 + i*20, 0);
-                }
-            }
-            populateZone(0,0); populateZone(1000,0); populateZone(0,1000); populateZone(1000,1000);
-
-            // --- PLAYER RIG (ROBLOX R15 STYLE) ---
-            const pGrp = new THREE.Group(); scene.add(pGrp);
-            PLAYER = { group: pGrp, scale: 1 };
-
-            const skinMat = new THREE.MeshStandardMaterial({color: 0xFFCC99, roughness: 0.5});
-            const shirtMat = new THREE.MeshStandardMaterial({color: 0x1976D2, roughness: 0.7});
-            const pantsMat = new THREE.MeshStandardMaterial({color: 0x212121, roughness: 0.8});
-
-            const head = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.4), skinMat); head.position.y=4.8; head.castShadow=true; pGrp.add(head);
-            const face = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.5), new THREE.MeshBasicMaterial({color: 0x000})); face.position.set(0, 4.9, 0.71); pGrp.add(face);
-            const torso = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.0, 1.2), shirtMat); torso.position.y=2.8; torso.castShadow=true; pGrp.add(torso);
-            
-            const rArmGrp = new THREE.Group(); rArmGrp.position.set(1.8, 4.0, 0);
-            const rArm = new THREE.Mesh(new THREE.BoxGeometry(1.0, 3.0, 1.0), skinMat); rArm.position.y=-1.2; rArm.castShadow=true; rArmGrp.add(rArm); pGrp.add(rArmGrp);
-            
-            const lArmGrp = new THREE.Group(); lArmGrp.position.set(-1.8, 4.0, 0);
-            const lArm = new THREE.Mesh(new THREE.BoxGeometry(1.0, 3.0, 1.0), skinMat); lArm.position.y=-1.2; lArm.castShadow=true; lArmGrp.add(lArm); pGrp.add(lArmGrp);
-            
-            const rLegGrp = new THREE.Group(); rLegGrp.position.set(0.6, 1.4, 0);
-            const rLeg = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.8, 1.1), pantsMat); rLeg.position.y=-1.4; rLeg.castShadow=true; rLegGrp.add(rLeg); pGrp.add(rLegGrp);
-            
-            const lLegGrp = new THREE.Group(); lLegGrp.position.set(-0.6, 1.4, 0);
-            const lLeg = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.8, 1.1), pantsMat); lLeg.position.y=-1.4; lLeg.castShadow=true; lLegGrp.add(lLeg); pGrp.add(lLegGrp);
-
-            const handAnchor = new THREE.Group(); handAnchor.position.set(0, -2.5, 0); rArmGrp.add(handAnchor);
-            let currentEquip = null;
-
-            // --- PET SYSTEM ---
-            const petGrp = new THREE.Group(); scene.add(petGrp);
-            PET = {
-                mesh: null,
-                update() {
-                    if(!this.mesh && STATE.equipped.pet) {
-                        let pd = getDB('pets', STATE.equipped.pet);
-                        this.mesh = new THREE.Mesh(new THREE.BoxGeometry(1.5,1.5,1.5), new THREE.MeshStandardMaterial({color: pd.color, metalness:0.3, roughness:0.5}));
-                        this.mesh.castShadow=true; petGrp.add(this.mesh);
-                    } else if(this.mesh && !STATE.equipped.pet) {
-                        petGrp.remove(this.mesh); this.mesh.geometry.dispose(); this.mesh.material.dispose(); this.mesh = null;
-                    } else if(this.mesh && STATE.equipped.pet) {
-                        this.mesh.material.color.setHex(getDB('pets', STATE.equipped.pet).color);
-                        // Scale pet based on player scale
-                        let ps = PLAYER.scale * 0.5; this.mesh.scale.set(ps,ps,ps);
-                    }
-                },
-                animate(dt) {
-                    if(!this.mesh) return;
-                    let tgt = pGrp.position.clone().add(new THREE.Vector3(-4*PLAYER.scale, 6*PLAYER.scale, -4*PLAYER.scale).applyAxisAngle(new THREE.Vector3(0,1,0), pGrp.rotation.y));
-                    tgt.y += Math.sin(Date.now()*0.003)*PLAYER.scale; // Hover
-                    this.mesh.position.lerp(tgt, 5*dt);
-                    this.mesh.lookAt(pGrp.position);
-                }
-            };
-
-            // --- PARTICLES ---
-            const pSysGrp = new THREE.Group(); scene.add(pSysGrp);
-            const pArr = [];
-            PARTICLES = {
-                spawnConfetti() {
-                    if(!STATE.settings.particles) return;
-                    const cols = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF, 0x00FFFF];
-                    const g = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-                    for(let i=0; i<80; i++) {
-                        let m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({color: cols[Math.floor(Math.random()*cols.length)]}));
-                        m.position.copy(pGrp.position); m.position.y += 15 * PLAYER.scale;
-                        pSysGrp.add(m); pArr.push({ m:m, v:new THREE.Vector3((Math.random()-0.5)*30, Math.random()*40, (Math.random()-0.5)*30), life: 3.5 });
-                    }
-                },
-                spawnSweat() {
-                    if(!STATE.settings.particles) return;
-                    let m = new THREE.Mesh(new THREE.SphereGeometry(0.3,4,4), new THREE.MeshBasicMaterial({color:0x87CEEB, transparent:true, opacity:0.8}));
-                    m.position.copy(pGrp.position); m.position.y += 6 * PLAYER.scale; m.position.x += (Math.random()-0.5)*4; m.position.z += (Math.random()-0.5)*4;
-                    pSysGrp.add(m); pArr.push({ m:m, v:new THREE.Vector3(0, -10, 0), life: 0.8 });
-                },
-                update(dt) {
-                    for(let i=pArr.length-1; i>=0; i--) {
-                        let p = pArr[i]; p.life -= dt; p.v.y -= 50 * dt; // grav
-                        p.m.position.addScaledVector(p.v, dt); p.m.rotation.x += p.v.y*dt; p.m.rotation.y += p.v.x*dt;
-                        if(p.m.position.y < 0.2) p.m.position.y = 0.2;
-                        if(p.life <= 0) { pSysGrp.remove(p.m); p.m.geometry.dispose(); p.m.material.dispose(); pArr.splice(i,1); }
-                    }
-                }
-            };
-
-            // --- RENDERER EXPORTS ---
-            RENDERER = {
-                updatePlayerScale() {
-                    let s = 1 + Math.min(Math.log10(STATE.strength + 1) * 0.15, 8.0);
-                    PLAYER.scale = s; pGrp.scale.lerp(new THREE.Vector3(s, s, s), 0.1);
-                    PET.update(); // Update pet scale
-                },
-                updatePet() { PET.update(); },
-                updateEquippedItem() {
-                    if(currentEquip) { handAnchor.remove(currentEquip); currentEquip.geometry.dispose(); currentEquip.material.dispose(); currentEquip = null; }
-                    
-                    if(STATE.hotbarSlot === 1) {
-                        let wD = getDB('weights', STATE.equipped.weight);
-                        const g = new THREE.Group();
-                        const mat = new THREE.MeshStandardMaterial({color: wD.color, metalness:0.8, roughness:0.2});
-                        const h = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,2.0), Mats.metalDark);
-                        
-                        if(wD.type === 'dumbbell') {
-                            let w1 = new THREE.Mesh(new THREE.CylinderGeometry(0.8,0.8,0.6), mat); w1.position.y=1.0;
-                            let w2 = w1.clone(); w2.position.y=-1.0; g.add(h, w1, w2);
-                        } else {
-                            h.scale.y = 4.0;
-                            let w1 = new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,0.5), mat); w1.position.y=3.5;
-                            let w2 = w1.clone(); w2.position.y=-3.5; g.add(h, w1, w2);
-                        }
-                        
-                        g.scale.set(wD.scale, wD.scale, wD.scale); g.rotation.x = Math.PI/2; g.position.z = 0.8;
-                        currentEquip = g; handAnchor.add(currentEquip);
-                    } else if(STATE.hotbarSlot === 3) {
-                        const g = new THREE.Group();
-                        const b = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,1.2), new THREE.MeshStandardMaterial({color:0x00BCD4, transparent:true, opacity:0.8}));
-                        b.rotation.x = Math.PI/2; b.position.z = 0.5;
-                        currentEquip = b; handAnchor.add(currentEquip);
-                    }
-                },
-                applyShadowSettings() {
-                    renderer.shadowMap.enabled = STATE.settings.shadows; dirLight.castShadow = STATE.settings.shadows;
-                    scene.traverse(c => { if(c.isMesh && c.geometry.type !== 'PlaneGeometry') { c.castShadow = STATE.settings.shadows; c.receiveShadow = STATE.settings.shadows; } });
-                }
-            };
-
-            INTERACTIONS = {
-                list: interactables, currentTarget: null,
-                check(pPos) {
-                    let found = null;
-                    for(let i=0; i<this.list.length; i++) {
-                        if(pPos.distanceTo(this.list[i].pos) < this.list[i].radius * Math.max(1, PLAYER.scale*0.5)) { found = this.list[i]; break; }
-                    }
-                    if(found && !STATE.isInteracting) { UI.els.prompt.style.display = 'block'; UI.els.prompt.innerHTML = `<span class="key-btn">E</span> USE ${found.type.toUpperCase()}`; this.currentTarget = found; document.getElementById('crosshair').classList.add('active'); }
-                    else if(!STATE.isInteracting) { UI.els.prompt.style.display = 'none'; this.currentTarget = null; document.getElementById('crosshair').classList.remove('active'); }
-                }
-            };
-
-            // Init
-            RENDERER.updateEquippedItem(); RENDERER.applyShadowSettings(); PET.update();
-
-            // Inputs
-            const keys = { w:false, a:false, s:false, d:false, shift:false };
-            document.addEventListener('keydown', e => { let k=e.key.toLowerCase(); if(keys.hasOwnProperty(k)) keys[k]=true; });
-            document.addEventListener('keyup', e => { let k=e.key.toLowerCase(); if(keys.hasOwnProperty(k)) keys[k]=false; });
-
-            let camP = { radius: 35, theta: Math.PI/4, phi: Math.PI/3 }; let isDrag = false;
-            document.getElementById('game-canvas-container').addEventListener('mousedown', e => { if(e.button===2 || e.button===0) isDrag=true; });
-            document.addEventListener('mouseup', () => isDrag=false);
-            document.addEventListener('mousemove', e => {
-                if(isDrag && !UI.els.modal.classList.contains('active')) {
-                    camP.theta -= e.movementX * 0.005; camP.phi -= e.movementY * 0.005;
-                    camP.phi = Math.max(0.05, Math.min(Math.PI/2.1, camP.phi));
-                }
-            });
-            document.addEventListener('wheel', e => { camP.radius += e.deltaY * 0.08; camP.radius = Math.max(15, Math.min(200, camP.radius)); });
-            document.addEventListener('contextmenu', e => e.preventDefault());
-
-            window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
-
-            setTimeout(() => {
-                document.getElementById('loading-bar').style.width = '100%';
-                setTimeout(() => { document.getElementById('loading-screen').style.opacity = '0'; setTimeout(()=>document.getElementById('loading-screen').style.display = 'none', 800); }, 500);
-            }, 1000);
-
-            // --- MAIN LOOP ---
-            const clock = new THREE.Clock(); let vel = new THREE.Vector3(); let animTime = 0; let actionPhase = 0;
-
-            function animate() {
-                requestAnimationFrame(animate);
-                let dt = Math.min(clock.getDelta(), 0.1);
-
-                // Rotate Sell Zones
-                sellZones.forEach((z,i) => { z.holo.rotation.y -= dt*(0.5+i*0.1); z.ring.rotation.z += dt; });
-
-                // Check Zone & Sell
-                let px = pGrp.position.x; let pz = pGrp.position.z;
-                let newZone = 'z1';
-                if(px > 500 && pz < 500) newZone = 'z2'; else if(px < 500 && pz > 500) newZone = 'z3'; else if(px > 500 && pz > 500) newZone = 'z4';
-                if(newZone !== STATE.currentZone) {
-                    if(STATE.strength >= getDB('zones', newZone).req) { STATE.currentZone = newZone; UI.notify(`ENTERED ${getDB('zones', newZone).name}!`, '#E040FB'); UI.update(); }
-                    else { // Push back
-                        vel.x *= -2; vel.z *= -2; pGrp.position.add(new THREE.Vector3(-Math.sign(px-500)*10, 0, -Math.sign(pz-500)*10));
-                        UI.notify(`NEED ${formatNum(getDB('zones', newZone).req)} POWER TO ENTER`, '#F44336');
-                    }
-                }
-
-                // Stamina Regen
-                if(STATE.animState === 'idle' || STATE.animState === 'walk') { STATE.stamina = Math.min(STATE.stamina + dt*5, STATE.maxStamina); }
-
-                // Physics & Movement
-                if(!UI.els.modal.classList.contains('active')) {
-                    if(!STATE.isInteracting) {
-                        let dir = new THREE.Vector3();
-                        if(keys.w) dir.z -= 1; if(keys.s) dir.z += 1;
-                        if(keys.a) dir.x -= 1; if(keys.d) dir.x += 1;
-                        dir.normalize();
-
-                        if(dir.lengthSq() > 0.1) {
-                            let cDir = new THREE.Vector3(); camera.getWorldDirection(cDir); cDir.y=0; cDir.normalize();
-                            let cRight = new THREE.Vector3().crossVectors(cDir, new THREE.Vector3(0,1,0)).normalize();
-                            let mVec = new THREE.Vector3().addScaledVector(cRight, dir.x).addScaledVector(cDir, -dir.z).normalize();
-                            
-                            let zG = getDB('zones', STATE.currentZone).gravity;
-                            let spd = (50.0 + (STATE.speed * 0.02)) / zG; // Speed affected by zone gravity
-                            vel.x = mVec.x * spd; vel.z = mVec.z * spd;
-
-                            let tRot = Math.atan2(vel.x, vel.z); let dRot = tRot - pGrp.rotation.y;
-                            while(dRot < -Math.PI) dRot += Math.PI*2; while(dRot > Math.PI) dRot -= Math.PI*2;
-                            pGrp.rotation.y += dRot * 15 * dt;
-
-                            STATE.animState = 'walk';
-                        } else {
-                            vel.x -= vel.x * 15 * dt; vel.z -= vel.z * 15 * dt;
-                            if(STATE.animState === 'walk') STATE.animState = 'idle';
-                        }
-
-                        pGrp.position.x += vel.x * dt; pGrp.position.z += vel.z * dt;
-
-                        // Bounds
-                        let b = 1390;
-                        if(pGrp.position.x > b) pGrp.position.x = b; if(pGrp.position.x < -100) pGrp.position.x = -100;
-                        if(pGrp.position.z > b) pGrp.position.z = b; if(pGrp.position.z < -100) pGrp.position.z = -100;
-                        
-                        INTERACTIONS.check(pGrp.position);
-                    } else {
-                        // Interacting processing
-                        if(STATE.interactTarget.type === 'treadmill') {
-                            STATE.stamina -= dt*2;
-                            if(STATE.stamina <= 0) { GAME.interact(); UI.notify("OUT OF ENERGY!", "#F44336"); }
-                            else {
-                                let gain = ((10 + STATE.level*2) * (1 + STATE.rebirths) * getDB('zones', STATE.currentZone).mult) * dt;
-                                STATE.speed += gain; STATE.exp += 15 * dt;
-                                if(Math.random() < 0.1) PARTICLES.spawnSweat();
-                                GAME.checkLevelUp();
-                                STATE.interactTarget.obj.material.map && (STATE.interactTarget.obj.material.map.offset.y -= dt*2);
-                            }
-                        } else if(STATE.interactTarget.type === 'bench') {
-                            if(STATE.animState === 'bench_press') {
-                                STATE.stamina -= dt*10;
-                                if(STATE.stamina <= 0) { GAME.interact(); UI.notify("OUT OF ENERGY!", "#F44336"); }
-                                else {
-                                    actionPhase += dt * 3;
-                                    let p = Math.abs(Math.sin(actionPhase * Math.PI));
-                                    STATE.interactTarget.obj.position.y = 5.5 + (p * 2); // Move bar up and down
-                                    rArmGrp.rotation.x = -Math.PI/2 - (p * 0.5); lArmGrp.rotation.x = -Math.PI/2 - (p * 0.5); // Arms push
-                                    if(p < 0.1 && actionPhase > 1) { // 1 rep complete
-                                        actionPhase = 0;
-                                        let gain = GAME.calcGain() * 2; // Bench gives 2x
-                                        STATE.strength += gain; STATE.exp += 100;
-                                        AUDIO.lift(); GAME.checkLevelUp(); UI.floatText(gain, 'str');
-                                        if(Math.random()<0.5) PARTICLES.spawnSweat();
-                                    }
-                                }
-                            }
-                        } else if(STATE.interactTarget.type === 'squat') {
-                            if(STATE.animState === 'squatting') {
-                                STATE.stamina -= dt*12;
-                                if(STATE.stamina <= 0) { GAME.interact(); UI.notify("OUT OF ENERGY!", "#F44336"); }
-                                else {
-                                    actionPhase += dt * 2.5;
-                                    let p = Math.abs(Math.sin(actionPhase * Math.PI));
-                                    STATE.interactTarget.obj.position.y = 7 - (p * 2); // Bar goes down
-                                    pGrp.position.y = -(p * 2); // Player goes down
-                                    rLegGrp.rotation.x = p * 1.5; lLegGrp.rotation.x = p * 1.5; // Knees bend
-                                    if(p < 0.1 && actionPhase > 1) {
-                                        actionPhase = 0;
-                                        let gain = GAME.calcGain() * 3; // Squat gives 3x
-                                        STATE.strength += gain; STATE.speed += gain*0.1; STATE.exp += 150;
-                                        AUDIO.lift(); GAME.checkLevelUp(); UI.floatText(gain, 'str');
-                                        if(Math.random()<0.6) PARTICLES.spawnSweat();
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                RENDERER.updatePlayerScale(); PET.animate(dt);
-
-                // --- ANIMATION STATE MACHINE ---
-                if(STATE.animState === 'walk' || STATE.animState === 'run_treadmill') {
-                    let speedMult = STATE.animState === 'run_treadmill' ? 30 : 18;
-                    animTime += dt * speedMult;
-                    rLegGrp.rotation.x = Math.sin(animTime)*0.9; lLegGrp.rotation.x = Math.sin(animTime+Math.PI)*0.9;
-                    rArmGrp.rotation.x = Math.sin(animTime+Math.PI)*0.7; lArmGrp.rotation.x = Math.sin(animTime)*0.7;
-                    if(STATE.animState === 'run_treadmill') pGrp.position.y = Math.abs(Math.sin(animTime*2))*0.2;
-                } 
-                else if(STATE.animState === 'lift') {
-                    actionPhase += dt * 6; let p = Math.sin(actionPhase * Math.PI);
-                    rArmGrp.rotation.x = -p * Math.PI * 0.9; lArmGrp.rotation.x = -p * Math.PI * 0.9;
-                    if(actionPhase >= 1) { STATE.animState = 'idle'; actionPhase = 0; }
-                }
-                else if(STATE.animState === 'punch') {
-                    actionPhase += dt * 10; let p = Math.sin(actionPhase * Math.PI);
-                    rArmGrp.rotation.x = -p * Math.PI * 0.6; rArmGrp.rotation.z = p * 0.6;
-                    if(actionPhase >= 1) { STATE.animState = 'idle'; actionPhase = 0; }
-                }
-                else if(STATE.animState === 'drink') {
-                    actionPhase += dt * 3; let p = Math.sin(actionPhase * Math.PI);
-                    rArmGrp.rotation.x = -p * Math.PI * 0.8; rArmGrp.rotation.z = -p * 0.2;
-                    if(actionPhase >= 1) { STATE.animState = 'idle'; actionPhase = 0; }
-                }
-                else if(!STATE.isInteracting) {
-                    // Idle Reset
-                    rLegGrp.rotation.x = THREE.MathUtils.lerp(rLegGrp.rotation.x, 0, dt*12);
-                    lLegGrp.rotation.x = THREE.MathUtils.lerp(lLegGrp.rotation.x, 0, dt*12);
-                    rArmGrp.rotation.x = THREE.MathUtils.lerp(rArmGrp.rotation.x, 0, dt*12);
-                    lArmGrp.rotation.x = THREE.MathUtils.lerp(lArmGrp.rotation.x, 0, dt*12);
-                    rArmGrp.rotation.z = THREE.MathUtils.lerp(rArmGrp.rotation.z, 0, dt*12);
-                    pGrp.position.y = THREE.MathUtils.lerp(pGrp.position.y, 0, dt*12);
-                }
-
-                // Camera Update
-                let pS = PLAYER.scale;
-                let tgt = pGrp.position.clone().add(new THREE.Vector3(0, 6 * pS, 0));
-                let ox = camP.radius * pS * Math.sin(camP.phi) * Math.sin(camP.theta);
-                let oy = camP.radius * pS * Math.cos(camP.phi);
-                let oz = camP.radius * pS * Math.sin(camP.phi) * Math.cos(camP.theta);
-
-                camera.position.lerp(new THREE.Vector3(tgt.x+ox, tgt.y+oy, tgt.z+oz), 0.2);
-                camera.lookAt(tgt);
-
-                PARTICLES.update(dt);
-                
-                // Throttle UI Update
-                if(Math.random() < 0.1) UI.update();
-
-                renderer.render(scene, camera);
-            }
-            animate();
         }
 
-        UI.update();
-        initEngine();
-    </script>
+        this.buildings = [
+            new Building(0, "Nest", 15, 0.1, "🧺", "A simple nest of twigs. Produces a slow trickle of eggs."),
+            new Building(1, "Coop", 100, 1, "🛖", "A wooden coop holding a few chickens."),
+            new Building(2, "Barn", 1100, 8, "🏚️", "A large barn to hold even more chickens."),
+            new Building(3, "Farm", 12000, 47, "🚜", "A sprawling farm dedicated entirely to egg production."),
+            new Building(4, "Factory", 130000, 260, "🏭", "Industrial-scale egg manufacturing."),
+            new Building(5, "Mine", 1400000, 1400, "⛏️", "Mines deep into the earth's crust to extract fossilized prehistoric eggs."),
+            new Building(6, "Shipment", 20000000, 7800, "🚀", "Brings in fresh eggs from the poultry planet of Cluck-9."),
+            new Building(7, "Alchemy Lab", 330000000, 44000, "⚗️", "Turns raw dirt directly into perfectly formed eggs."),
+            new Building(8, "Portal", 5100000000, 260000, "🌌", "Opens a doorway to the Eggverse."),
+            new Building(9, "Time Machine", 75000000000, 1600000, "⏳", "Travels to the past to harvest eggs before they are even laid."),
+            new Building(10, "Antimatter Condenser", 1000000000000, 10000000, "⚛️", "Condenses the antimatter in the universe into pure egg mass."),
+            new Building(11, "Prism", 14000000000000, 65000000, "🌈", "Converts light itself into eggs."),
+            new Building(12, "Chancemaker", 170000000000000, 430000000, "🎲", "Generates eggs out of pure probability."),
+            new Building(13, "Fractal Engine", 2100000000000000, 2900000000, "🌀", "Eggs made of eggs made of eggs..."),
+            new Building(14, "Javascript Console", 26000000000000000, 21000000000, "💻", "Hacks the game's code to simply spawn eggs."),
+            new Building(15, "Idleverse", 310000000000000000, 150000000000, "🪐", "Hijacks other idle games and steals their numbers.")
+        ];
+    },
+
+    defineUpgrades: function() {
+        class Upgrade {
+            constructor(id, name, cost, icon, description, reqType, reqAmount, effect) {
+                this.id = id;
+                this.name = name;
+                this.cost = cost;
+                this.icon = icon;
+                this.description = description;
+                this.reqType = reqType; // 'building', 'eggs', 'clicks'
+                this.reqAmount = reqAmount;
+                this.effect = effect; // Function to run when bought
+                this.purchased = false;
+            }
+            isUnlocked() {
+                if (this.purchased) return false;
+                if (this.reqType === 'eggs' && Game.totalEggs >= this.reqAmount) return true;
+                if (this.reqType === 'clicks' && Game.clickCount >= this.reqAmount) return true;
+                if (typeof this.reqType === 'number') { // Building ID
+                    return Game.buildings[this.reqType].count >= this.reqAmount;
+                }
+                return false;
+            }
+            buy() {
+                if (this.isUnlocked() && Game.eggs >= this.cost) {
+                    Game.eggs -= this.cost;
+                    this.purchased = true;
+                    this.effect();
+                    Game.recalculateCPS();
+                    Game.renderUpgrades();
+                    Game.notify("Upgrade Bought!", this.name);
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        this.upgrades = [
+            // Click Upgrades
+            new Upgrade(0, "Reinforced Index Finger", 100, "👆", "Clicking is twice as efficient.", 'clicks', 10, () => { Game.clickMultiplier *= 2; }),
+            new Upgrade(1, "Carpal Tunnel Prevention Cream", 500, "🧴", "Clicking is twice as efficient.", 'clicks', 100, () => { Game.clickMultiplier *= 2; }),
+            new Upgrade(2, "Ambidextrous", 10000, "👐", "Clicking is twice as efficient.", 'clicks', 1000, () => { Game.clickMultiplier *= 2; }),
+            new Upgrade(3, "Thousand Fingers", 100000, "🖐️", "Gain +0.1 clicks for each building owned.", 'clicks', 5000, () => { 
+                // Handled in click calculation
+            }),
+
+            // Nest Upgrades (ID: 0)
+            new Upgrade(10, "Softer Twigs", 100, "🌿", "Nests are twice as efficient.", 0, 1, () => { Game.buildings[0].multiplier *= 2; }),
+            new Upgrade(11, "Feather Padding", 500, "🪶", "Nests are twice as efficient.", 0, 10, () => { Game.buildings[0].multiplier *= 2; }),
+            new Upgrade(12, "Heated Nests", 10000, "🔥", "Nests are twice as efficient.", 0, 50, () => { Game.buildings[0].multiplier *= 2; }),
+            
+            // Coop Upgrades (ID: 1)
+            new Upgrade(20, "Sturdier Wood", 1000, "🪵", "Coops are twice as efficient.", 1, 1, () => { Game.buildings[1].multiplier *= 2; }),
+            new Upgrade(21, "Automated Feeders", 5000, "🌾", "Coops are twice as efficient.", 1, 10, () => { Game.buildings[1].multiplier *= 2; }),
+            new Upgrade(22, "Rooster Guards", 50000, "🐓", "Coops are twice as efficient.", 1, 50, () => { Game.buildings[1].multiplier *= 2; }),
+
+            // Barn Upgrades (ID: 2)
+            new Upgrade(30, "Red Paint", 11000, "🎨", "Barns are twice as efficient.", 2, 1, () => { Game.buildings[2].multiplier *= 2; }),
+            new Upgrade(31, "Hay Bales", 55000, "🌾", "Barns are twice as efficient.", 2, 10, () => { Game.buildings[2].multiplier *= 2; }),
+            new Upgrade(32, "Loft Storage", 550000, "🪜", "Barns are twice as efficient.", 2, 50, () => { Game.buildings[2].multiplier *= 2; }),
+
+            // Farm Upgrades (ID: 3)
+            new Upgrade(40, "Fertilizer", 120000, "💩", "Farms are twice as efficient.", 3, 1, () => { Game.buildings[3].multiplier *= 2; }),
+            new Upgrade(41, "Tractors", 600000, "🚜", "Farms are twice as efficient.", 3, 10, () => { Game.buildings[3].multiplier *= 2; }),
+            new Upgrade(42, "GMO Seeds", 6000000, "🧬", "Farms are twice as efficient.", 3, 50, () => { Game.buildings[3].multiplier *= 2; }),
+
+            // Factory Upgrades (ID: 4)
+            new Upgrade(50, "Assembly Line", 1300000, "⚙️", "Factories are twice as efficient.", 4, 1, () => { Game.buildings[4].multiplier *= 2; }),
+            new Upgrade(51, "Robot Workers", 6500000, "🤖", "Factories are twice as efficient.", 4, 10, () => { Game.buildings[4].multiplier *= 2; }),
+            new Upgrade(52, "Overtime", 65000000, "⏰", "Factories are twice as efficient.", 4, 50, () => { Game.buildings[4].multiplier *= 2; }),
+
+            // Mine Upgrades (ID: 5)
+            new Upgrade(60, "Dynamite", 14000000, "🧨", "Mines are twice as efficient.", 5, 1, () => { Game.buildings[5].multiplier *= 2; }),
+            new Upgrade(61, "Diamond Pickaxes", 70000000, "💎", "Mines are twice as efficient.", 5, 10, () => { Game.buildings[5].multiplier *= 2; }),
+            new Upgrade(62, "Core Drilling", 700000000, "🌋", "Mines are twice as efficient.", 5, 50, () => { Game.buildings[5].multiplier *= 2; }),
+
+            // Global / Synergy Upgrades
+            new Upgrade(100, "Golden Egg", 1000000, "✨", "Overall egg production +10%.", 'eggs', 100000, () => { Game.globalMultiplier *= 1.1; }),
+            new Upgrade(101, "Platinum Egg", 100000000, "💿", "Overall egg production +15%.", 'eggs', 10000000, () => { Game.globalMultiplier *= 1.15; }),
+            new Upgrade(102, "Diamond Egg", 10000000000, "💎", "Overall egg production +20%.", 'eggs', 1000000000, () => { Game.globalMultiplier *= 1.2; })
+        ];
+    },
+
+    defineAchievements: function() {
+        // Keeping it conceptual for logic
+        this.achievements = [
+            { id: 0, name: "First Blood", desc: "Click the chicken.", req: () => Game.clickCount >= 1, won: false },
+            { id: 1, name: "Novice Clicker", desc: "Click the chicken 100 times.", req: () => Game.clickCount >= 100, won: false },
+            { id: 2, name: "Expert Clicker", desc: "Click the chicken 1,000 times.", req: () => Game.clickCount >= 1000, won: false },
+            { id: 3, name: "Chicken Whisperer", desc: "Click the chicken 10,000 times.", req: () => Game.clickCount >= 10000, won: false },
+            { id: 4, name: "Humble Beginnings", desc: "Bake 100 eggs.", req: () => Game.totalEggs >= 100, won: false },
+            { id: 5, name: "Making Dough", desc: "Bake 10,000 eggs.", req: () => Game.totalEggs >= 10000, won: false },
+            { id: 6, name: "Millionaire", desc: "Bake 1,000,000 eggs.", req: () => Game.totalEggs >= 1000000, won: false },
+            { id: 7, name: "Billionaire", desc: "Bake 1,000,000,000 eggs.", req: () => Game.totalEggs >= 1000000000, won: false },
+            { id: 8, name: "Trillionaire", desc: "Bake 1,000,000,000,000 eggs.", req: () => Game.totalEggs >= 1000000000000, won: false }
+        ];
+    },
+
+    defineNews: function() {
+        this.news = [
+            "News: Chicken crosses road, motives remain unclear.",
+            "News: Local farmer discovers egg made of solid gold, eats it.",
+            "News: 'Why did the chicken do it?' asks philosopher.",
+            "News: Egg prices skyrocket as strange digital entity clicks rapidly.",
+            "News: New study shows chickens may be smarter than politicians.",
+            "News: World covered in thin layer of egg yolk following factory explosion.",
+            "News: 'I just want to click,' says local maniac.",
+            "News: Breaking - The egg came first, scientists conclude. Or maybe the chicken. They are still fighting.",
+            "News: Massive influx of eggs destabilizes global economy.",
+            "News: Chicken cult formed in the midwest, worships giant digital bird."
+        ];
+    },
+
+    // --- GAME LOGIC ---
+
+    click: function(e) {
+        let power = this.getClickPower();
+        this.eggs += power;
+        this.totalEggs += power;
+        this.clickCount++;
+        
+        this.spawnParticle(e, power);
+        this.checkUnlocks();
+    },
+
+    getClickPower: function() {
+        let power = 1;
+        // Apply basic click multiplier
+        power *= this.clickMultiplier;
+        
+        // Calculate "Thousand Fingers" style logic if upgrade 3 is bought
+        if (this.upgrades[3].purchased) {
+            let totalBuildings = this.buildings.reduce((sum, b) => sum + b.count, 0);
+            power += totalBuildings * 0.1;
+        }
+
+        // Add % of CPS to click power (optional classic clicker mechanic)
+        power += this.cps * 0.01; 
+
+        return power;
+    },
+
+    recalculateCPS: function() {
+        let rawCps = 0;
+        for (let i = 0; i < this.buildings.length; i++) {
+            rawCps += this.buildings[i].getCps();
+        }
+        this.cps = rawCps * this.globalMultiplier;
+    },
+
+    update: function() {
+        let now = Date.now();
+        let delta = (now - this.lastTick) / 1000; // time since last tick in seconds
+        this.lastTick = now;
+
+        if (this.cps > 0) {
+            let generated = this.cps * delta;
+            this.eggs += generated;
+            this.totalEggs += generated;
+        }
+
+        this.checkUnlocks();
+    },
+
+    checkUnlocks: function() {
+        // Check Achievements
+        for (let i = 0; i < this.achievements.length; i++) {
+            let ach = this.achievements[i];
+            if (!ach.won && ach.req()) {
+                ach.won = true;
+                this.notify("Achievement Unlocked!", ach.name);
+            }
+        }
+        // UI updates for unlocks handled in updateUI
+    },
+
+    // --- UI & RENDERING ---
+
+    formatNumber: function(num) {
+        if (num < 1000) return Math.floor(num).toString();
+        const suffixes = ["", "k", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
+        const suffixNum = Math.floor(("" + Math.floor(num)).length / 3);
+        let shortValue = parseFloat((suffixNum != 0 ? (num / Math.pow(1000, suffixNum)) : num).toPrecision(3));
+        if (shortValue % 1 != 0) shortValue = shortValue.toFixed(1);
+        return shortValue + suffixes[suffixNum];
+    },
+
+    updateUI: function() {
+        this.el.eggs.innerText = this.formatNumber(this.eggs);
+        this.el.cps.innerText = this.formatNumber(this.cps) + " eggs per second";
+        
+        this.el.statTotalEggs.innerText = this.formatNumber(this.totalEggs);
+        this.el.statClicks.innerText = this.formatNumber(this.clickCount);
+        this.el.statTime.innerText = this.formatNumber((Date.now() - this.startTime) / 1000) + "s";
+        
+        let upgCount = this.upgrades.filter(u => u.purchased).length;
+        this.el.statUpgrades.innerText = upgCount + " / " + this.upgrades.length;
+
+        // Update building buttons availability
+        for (let i = 0; i < this.buildings.length; i++) {
+            let b = this.buildings[i];
+            let el = document.getElementById('building-' + b.id);
+            if (el) {
+                if (this.eggs >= b.getCost()) {
+                    el.classList.remove('locked');
+                } else {
+                    el.classList.add('locked');
+                }
+                document.getElementById('b-cost-' + b.id).innerText = this.formatNumber(b.getCost());
+                document.getElementById('b-count-' + b.id).innerText = b.count > 0 ? b.count : '';
+            }
+        }
+
+        // Update upgrade buttons
+        for (let i = 0; i < this.upgrades.length; i++) {
+            let u = this.upgrades[i];
+            let el = document.getElementById('upgrade-' + u.id);
+            if (u.isUnlocked() && !u.purchased) {
+                if (!el) {
+                    this.renderUpgrades(); // Re-render if new upgrade unlocked
+                    break;
+                }
+                if (this.eggs >= u.cost) {
+                    el.style.opacity = "1";
+                    el.style.cursor = "pointer";
+                } else {
+                    el.style.opacity = "0.5";
+                    el.style.cursor = "not-allowed";
+                }
+            } else if (u.purchased && el) {
+                el.remove(); // Remove bought upgrades from DOM
+            }
+        }
+    },
+
+    renderBuildings: function() {
+        this.el.buildings.innerHTML = '';
+        for (let i = 0; i < this.buildings.length; i++) {
+            let b = this.buildings[i];
+            // Only show buildings if we have at least half the cost of the first one, 
+            // or if we have previous building
+            if (i === 0 || this.totalEggs >= b.baseCost * 0.5 || this.buildings[i-1].count > 0) {
+                let div = document.createElement('div');
+                div.className = 'building-btn ' + (this.eggs >= b.getCost() ? '' : 'locked');
+                div.id = 'building-' + b.id;
+                div.onclick = () => b.buy();
+                
+                div.innerHTML = `
+                    <div class="building-icon">${b.icon}</div>
+                    <div class="building-info">
+                        <h3 class="building-name">${b.name}</h3>
+                        <p class="building-cost">🪙 <span id="b-cost-${b.id}">${this.formatNumber(b.getCost())}</span></p>
+                    </div>
+                    <div class="building-count" id="b-count-${b.id}">${b.count > 0 ? b.count : ''}</div>
+                    
+                    <div class="tooltip">
+                        <span class="tooltip-title">${b.name}</span>
+                        <span class="tooltip-desc">${b.description}</span><br><br>
+                        <span class="tooltip-desc">Produces ${this.formatNumber(b.baseCps * b.multiplier)} CpS.</span>
+                    </div>
+                `;
+                this.el.buildings.appendChild(div);
+            }
+        }
+    },
+
+    renderUpgrades: function() {
+        this.el.upgrades.innerHTML = '';
+        for (let i = 0; i < this.upgrades.length; i++) {
+            let u = this.upgrades[i];
+            if (u.isUnlocked() && !u.purchased) {
+                let btn = document.createElement('div');
+                btn.className = 'upgrade-btn';
+                btn.id = 'upgrade-' + u.id;
+                btn.onclick = () => u.buy();
+                btn.innerHTML = `
+                    ${u.icon}
+                    <div class="tooltip">
+                        <span class="tooltip-title">${u.name}</span>
+                        <span class="tooltip-cost">🪙 ${this.formatNumber(u.cost)}</span>
+                        <span class="tooltip-desc">${u.description}</span>
+                    </div>
+                `;
+                this.el.upgrades.appendChild(btn);
+            }
+        }
+    },
+
+    updateNews: function() {
+        let text = this.news[Math.floor(Math.random() * this.news.length)];
+        this.el.ticker.innerText = text;
+        
+        // Reset animation
+        this.el.ticker.style.animation = 'none';
+        this.el.ticker.offsetHeight; /* trigger reflow */
+        this.el.ticker.style.animation = null; 
+    },
+
+    spawnParticle: function(e, amount) {
+        let particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.innerText = "+" + this.formatNumber(amount);
+        
+        // Position at mouse click
+        let rect = this.el.chicken.getBoundingClientRect();
+        let x = e.clientX - rect.left - 20 + (Math.random() * 40 - 20); // Random jitter
+        let y = e.clientY - rect.top - 20;
+        
+        particle.style.left = x + 'px';
+        particle.style.top = y + 'px';
+        
+        this.el.chicken.appendChild(particle);
+        
+        setTimeout(() => {
+            particle.remove();
+        }, 1500);
+    },
+
+    notify: function(title, message) {
+        let toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerHTML = `<strong>${title}</strong><br><span style="font-size:12px;color:var(--text-muted)">${message}</span>`;
+        this.el.toast.appendChild(toast);
+        setTimeout(() => {
+            toast.remove();
+        }, 3500);
+    },
+
+    // --- SAVE / LOAD SYSTEM ---
+
+    save: function() {
+        let saveObj = {
+            eggs: this.eggs,
+            totalEggs: this.totalEggs,
+            clickCount: this.clickCount,
+            startTime: this.startTime,
+            buildings: this.buildings.map(b => b.count),
+            upgrades: this.upgrades.map(u => u.purchased),
+            achievements: this.achievements.map(a => a.won),
+            timestamp: Date.now()
+        };
+        localStorage.setItem('chickenClickerSave', btoa(JSON.stringify(saveObj)));
+        this.notify("Game Saved", "Your progress is secured.");
+    },
+
+    load: function() {
+        let saveStr = localStorage.getItem('chickenClickerSave');
+        if (saveStr) {
+            try {
+                let saveObj = JSON.parse(atob(saveStr));
+                
+                this.eggs = saveObj.eggs || 0;
+                this.totalEggs = saveObj.totalEggs || 0;
+                this.clickCount = saveObj.clickCount || 0;
+                this.startTime = saveObj.startTime || Date.now();
+                
+                if (saveObj.buildings) {
+                    for (let i = 0; i < saveObj.buildings.length; i++) {
+                        if (this.buildings[i]) this.buildings[i].count = saveObj.buildings[i];
+                    }
+                }
+                
+                if (saveObj.upgrades) {
+                    for (let i = 0; i < saveObj.upgrades.length; i++) {
+                        if (this.upgrades[i] && saveObj.upgrades[i]) {
+                            this.upgrades[i].purchased = true;
+                            this.upgrades[i].effect(); // Apply effect on load
+                        }
+                    }
+                }
+                
+                if (saveObj.achievements) {
+                    for (let i = 0; i < saveObj.achievements.length; i++) {
+                        if (this.achievements[i]) this.achievements[i].won = saveObj.achievements[i];
+                    }
+                }
+
+                // Calculate offline progress
+                if (saveObj.timestamp) {
+                    let now = Date.now();
+                    let offlineSeconds = (now - saveObj.timestamp) / 1000;
+                    if (offlineSeconds > 60) { // Only give offline progress if away for more than a minute
+                        this.recalculateCPS();
+                        let earned = this.cps * offlineSeconds;
+                        this.eggs += earned;
+                        this.totalEggs += earned;
+                        this.notify("Welcome Back!", `You earned ${this.formatNumber(earned)} eggs while away.`);
+                    }
+                }
+
+                this.recalculateCPS();
+                this.notify("Game Loaded", "Welcome back to the farm.");
+            } catch (e) {
+                console.error("Save file corrupted.", e);
+                this.notify("Error", "Save file corrupted.");
+            }
+        }
+    },
+
+    wipe: function() {
+        if (confirm("Are you sure you want to hard reset? You will lose ALL progress!")) {
+            localStorage.removeItem('chickenClickerSave');
+            location.reload();
+        }
+    }
+};
+
+// Start Game
+window.onload = () => Game.init();
+
+</script>
 </body>
 </html>
