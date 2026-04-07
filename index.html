@@ -3,409 +3,797 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EliEat - 3D Eating Simulator</title>
+    <title>EliEat - Ultimate 3D Simulator</title>
     <style>
+        /* =========================================
+           UI & CSS ARCHITECTURE
+           ========================================= */
+        :root {
+            --primary: #ffaa00;
+            --secondary: #222233;
+            --accent: #00ffaa;
+            --danger: #ff3344;
+            --bg-glass: rgba(20, 20, 30, 0.85);
+        }
+        * { box-sizing: border-box; }
         body {
-            margin: 0;
-            overflow: hidden;
-            background-color: #87CEEB;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: #000;
+            font-family: 'Consolas', 'Courier New', monospace;
             user-select: none;
         }
-        #ui-container {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-            pointer-events: none;
+        
+        /* HUD Elements */
+        #hud {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10;
         }
-        .hud-text {
-            margin: 5px 0;
-            font-size: 24px;
-            font-weight: bold;
+        .panel {
+            position: absolute; background: var(--bg-glass);
+            border: 2px solid var(--primary); border-radius: 12px;
+            padding: 15px; color: white;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
         }
-        #shop-button {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            padding: 15px 30px;
-            font-size: 20px;
-            font-weight: 900;
-            background-color: #ff9900;
-            color: white;
-            border: 3px solid #cc7a00;
-            border-radius: 10px;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            transition: transform 0.1s;
+        #stats-panel { top: 20px; left: 20px; min-width: 250px; }
+        #stats-panel h1 { margin: 0 0 15px 0; color: var(--primary); font-size: 28px; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px var(--primary); }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 18px; border-bottom: 1px solid #444; padding-bottom: 5px; }
+        .stat-val { color: var(--accent); font-weight: bold; }
+        
+        /* Progress Bar */
+        .progress-container { width: 100%; height: 20px; background: #111; border-radius: 10px; margin-top: 10px; border: 1px solid #555; overflow: hidden; position: relative; }
+        #stomach-bar { height: 100%; background: linear-gradient(90deg, #aaff00, #ff5500); width: 0%; transition: width 0.2s; }
+        .progress-text { position: absolute; top: 0; left: 0; width: 100%; text-align: center; font-size: 14px; line-height: 20px; font-weight: bold; text-shadow: 1px 1px 2px black; }
+
+        /* Minimap */
+        #minimap-panel { bottom: 20px; right: 20px; width: 200px; height: 200px; padding: 5px; border-radius: 50%; overflow: hidden; }
+        #minimap { width: 100%; height: 100%; background: rgba(0,100,0,0.5); border-radius: 50%; position: relative; }
+        .map-marker { position: absolute; border-radius: 50%; transform: translate(-50%, -50%); }
+        #map-player { width: 10px; height: 10px; background: white; z-index: 5; box-shadow: 0 0 5px white; }
+        #map-hub { width: 30px; height: 30px; background: rgba(0, 255, 0, 0.4); border: 2px solid #0f0; left: 50%; top: 50%; }
+
+        /* Interactive Buttons */
+        .btn-container { position: absolute; top: 20px; right: 20px; pointer-events: auto; display: flex; gap: 10px; }
+        .menu-btn {
+            background: var(--secondary); color: white; border: 2px solid var(--primary);
+            padding: 10px 20px; font-size: 18px; font-weight: bold; border-radius: 8px;
+            cursor: pointer; transition: all 0.2s; text-transform: uppercase;
         }
-        #shop-button:active {
-            transform: scale(0.95);
+        .menu-btn:hover { background: var(--primary); color: #000; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 170, 0, 0.4); }
+        .menu-btn:active { transform: translateY(1px); }
+
+        /* Menus */
+        .modal {
+            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 800px; height: 600px; background: var(--bg-glass); border: 3px solid var(--primary);
+            border-radius: 15px; z-index: 100; pointer-events: auto; display: flex; flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8); backdrop-filter: blur(10px);
         }
-        #shop-menu {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(30, 30, 40, 0.95);
-            padding: 30px;
-            border-radius: 15px;
-            border: 4px solid #555;
-            color: white;
-            text-align: center;
-            min-width: 300px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        .modal-header { display: flex; justify-content: space-between; padding: 20px; border-bottom: 2px solid #444; }
+        .modal-header h2 { margin: 0; color: var(--primary); font-size: 32px; }
+        .close-btn { background: var(--danger); border: none; color: white; width: 40px; height: 40px; border-radius: 5px; font-size: 24px; cursor: pointer; font-weight: bold; }
+        .modal-body { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        /* Upgrades */
+        .upgrade-card {
+            background: rgba(0,0,0,0.6); border: 1px solid #555; border-radius: 10px; padding: 15px;
+            display: flex; flex-direction: column; justify-content: space-between; transition: 0.2s;
         }
-        .shop-title {
-            margin-top: 0;
-            font-size: 32px;
-            border-bottom: 2px solid #555;
-            padding-bottom: 10px;
+        .upgrade-card:hover { border-color: var(--primary); background: rgba(50,50,50,0.6); }
+        .upg-title { font-size: 20px; font-weight: bold; color: white; margin-bottom: 5px; }
+        .upg-desc { font-size: 14px; color: #aaa; margin-bottom: 15px; min-height: 40px; }
+        .upg-btn {
+            background: #0088ff; border: none; padding: 10px; color: white; font-weight: bold;
+            border-radius: 5px; cursor: pointer; text-transform: uppercase;
         }
-        .upgrade-item {
-            background: #333;
-            margin: 15px 0;
-            padding: 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            border: 2px solid #444;
-            transition: background 0.2s;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-        }
-        .upgrade-item:hover {
-            background: #444;
-            border-color: #ff9900;
-        }
-        .close-shop {
-            margin-top: 20px;
-            padding: 10px 20px;
-            background: #cc0000;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 18px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .close-shop:hover {
-            background: #ff0000;
-        }
-        #instructions {
-            position: absolute;
-            bottom: 20px;
-            width: 100%;
-            text-align: center;
-            color: white;
-            font-size: 18px;
-            text-shadow: 1px 1px 2px black;
-            pointer-events: none;
-        }
+        .upg-btn.disabled { background: #444; cursor: not-allowed; color: #888; }
+        
+        /* Notifications */
+        #notification-area { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 10px; pointer-events: none; z-index: 50; }
+        .toast { background: rgba(0, 255, 170, 0.2); border: 1px solid var(--accent); color: white; padding: 10px 20px; border-radius: 20px; font-weight: bold; animation: slideUp 0.3s ease-out, fadeOut 0.5s ease-in 2.5s forwards; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; } }
+
+        /* Controls Help */
+        #controls-help { position: absolute; bottom: 20px; left: 20px; color: rgba(255,255,255,0.6); font-size: 14px; }
+        kbd { background: #333; padding: 2px 6px; border-radius: 4px; border: 1px solid #666; font-family: monospace; color: white; }
     </style>
 </head>
 <body>
 
-    <div id="ui-container">
-        <h1 style="margin: 0; font-size: 36px; color: #ffdd00;">EliEat</h1>
-        <div class="hud-text">Coins: <span id="coin-display" style="color: #00ff00;">0</span></div>
-        <div class="hud-text">Stomach: <span id="stomach-display">0</span> / <span id="max-stomach-display">10</span></div>
+    <div id="hud">
+        <div class="panel" id="stats-panel">
+            <h1>EliEat OS</h1>
+            <div class="stat-row"><span>Coins:</span> <span class="stat-val" id="ui-coins">0</span></div>
+            <div class="stat-row"><span>Multiplier:</span> <span class="stat-val" id="ui-mult">x1.0</span></div>
+            <div class="stat-row"><span>Level:</span> <span class="stat-val" id="ui-level">1</span></div>
+            
+            <div style="margin-top: 15px; font-size: 14px; color: #aaa;">Stomach Capacity</div>
+            <div class="progress-container">
+                <div id="stomach-bar"></div>
+                <div class="progress-text"><span id="ui-stomach">0</span> / <span id="ui-maxstomach">100</span></div>
+            </div>
+        </div>
+
+        <div class="panel" id="minimap-panel">
+            <div id="minimap">
+                <div class="map-marker" id="map-hub"></div>
+                <div class="map-marker" id="map-player"></div>
+            </div>
+        </div>
+
+        <div id="controls-help">
+            <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Move | <kbd>SPACE</kbd> Jump | <kbd>SHIFT</kbd> Sprint
+        </div>
     </div>
 
-    <button id="shop-button">SHOP</button>
-
-    <div id="shop-menu">
-        <h2 class="shop-title">Upgrades</h2>
-        <div class="upgrade-item" id="upg-stomach">
-            <span>Bigger Stomach</span>
-            <span style="color: #00ff00;">Cost: <span id="cost-stomach">15</span></span>
-        </div>
-        <div class="upgrade-item" id="upg-speed">
-            <span>Faster Move Speed</span>
-            <span style="color: #00ff00;">Cost: <span id="cost-speed">25</span></span>
-        </div>
-        <div class="upgrade-item" id="upg-multiplier">
-            <span>Better Digestion (x2 Coins)</span>
-            <span style="color: #00ff00;">Cost: <span id="cost-multiplier">50</span></span>
-        </div>
-        <button class="close-shop" id="close-shop-btn">CLOSE</button>
+    <div class="btn-container">
+        <button class="menu-btn" onclick="GameUI.toggleMenu('shop')">Shop</button>
+        <button class="menu-btn" onclick="Game.saveData()">Save Game</button>
     </div>
 
-    <div id="instructions">
-        Use ARROW KEYS or WASD to move. Eat food to get fatter.<br>
-        Return to the GREEN HUB in the center to empty stomach and gain coins!
+    <div class="modal" id="shop-modal" style="display: none;">
+        <div class="modal-header">
+            <h2>Upgrades Terminal</h2>
+            <button class="close-btn" onclick="GameUI.toggleMenu('shop')">X</button>
+        </div>
+        <div class="modal-body" id="upgrade-container">
+            </div>
     </div>
+
+    <div id="notification-area"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
+
     <script>
-        // --- GAME STATE ---
-        let state = {
-            coins: 0,
-            stomach: 0,
-            maxStomach: 10,
-            moveSpeed: 0.15,
-            coinMultiplier: 1,
-            costs: {
-                stomach: 15,
-                speed: 25,
-                multiplier: 50
+        /* =========================================
+           ENGINE CORE & UTILITIES
+           ========================================= */
+        const Utils = {
+            formatNum: (num) => {
+                if(num >= 1000000) return (num/1000000).toFixed(2) + 'M';
+                if(num >= 1000) return (num/1000).toFixed(2) + 'k';
+                return Math.floor(num).toString();
+            },
+            randomRange: (min, max) => Math.random() * (max - min) + min,
+            lerp: (start, end, amt) => (1 - amt) * start + amt * end
+        };
+
+        /* =========================================
+           AUDIO SYNTHESIS (Web Audio API)
+           ========================================= */
+        class AudioEngine {
+            constructor() {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.value = 0.3;
+                this.masterGain.connect(this.ctx.destination);
+                this.enabled = false;
+                
+                // Resume context on first click
+                window.addEventListener('click', () => {
+                    if(this.ctx.state === 'suspended') this.ctx.resume();
+                    this.enabled = true;
+                }, {once: true});
+            }
+
+            playTone(freq, type, duration, vol=1) {
+                if(!this.enabled) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            }
+
+            sfxEat() { this.playTone(Utils.randomRange(400, 600), 'sine', 0.1, 0.5); }
+            sfxCoin() { 
+                this.playTone(800, 'square', 0.1, 0.3); 
+                setTimeout(() => this.playTone(1200, 'square', 0.2, 0.3), 100);
+            }
+            sfxJump() { this.playTone(200, 'triangle', 0.3, 0.4); }
+            sfxUpgrade() { this.playTone(400, 'sawtooth', 0.5, 0.5); }
+        }
+        const Audio = new AudioEngine();
+
+        /* =========================================
+           GAME DATA & STATE MANAGEMENT
+           ========================================= */
+        class GameState {
+            constructor() {
+                this.version = "1.0.0";
+                this.resetData();
+                this.load();
+            }
+
+            resetData() {
+                this.coins = 0;
+                this.stomach = 0;
+                this.stats = {
+                    stomachLevel: 1, speedLevel: 1, multLevel: 1, jumpLevel: 1, magnetLevel: 0
+                };
+                this.totalEaten = 0;
+            }
+
+            get maxStomach() { return 100 * Math.pow(1.5, this.stats.stomachLevel - 1); }
+            get speed() { return 0.2 + (this.stats.speedLevel * 0.03); }
+            get multiplier() { return 1 + (this.stats.multLevel * 0.5); }
+            get jumpForce() { return 0.3 + (this.stats.jumpLevel * 0.05); }
+            get magnetRadius() { return this.stats.magnetLevel * 5; }
+
+            save() {
+                const data = {
+                    v: this.version, c: this.coins, s: this.stats, t: this.totalEaten
+                };
+                localStorage.setItem('EliEatSave', btoa(JSON.stringify(data)));
+                GameUI.notify("Game Saved Successfully!");
+            }
+
+            load() {
+                try {
+                    const saved = localStorage.getItem('EliEatSave');
+                    if (saved) {
+                        const data = JSON.parse(atob(saved));
+                        this.coins = data.c || 0;
+                        this.stats = data.s || this.stats;
+                        this.totalEaten = data.t || 0;
+                        console.log("Save loaded.");
+                    }
+                } catch(e) {
+                    console.error("Save corrupted, using defaults.");
+                    this.resetData();
+                }
+            }
+        }
+        const State = new GameState();
+
+        /* =========================================
+           UPGRADE SYSTEM
+           ========================================= */
+        const Upgrades = {
+            stomach: { name: "Bigger Stomach", desc: "+50% Capacity", baseCost: 10, costMult: 1.8, stat: 'stomachLevel' },
+            speed: { name: "Rocket Boots", desc: "+Movement Speed", baseCost: 20, costMult: 1.6, stat: 'speedLevel' },
+            mult: { name: "Better Digestion", desc: "+0.5x Coin Multiplier", baseCost: 50, costMult: 2.0, stat: 'multLevel' },
+            jump: { name: "Spring Legs", desc: "+Jump Height", baseCost: 30, costMult: 1.5, stat: 'jumpLevel' },
+            magnet: { name: "Food Magnet", desc: "Pull food towards you", baseCost: 150, costMult: 2.5, stat: 'magnetLevel' }
+        };
+
+        /* =========================================
+           USER INTERFACE LOGIC
+           ========================================= */
+        const GameUI = {
+            init() {
+                this.renderShop();
+                this.updateHUD();
+            },
+            toggleMenu(id) {
+                const modal = document.getElementById(`${id}-modal`);
+                modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+                if(modal.style.display === 'flex') this.renderShop();
+            },
+            notify(msg) {
+                const area = document.getElementById('notification-area');
+                const el = document.createElement('div');
+                el.className = 'toast';
+                el.innerText = msg;
+                area.appendChild(el);
+                setTimeout(() => el.remove(), 3000);
+            },
+            getCost(key) {
+                const upg = Upgrades[key];
+                return Math.floor(upg.baseCost * Math.pow(upg.costMult, State.stats[upg.stat] - 1));
+            },
+            buyUpgrade(key) {
+                const cost = this.getCost(key);
+                if (State.coins >= cost) {
+                    State.coins -= cost;
+                    State.stats[Upgrades[key].stat]++;
+                    Audio.sfxUpgrade();
+                    this.renderShop();
+                    this.updateHUD();
+                    Engine.updatePlayerScale();
+                } else {
+                    this.notify("Not enough coins!");
+                }
+            },
+            renderShop() {
+                const container = document.getElementById('upgrade-container');
+                container.innerHTML = '';
+                for (let key in Upgrades) {
+                    const upg = Upgrades[key];
+                    const cost = this.getCost(key);
+                    const level = State.stats[upg.stat];
+                    const canAfford = State.coins >= cost;
+                    
+                    container.innerHTML += `
+                        <div class="upgrade-card" style="border-color: ${canAfford ? '#00ffaa' : '#555'}">
+                            <div>
+                                <div class="upg-title">${upg.name} (Lvl ${level})</div>
+                                <div class="upg-desc">${upg.desc}</div>
+                            </div>
+                            <button class="upg-btn ${!canAfford ? 'disabled' : ''}" 
+                                    onclick="GameUI.buyUpgrade('${key}')">
+                                Buy: ${Utils.formatNum(cost)} Coins
+                            </button>
+                        </div>
+                    `;
+                }
+            },
+            updateHUD() {
+                document.getElementById('ui-coins').innerText = Utils.formatNum(State.coins);
+                document.getElementById('ui-mult').innerText = `x${State.multiplier.toFixed(1)}`;
+                document.getElementById('ui-level').innerText = State.stats.stomachLevel;
+                
+                document.getElementById('ui-stomach').innerText = Math.floor(State.stomach);
+                document.getElementById('ui-maxstomach').innerText = Math.floor(State.maxStomach);
+                
+                const pct = Math.min(100, (State.stomach / State.maxStomach) * 100);
+                document.getElementById('stomach-bar').style.width = `${pct}%`;
+            },
+            updateMinimap(px, pz) {
+                // Map range is -150 to 150
+                const mapScale = 200 / 300; // minimap width / world width
+                const mx = (px + 150) * mapScale;
+                const my = (pz + 150) * mapScale;
+                const marker = document.getElementById('map-player');
+                marker.style.left = `${mx}px`;
+                marker.style.top = `${my}px`;
             }
         };
 
-        // --- DOM ELEMENTS ---
-        const uiCoins = document.getElementById('coin-display');
-        const uiStomach = document.getElementById('stomach-display');
-        const uiMaxStomach = document.getElementById('max-stomach-display');
-        
-        const shopBtn = document.getElementById('shop-button');
-        const shopMenu = document.getElementById('shop-menu');
-        const closeShopBtn = document.getElementById('close-shop-btn');
-        
-        const btnUpgStomach = document.getElementById('upg-stomach');
-        const btnUpgSpeed = document.getElementById('upg-speed');
-        const btnUpgMultiplier = document.getElementById('upg-multiplier');
+        /* =========================================
+           WEBGL & 3D ENGINE (Three.js Wrapper)
+           ========================================= */
+        class RenderEngine {
+            constructor() {
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x223344);
+                this.scene.fog = new THREE.FogExp2(0x223344, 0.005);
 
-        // --- THREE.JS SETUP ---
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB); // Sky blue
-        scene.fog = new THREE.Fog(0x87CEEB, 20, 100);
+                this.camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 1000);
+                
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                document.body.appendChild(this.renderer.domElement);
 
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        document.body.appendChild(renderer.domElement);
+                this.setupLighting();
+                this.setupEnvironment();
+                
+                this.clock = new THREE.Clock();
+                this.foods = [];
+                this.particles = [];
+                
+                window.addEventListener('resize', () => this.onResize());
+            }
 
-        // --- LIGHTING ---
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambientLight);
+            setupLighting() {
+                this.ambient = new THREE.AmbientLight(0xffffff, 0.4);
+                this.scene.add(this.ambient);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(50, 100, 50);
-        dirLight.castShadow = true;
-        dirLight.shadow.camera.left = -50;
-        dirLight.shadow.camera.right = 50;
-        dirLight.shadow.camera.top = 50;
-        dirLight.shadow.camera.bottom = -50;
-        scene.add(dirLight);
+                this.sun = new THREE.DirectionalLight(0xffffff, 1.0);
+                this.sun.position.set(100, 200, 50);
+                this.sun.castShadow = true;
+                this.sun.shadow.mapSize.width = 2048;
+                this.sun.shadow.mapSize.height = 2048;
+                this.sun.shadow.camera.near = 0.5;
+                this.sun.shadow.camera.far = 500;
+                const d = 150;
+                this.sun.shadow.camera.left = -d;
+                this.sun.shadow.camera.right = d;
+                this.sun.shadow.camera.top = d;
+                this.sun.shadow.camera.bottom = -d;
+                this.scene.add(this.sun);
+            }
 
-        // --- ENVIRONMENT ---
-        // Ground
-        const groundGeo = new THREE.PlaneGeometry(200, 200);
-        const groundMat = new THREE.MeshLambertMaterial({ color: 0x3b8526 });
-        const ground = new THREE.Mesh(groundGeo, groundMat);
-        ground.rotation.x = -Math.PI / 2;
-        ground.receiveShadow = true;
-        scene.add(ground);
+            setupEnvironment() {
+                // Ground
+                const groundGeo = new THREE.PlaneGeometry(400, 400, 32, 32);
+                
+                // Procedural terrain displacement
+                const pos = groundGeo.attributes.position;
+                for(let i=0; i<pos.count; i++) {
+                    const x = pos.getX(i);
+                    const y = pos.getY(i);
+                    // Don't displace center hub
+                    if(Math.abs(x) > 20 || Math.abs(y) > 20) {
+                        const z = Math.sin(x*0.1) * Math.cos(y*0.1) * 2;
+                        pos.setZ(i, z);
+                    }
+                }
+                groundGeo.computeVertexNormals();
 
-        // Hub Area (The Poop/Sell Zone)
-        const hubSize = 10;
-        const hubGeo = new THREE.PlaneGeometry(hubSize, hubSize);
-        const hubMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
-        const hub = new THREE.Mesh(hubGeo, hubMat);
-        hub.rotation.x = -Math.PI / 2;
-        hub.position.y = 0.05; // Slightly above ground
-        scene.add(hub);
+                const groundMat = new THREE.MeshStandardMaterial({ 
+                    color: 0x2d4c1e, roughness: 0.8, metalness: 0.1 
+                });
+                this.ground = new THREE.Mesh(groundGeo, groundMat);
+                this.ground.rotation.x = -Math.PI / 2;
+                this.ground.receiveShadow = true;
+                this.scene.add(this.ground);
 
-        // --- PLAYER ---
-        const playerSize = 1;
-        const playerGeo = new THREE.BoxGeometry(playerSize, playerSize, playerSize);
-        const playerMat = new THREE.MeshLambertMaterial({ color: 0x3366ff });
-        const player = new THREE.Mesh(playerGeo, playerMat);
-        player.position.y = playerSize / 2;
-        player.castShadow = true;
-        scene.add(player);
+                // Sell Hub
+                this.hubRadius = 15;
+                const hubGeo = new THREE.CylinderGeometry(this.hubRadius, this.hubRadius, 0.5, 32);
+                const hubMat = new THREE.MeshStandardMaterial({ 
+                    color: 0x00ffaa, emissive: 0x005522, roughness: 0.2, metalness: 0.8 
+                });
+                this.hub = new THREE.Mesh(hubGeo, hubMat);
+                this.hub.position.y = 0.25;
+                this.hub.receiveShadow = true;
+                this.scene.add(this.hub);
 
-        // Third Person Camera Setup
-        const cameraOffset = new THREE.Vector3(0, 5, 10);
-        
-        // --- FOOD SYSTEM ---
-        const foods = [];
-        const foodTypes = [
-            { name: 'Burger', color: 0x8b4513, shape: 'cylinder', value: 1 },
-            { name: 'Pizza', color: 0xffcc00, shape: 'cone', value: 2 },
-            { name: 'Soda', color: 0xff0000, shape: 'box', value: 3 }
-        ];
+                // Hub Forcefield Effect
+                const ffGeo = new THREE.CylinderGeometry(this.hubRadius, this.hubRadius, 20, 32, 1, true);
+                const ffMat = new THREE.MeshBasicMaterial({
+                    color: 0x00ffaa, transparent: true, opacity: 0.15, side: THREE.DoubleSide, blending: THREE.AdditiveBlending
+                });
+                this.forcefield = new THREE.Mesh(ffGeo, ffMat);
+                this.forcefield.position.y = 10;
+                this.scene.add(this.forcefield);
 
-        function spawnFood() {
-            if (foods.length > 50) return; // Max food on map
+                // Procedural Trees
+                const treeGeo = new THREE.ConeGeometry(2, 8, 8);
+                const trunkGeo = new THREE.CylinderGeometry(0.5, 0.5, 2);
+                const leafMat = new THREE.MeshStandardMaterial({ color: 0x1e3f11 });
+                const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a2e15 });
 
-            const type = foodTypes[Math.floor(Math.random() * foodTypes.length)];
-            let geo;
-            if (type.shape === 'cylinder') geo = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
-            else if (type.shape === 'cone') geo = new THREE.ConeGeometry(0.5, 0.1, 3);
-            else geo = new THREE.BoxGeometry(0.4, 0.6, 0.4);
+                for(let i=0; i<100; i++) {
+                    const x = Utils.randomRange(-150, 150);
+                    const z = Utils.randomRange(-150, 150);
+                    if(Math.abs(x) < 25 && Math.abs(z) < 25) continue; // Keep hub clear
 
-            const mat = new THREE.MeshLambertMaterial({ color: type.color });
-            const foodMesh = new THREE.Mesh(geo, mat);
+                    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+                    trunk.position.set(x, 1, z);
+                    trunk.castShadow = true;
+                    
+                    const leaves = new THREE.Mesh(treeGeo, leafMat);
+                    leaves.position.set(0, 5, 0);
+                    leaves.castShadow = true;
+                    trunk.add(leaves);
+                    
+                    this.scene.add(trunk);
+                }
 
-            // Random position outside hub
-            let rx, rz;
-            do {
-                rx = (Math.random() - 0.5) * 80;
-                rz = (Math.random() - 0.5) * 80;
-            } while (Math.abs(rx) < 8 && Math.abs(rz) < 8); // Avoid hub
+                // Invisible Walls
+                this.bounds = 145;
+            }
 
-            foodMesh.position.set(rx, 0.5, rz);
-            foodMesh.castShadow = true;
-            
-            // Store data
-            foodMesh.userData = { value: type.value };
-            
-            scene.add(foodMesh);
-            foods.push(foodMesh);
+            createPlayer() {
+                this.playerGrp = new THREE.Group();
+                this.playerBaseSize = 1;
+                
+                // Body
+                const bodyGeo = new THREE.BoxGeometry(1, 1, 1);
+                const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0088ff, roughness: 0.4 });
+                this.playerMesh = new THREE.Mesh(bodyGeo, bodyMat);
+                this.playerMesh.castShadow = true;
+                this.playerMesh.position.y = 0.5;
+                this.playerGrp.add(this.playerMesh);
+
+                // Eyes
+                const eyeGeo = new THREE.BoxGeometry(0.2, 0.2, 0.1);
+                const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const pupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                
+                const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+                eyeR.position.set(0.25, 0.7, 0.51);
+                const pupilR = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.11), pupilMat);
+                eyeR.add(pupilR);
+                
+                const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+                eyeL.position.set(-0.25, 0.7, 0.51);
+                const pupilL = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.11), pupilMat);
+                eyeL.add(pupilL);
+
+                this.playerMesh.add(eyeR);
+                this.playerMesh.add(eyeL);
+
+                this.scene.add(this.playerGrp);
+                
+                // Physics State
+                this.vel = new THREE.Vector3();
+                this.isGrounded = false;
+            }
+
+            spawnFood() {
+                if(this.foods.length > 150) return;
+
+                const tier = Math.random();
+                let props;
+                if(tier > 0.95) props = { name: "Golden Burger", color: 0xffdd00, val: 50, s: 1.5, geo: 'sphere' };
+                else if(tier > 0.7) props = { name: "Pizza", color: 0xff4400, val: 10, s: 0.8, geo: 'cone' };
+                else props = { name: "Burger", color: 0x8b4513, val: 2, s: 0.5, geo: 'cylinder' };
+
+                let geo;
+                if(props.geo === 'sphere') geo = new THREE.SphereGeometry(props.s, 16, 16);
+                else if(props.geo === 'cone') geo = new THREE.ConeGeometry(props.s, props.s*1.5, 8);
+                else geo = new THREE.CylinderGeometry(props.s, props.s, props.s*0.8, 12);
+
+                const mat = new THREE.MeshStandardMaterial({ color: props.color, roughness: 0.2, metalness: tier > 0.95 ? 0.8 : 0.1 });
+                const mesh = new THREE.Mesh(geo, mat);
+                
+                let x, z;
+                do {
+                    x = Utils.randomRange(-140, 140);
+                    z = Utils.randomRange(-140, 140);
+                } while (Math.abs(x) < 20 && Math.abs(z) < 20);
+
+                mesh.position.set(x, props.s, z);
+                mesh.castShadow = true;
+                
+                mesh.userData = { value: props.val, baseY: props.s, timeOffset: Math.random()*100 };
+                this.scene.add(mesh);
+                this.foods.push(mesh);
+            }
+
+            spawnParticles(pos, color, count=10) {
+                const geo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+                const mat = new THREE.MeshBasicMaterial({ color: color });
+                for(let i=0; i<count; i++) {
+                    const p = new THREE.Mesh(geo, mat);
+                    p.position.copy(pos);
+                    p.userData = {
+                        vel: new THREE.Vector3(Utils.randomRange(-0.2,0.2), Utils.randomRange(0.2,0.5), Utils.randomRange(-0.2,0.2)),
+                        life: 1.0
+                    };
+                    this.scene.add(p);
+                    this.particles.push(p);
+                }
+            }
+
+            onResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
         }
 
-        // Initial food spawn
-        for(let i=0; i<30; i++) spawnFood();
-        setInterval(spawnFood, 1000); // Spawn new food every second
+        /* =========================================
+           GAME CONTROLLER & LOOP
+           ========================================= */
+        class GameController {
+            constructor() {
+                this.gfx = new RenderEngine();
+                this.gfx.createPlayer();
+                GameUI.init();
 
-        // --- CONTROLS ---
-        const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false };
+                this.keys = { w:0, a:0, s:0, d:0, ' ':0, shift:0 };
+                this.setupInputs();
+                
+                // Initial Food
+                for(let i=0; i<50; i++) this.gfx.spawnFood();
+                setInterval(() => this.gfx.spawnFood(), 500);
 
-        window.addEventListener('keydown', (e) => {
-            if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
-        });
-
-        window.addEventListener('keyup', (e) => {
-            if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
-        });
-
-        // --- SHOP LOGIC ---
-        let shopOpen = false;
-
-        shopBtn.addEventListener('click', () => {
-            shopMenu.style.display = 'block';
-            shopOpen = true;
-        });
-
-        closeShopBtn.addEventListener('click', () => {
-            shopMenu.style.display = 'none';
-            shopOpen = false;
-        });
-
-        function updateHUD() {
-            uiCoins.innerText = state.coins;
-            uiStomach.innerText = state.stomach;
-            uiMaxStomach.innerText = state.maxStomach;
-            
-            document.getElementById('cost-stomach').innerText = state.costs.stomach;
-            document.getElementById('cost-speed').innerText = state.costs.speed;
-            document.getElementById('cost-multiplier').innerText = state.costs.multiplier;
-
-            // Player visual growth
-            const scale = 1 + (state.stomach * 0.1);
-            player.scale.set(scale, scale, scale);
-            player.position.y = (playerSize * scale) / 2;
-        }
-
-        btnUpgStomach.addEventListener('click', () => {
-            if (state.coins >= state.costs.stomach) {
-                state.coins -= state.costs.stomach;
-                state.maxStomach += 5;
-                state.costs.stomach = Math.floor(state.costs.stomach * 1.5);
-                updateHUD();
+                this.camAngle = 0;
+                this.camDist = 15;
+                
+                this.updatePlayerScale();
+                this.animate();
             }
-        });
 
-        btnUpgSpeed.addEventListener('click', () => {
-            if (state.coins >= state.costs.speed) {
-                state.coins -= state.costs.speed;
-                state.moveSpeed += 0.02;
-                state.costs.speed = Math.floor(state.costs.speed * 1.5);
-                updateHUD();
+            setupInputs() {
+                window.addEventListener('keydown', e => {
+                    const k = e.key.toLowerCase();
+                    if(this.keys.hasOwnProperty(k)) this.keys[k] = 1;
+                });
+                window.addEventListener('keyup', e => {
+                    const k = e.key.toLowerCase();
+                    if(this.keys.hasOwnProperty(k)) this.keys[k] = 0;
+                });
             }
-        });
 
-        btnUpgMultiplier.addEventListener('click', () => {
-            if (state.coins >= state.costs.multiplier) {
-                state.coins -= state.costs.multiplier;
-                state.coinMultiplier += 1;
-                state.costs.multiplier = Math.floor(state.costs.multiplier * 2);
-                updateHUD();
+            updatePlayerScale() {
+                // Scale based on stomach fullness + base level
+                const scale = 1 + (State.stats.stomachLevel * 0.1) + (State.stomach * 0.05);
+                // Animate scale smoothly
+                this.targetScale = scale;
             }
-        });
 
-        // --- GAME LOOP ---
-        function checkCollisions() {
-            const playerBox = new THREE.Box3().setFromObject(player);
+            processPhysics() {
+                const dt = 1/60;
+                const p = this.gfx.playerGrp;
+                const v = this.gfx.vel;
 
-            // Check food
-            for (let i = foods.length - 1; i >= 0; i--) {
-                const food = foods[i];
-                const foodBox = new THREE.Box3().setFromObject(food);
+                // Movement Input relative to camera
+                const speed = State.speed * (this.keys.shift ? 1.5 : 1.0);
+                const dir = new THREE.Vector3();
+                
+                if(this.keys.w) dir.z -= 1;
+                if(this.keys.s) dir.z += 1;
+                if(this.keys.a) dir.x -= 1;
+                if(this.keys.d) dir.x += 1;
+                
+                if(dir.lengthSq() > 0) {
+                    dir.normalize();
+                    // Rotate input vector to match camera yaw
+                    const camYaw = Math.atan2(this.gfx.camera.position.x - p.position.x, this.gfx.camera.position.z - p.position.z);
+                    dir.applyAxisAngle(new THREE.Vector3(0,1,0), camYaw);
+                    
+                    v.x += dir.x * speed * 0.1;
+                    v.z += dir.z * speed * 0.1;
+                    
+                    // Rotate player to face movement
+                    const targetRot = Math.atan2(v.x, v.z);
+                    p.rotation.y = Utils.lerp(p.rotation.y, targetRot, 0.1);
+                }
 
-                if (playerBox.intersectsBox(foodBox)) {
-                    if (state.stomach < state.maxStomach) {
-                        state.stomach += food.userData.value;
-                        if (state.stomach > state.maxStomach) state.stomach = state.maxStomach;
+                // Friction
+                v.x *= 0.85;
+                v.z *= 0.85;
+
+                // Gravity & Jump
+                v.y -= 0.015; // Gravity
+                if (p.position.y <= 0 && v.y <= 0) {
+                    p.position.y = 0;
+                    v.y = 0;
+                    this.gfx.isGrounded = true;
+                } else {
+                    this.gfx.isGrounded = false;
+                }
+
+                if (this.keys[' '] && this.gfx.isGrounded) {
+                    v.y = State.jumpForce;
+                    this.gfx.isGrounded = false;
+                    Audio.sfxJump();
+                }
+
+                // Apply velocity
+                p.position.add(v);
+
+                // Bounds
+                const b = this.gfx.bounds;
+                if(p.position.x > b) { p.position.x = b; v.x = 0; }
+                if(p.position.x < -b) { p.position.x = -b; v.x = 0; }
+                if(p.position.z > b) { p.position.z = b; v.z = 0; }
+                if(p.position.z < -b) { p.position.z = -b; v.z = 0; }
+
+                // Smooth Scale
+                if(this.targetScale) {
+                    const currentScale = this.gfx.playerMesh.scale.x;
+                    const ns = Utils.lerp(currentScale, this.targetScale, 0.1);
+                    this.gfx.playerMesh.scale.set(ns, ns, ns);
+                    this.gfx.playerMesh.position.y = ns / 2; // Keep on ground
+                    
+                    // Adjust camera distance based on size
+                    this.camDist = 10 + (ns * 3);
+                }
+            }
+
+            processCollisions() {
+                const p = this.gfx.playerGrp;
+                const pScale = this.gfx.playerMesh.scale.x;
+                const hitRadiusSq = Math.pow(pScale * 0.8, 2);
+                const magnetDistSq = Math.pow(State.magnetRadius + pScale, 2);
+
+                for (let i = this.gfx.foods.length - 1; i >= 0; i--) {
+                    const f = this.gfx.foods[i];
+                    const distSq = p.position.distanceToSquared(f.position);
+
+                    // Magnet Effect
+                    if(State.magnetRadius > 0 && distSq < magnetDistSq) {
+                        const dir = p.position.clone().sub(f.position).normalize();
+                        f.position.add(dir.multiplyScalar(0.5)); // pull speed
+                    }
+
+                    // Eat logic
+                    if (distSq < hitRadiusSq) {
+                        if (State.stomach < State.maxStomach) {
+                            State.stomach = Math.min(State.maxStomach, State.stomach + f.userData.value);
+                            State.totalEaten += f.userData.value;
+                            
+                            this.gfx.spawnParticles(f.position, f.material.color.getHex(), 5);
+                            this.gfx.scene.remove(f);
+                            this.gfx.foods.splice(i, 1);
+                            
+                            Audio.sfxEat();
+                            this.updatePlayerScale();
+                            GameUI.updateHUD();
+                        }
+                    }
+                }
+
+                // Hub Selling Logic
+                const distToHub = Math.sqrt(p.position.x**2 + p.position.z**2);
+                if (distToHub < this.gfx.hubRadius) {
+                    if (State.stomach > 0) {
+                        // Empty stomach rapidly over time instead of instantly for visual effect
+                        const drainAmount = Math.max(1, State.stomach * 0.1);
+                        State.stomach -= drainAmount;
+                        if(State.stomach < 0.1) State.stomach = 0;
                         
-                        scene.remove(food);
-                        foods.splice(i, 1);
-                        updateHUD();
+                        State.coins += drainAmount * State.multiplier;
+                        
+                        // Green poop/money particles
+                        if(Math.random() > 0.5) this.gfx.spawnParticles(p.position, 0x00ff00, 2);
+                        if(Math.random() > 0.9) Audio.sfxCoin();
+
+                        this.updatePlayerScale();
+                        GameUI.updateHUD();
                     }
                 }
             }
 
-            // Check Hub (Poop / Sell)
-            if (Math.abs(player.position.x) < hubSize/2 && Math.abs(player.position.z) < hubSize/2) {
-                if (state.stomach > 0) {
-                    state.coins += (state.stomach * state.coinMultiplier);
-                    state.stomach = 0;
-                    updateHUD();
-                }
-            }
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            if (!shopOpen) {
-                // Movement
-                let moved = false;
-                if (keys.w || keys.ArrowUp) { player.position.z -= state.moveSpeed; moved = true; }
-                if (keys.s || keys.ArrowDown) { player.position.z += state.moveSpeed; moved = true; }
-                if (keys.a || keys.ArrowLeft) { player.position.x -= state.moveSpeed; moved = true; }
-                if (keys.d || keys.ArrowRight) { player.position.x += state.moveSpeed; moved = true; }
-
-                // Boundaries
-                if (player.position.x > 95) player.position.x = 95;
-                if (player.position.x < -95) player.position.x = -95;
-                if (player.position.z > 95) player.position.z = 95;
-                if (player.position.z < -95) player.position.z = -95;
-
-                // Animate food floating
-                foods.forEach(f => {
+            animateEnv() {
+                const time = Date.now() * 0.001;
+                
+                // Float food
+                this.gfx.foods.forEach(f => {
                     f.rotation.y += 0.02;
-                    f.position.y = 0.5 + Math.sin(Date.now() * 0.003 + f.position.x) * 0.2;
+                    f.position.y = f.userData.baseY + Math.sin(time * 2 + f.userData.timeOffset) * 0.2;
                 });
 
-                checkCollisions();
+                // Update particles
+                for(let i = this.gfx.particles.length-1; i>=0; i--) {
+                    const p = this.gfx.particles[i];
+                    p.position.add(p.userData.vel);
+                    p.userData.vel.y -= 0.01; // Gravity
+                    p.userData.life -= 0.02;
+                    p.scale.setScalar(p.userData.life);
+                    if(p.userData.life <= 0) {
+                        this.gfx.scene.remove(p);
+                        this.gfx.particles.splice(i, 1);
+                    }
+                }
 
-                // Camera Follow (Third Person)
-                const idealCameraPos = player.position.clone().add(cameraOffset);
-                camera.position.lerp(idealCameraPos, 0.1);
-                camera.lookAt(player.position);
+                // Hub Forcefield rotation
+                this.gfx.forcefield.rotation.y += 0.005;
+
+                // Day/Night Cycle (Simple color lerp based on time)
+                const cycle = (Math.sin(time * 0.1) + 1) / 2; // 0 to 1
+                const skyCol = new THREE.Color().setHSL(0.6, 0.5, 0.1 + cycle*0.4);
+                this.gfx.scene.background = skyCol;
+                this.gfx.scene.fog.color = skyCol;
+                this.gfx.sun.intensity = 0.2 + cycle * 0.8;
             }
 
-            renderer.render(scene, camera);
+            updateCamera() {
+                const p = this.gfx.playerGrp;
+                
+                // Allow mouse to rotate camera later, for now auto-follow
+                // Lag camera behind player smoothly
+                const idealOffset = new THREE.Vector3(
+                    Math.sin(this.camAngle) * this.camDist,
+                    this.camDist * 0.5,
+                    Math.cos(this.camAngle) * this.camDist
+                );
+                
+                const idealPos = p.position.clone().add(idealOffset);
+                this.gfx.camera.position.lerp(idealPos, 0.1);
+                this.gfx.camera.lookAt(p.position.clone().add(new THREE.Vector3(0, this.gfx.playerMesh.scale.x/2, 0)));
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+
+                // Only run physics if menus are closed
+                if(document.getElementById('shop-modal').style.display !== 'flex') {
+                    this.processPhysics();
+                    this.processCollisions();
+                }
+                
+                this.animateEnv();
+                this.updateCamera();
+                
+                GameUI.updateMinimap(this.gfx.playerGrp.position.x, this.gfx.playerGrp.position.z);
+                this.gfx.renderer.render(this.gfx.scene, this.gfx.camera);
+            }
         }
 
-        // Handle Resize
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        // Boot
+        const Engine = new GameController();
+        const Game = { saveData: () => State.save() };
 
-        // Start
-        updateHUD();
-        animate();
+        // Auto-save every 30 seconds
+        setInterval(() => State.save(), 30000);
+
     </script>
 </body>
 </html>
