@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EliEat - 3D Eating Simulator</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #87CEEB;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+        .hud-text {
+            margin: 5px 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        #shop-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 15px 30px;
+            font-size: 20px;
+            font-weight: 900;
+            background-color: #ff9900;
+            color: white;
+            border: 3px solid #cc7a00;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+        }
+        #shop-button:active {
+            transform: scale(0.95);
+        }
+        #shop-menu {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(30, 30, 40, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            border: 4px solid #555;
+            color: white;
+            text-align: center;
+            min-width: 300px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+        .shop-title {
+            margin-top: 0;
+            font-size: 32px;
+            border-bottom: 2px solid #555;
+            padding-bottom: 10px;
+        }
+        .upgrade-item {
+            background: #333;
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid #444;
+            transition: background 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+        .upgrade-item:hover {
+            background: #444;
+            border-color: #ff9900;
+        }
+        .close-shop {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #cc0000;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .close-shop:hover {
+            background: #ff0000;
+        }
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-size: 18px;
+            text-shadow: 1px 1px 2px black;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-container">
+        <h1 style="margin: 0; font-size: 36px; color: #ffdd00;">EliEat</h1>
+        <div class="hud-text">Coins: <span id="coin-display" style="color: #00ff00;">0</span></div>
+        <div class="hud-text">Stomach: <span id="stomach-display">0</span> / <span id="max-stomach-display">10</span></div>
+    </div>
+
+    <button id="shop-button">SHOP</button>
+
+    <div id="shop-menu">
+        <h2 class="shop-title">Upgrades</h2>
+        <div class="upgrade-item" id="upg-stomach">
+            <span>Bigger Stomach</span>
+            <span style="color: #00ff00;">Cost: <span id="cost-stomach">15</span></span>
+        </div>
+        <div class="upgrade-item" id="upg-speed">
+            <span>Faster Move Speed</span>
+            <span style="color: #00ff00;">Cost: <span id="cost-speed">25</span></span>
+        </div>
+        <div class="upgrade-item" id="upg-multiplier">
+            <span>Better Digestion (x2 Coins)</span>
+            <span style="color: #00ff00;">Cost: <span id="cost-multiplier">50</span></span>
+        </div>
+        <button class="close-shop" id="close-shop-btn">CLOSE</button>
+    </div>
+
+    <div id="instructions">
+        Use ARROW KEYS or WASD to move. Eat food to get fatter.<br>
+        Return to the GREEN HUB in the center to empty stomach and gain coins!
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script>
+        // --- GAME STATE ---
+        let state = {
+            coins: 0,
+            stomach: 0,
+            maxStomach: 10,
+            moveSpeed: 0.15,
+            coinMultiplier: 1,
+            costs: {
+                stomach: 15,
+                speed: 25,
+                multiplier: 50
+            }
+        };
+
+        // --- DOM ELEMENTS ---
+        const uiCoins = document.getElementById('coin-display');
+        const uiStomach = document.getElementById('stomach-display');
+        const uiMaxStomach = document.getElementById('max-stomach-display');
+        
+        const shopBtn = document.getElementById('shop-button');
+        const shopMenu = document.getElementById('shop-menu');
+        const closeShopBtn = document.getElementById('close-shop-btn');
+        
+        const btnUpgStomach = document.getElementById('upg-stomach');
+        const btnUpgSpeed = document.getElementById('upg-speed');
+        const btnUpgMultiplier = document.getElementById('upg-multiplier');
+
+        // --- THREE.JS SETUP ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB); // Sky blue
+        scene.fog = new THREE.Fog(0x87CEEB, 20, 100);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // --- LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(50, 100, 50);
+        dirLight.castShadow = true;
+        dirLight.shadow.camera.left = -50;
+        dirLight.shadow.camera.right = 50;
+        dirLight.shadow.camera.top = 50;
+        dirLight.shadow.camera.bottom = -50;
+        scene.add(dirLight);
+
+        // --- ENVIRONMENT ---
+        // Ground
+        const groundGeo = new THREE.PlaneGeometry(200, 200);
+        const groundMat = new THREE.MeshLambertMaterial({ color: 0x3b8526 });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Hub Area (The Poop/Sell Zone)
+        const hubSize = 10;
+        const hubGeo = new THREE.PlaneGeometry(hubSize, hubSize);
+        const hubMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
+        const hub = new THREE.Mesh(hubGeo, hubMat);
+        hub.rotation.x = -Math.PI / 2;
+        hub.position.y = 0.05; // Slightly above ground
+        scene.add(hub);
+
+        // --- PLAYER ---
+        const playerSize = 1;
+        const playerGeo = new THREE.BoxGeometry(playerSize, playerSize, playerSize);
+        const playerMat = new THREE.MeshLambertMaterial({ color: 0x3366ff });
+        const player = new THREE.Mesh(playerGeo, playerMat);
+        player.position.y = playerSize / 2;
+        player.castShadow = true;
+        scene.add(player);
+
+        // Third Person Camera Setup
+        const cameraOffset = new THREE.Vector3(0, 5, 10);
+        
+        // --- FOOD SYSTEM ---
+        const foods = [];
+        const foodTypes = [
+            { name: 'Burger', color: 0x8b4513, shape: 'cylinder', value: 1 },
+            { name: 'Pizza', color: 0xffcc00, shape: 'cone', value: 2 },
+            { name: 'Soda', color: 0xff0000, shape: 'box', value: 3 }
+        ];
+
+        function spawnFood() {
+            if (foods.length > 50) return; // Max food on map
+
+            const type = foodTypes[Math.floor(Math.random() * foodTypes.length)];
+            let geo;
+            if (type.shape === 'cylinder') geo = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
+            else if (type.shape === 'cone') geo = new THREE.ConeGeometry(0.5, 0.1, 3);
+            else geo = new THREE.BoxGeometry(0.4, 0.6, 0.4);
+
+            const mat = new THREE.MeshLambertMaterial({ color: type.color });
+            const foodMesh = new THREE.Mesh(geo, mat);
+
+            // Random position outside hub
+            let rx, rz;
+            do {
+                rx = (Math.random() - 0.5) * 80;
+                rz = (Math.random() - 0.5) * 80;
+            } while (Math.abs(rx) < 8 && Math.abs(rz) < 8); // Avoid hub
+
+            foodMesh.position.set(rx, 0.5, rz);
+            foodMesh.castShadow = true;
+            
+            // Store data
+            foodMesh.userData = { value: type.value };
+            
+            scene.add(foodMesh);
+            foods.push(foodMesh);
+        }
+
+        // Initial food spawn
+        for(let i=0; i<30; i++) spawnFood();
+        setInterval(spawnFood, 1000); // Spawn new food every second
+
+        // --- CONTROLS ---
+        const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false };
+
+        window.addEventListener('keydown', (e) => {
+            if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
+        });
+
+        // --- SHOP LOGIC ---
+        let shopOpen = false;
+
+        shopBtn.addEventListener('click', () => {
+            shopMenu.style.display = 'block';
+            shopOpen = true;
+        });
+
+        closeShopBtn.addEventListener('click', () => {
+            shopMenu.style.display = 'none';
+            shopOpen = false;
+        });
+
+        function updateHUD() {
+            uiCoins.innerText = state.coins;
+            uiStomach.innerText = state.stomach;
+            uiMaxStomach.innerText = state.maxStomach;
+            
+            document.getElementById('cost-stomach').innerText = state.costs.stomach;
+            document.getElementById('cost-speed').innerText = state.costs.speed;
+            document.getElementById('cost-multiplier').innerText = state.costs.multiplier;
+
+            // Player visual growth
+            const scale = 1 + (state.stomach * 0.1);
+            player.scale.set(scale, scale, scale);
+            player.position.y = (playerSize * scale) / 2;
+        }
+
+        btnUpgStomach.addEventListener('click', () => {
+            if (state.coins >= state.costs.stomach) {
+                state.coins -= state.costs.stomach;
+                state.maxStomach += 5;
+                state.costs.stomach = Math.floor(state.costs.stomach * 1.5);
+                updateHUD();
+            }
+        });
+
+        btnUpgSpeed.addEventListener('click', () => {
+            if (state.coins >= state.costs.speed) {
+                state.coins -= state.costs.speed;
+                state.moveSpeed += 0.02;
+                state.costs.speed = Math.floor(state.costs.speed * 1.5);
+                updateHUD();
+            }
+        });
+
+        btnUpgMultiplier.addEventListener('click', () => {
+            if (state.coins >= state.costs.multiplier) {
+                state.coins -= state.costs.multiplier;
+                state.coinMultiplier += 1;
+                state.costs.multiplier = Math.floor(state.costs.multiplier * 2);
+                updateHUD();
+            }
+        });
+
+        // --- GAME LOOP ---
+        function checkCollisions() {
+            const playerBox = new THREE.Box3().setFromObject(player);
+
+            // Check food
+            for (let i = foods.length - 1; i >= 0; i--) {
+                const food = foods[i];
+                const foodBox = new THREE.Box3().setFromObject(food);
+
+                if (playerBox.intersectsBox(foodBox)) {
+                    if (state.stomach < state.maxStomach) {
+                        state.stomach += food.userData.value;
+                        if (state.stomach > state.maxStomach) state.stomach = state.maxStomach;
+                        
+                        scene.remove(food);
+                        foods.splice(i, 1);
+                        updateHUD();
+                    }
+                }
+            }
+
+            // Check Hub (Poop / Sell)
+            if (Math.abs(player.position.x) < hubSize/2 && Math.abs(player.position.z) < hubSize/2) {
+                if (state.stomach > 0) {
+                    state.coins += (state.stomach * state.coinMultiplier);
+                    state.stomach = 0;
+                    updateHUD();
+                }
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (!shopOpen) {
+                // Movement
+                let moved = false;
+                if (keys.w || keys.ArrowUp) { player.position.z -= state.moveSpeed; moved = true; }
+                if (keys.s || keys.ArrowDown) { player.position.z += state.moveSpeed; moved = true; }
+                if (keys.a || keys.ArrowLeft) { player.position.x -= state.moveSpeed; moved = true; }
+                if (keys.d || keys.ArrowRight) { player.position.x += state.moveSpeed; moved = true; }
+
+                // Boundaries
+                if (player.position.x > 95) player.position.x = 95;
+                if (player.position.x < -95) player.position.x = -95;
+                if (player.position.z > 95) player.position.z = 95;
+                if (player.position.z < -95) player.position.z = -95;
+
+                // Animate food floating
+                foods.forEach(f => {
+                    f.rotation.y += 0.02;
+                    f.position.y = 0.5 + Math.sin(Date.now() * 0.003 + f.position.x) * 0.2;
+                });
+
+                checkCollisions();
+
+                // Camera Follow (Third Person)
+                const idealCameraPos = player.position.clone().add(cameraOffset);
+                camera.position.lerp(idealCameraPos, 0.1);
+                camera.lookAt(player.position);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Handle Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Start
+        updateHUD();
+        animate();
+    </script>
+</body>
+</html>
