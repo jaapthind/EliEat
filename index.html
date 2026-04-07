@@ -196,7 +196,7 @@ body, html { width: 100%; height: 100%; overflow: hidden; background-color: #000
 <div id="loading-screen">
     <div class="spinner"></div>
     <h2 class="glitch-text" data-text="INITIALIZING KITCHEN ENGINE...">INITIALIZING KITCHEN ENGINE...</h2>
-    <p style="margin-top: 25px; color: #666; font-family: 'Rajdhani', sans-serif; font-size: 22px; letter-spacing: 2px;">Preparing 250,000+ Ingredients & Flavor Profiles...</p>
+    <p style="margin-top: 25px; color: #666; font-family: 'Rajdhani', sans-serif; font-size: 22px; letter-spacing: 2px;">Preparing Ingredients & Flavor Profiles...</p>
 </div>
 
 <div id="webgl-container"></div>
@@ -527,7 +527,6 @@ const AudioSys = {
         osc.start(); osc.stop(this.ctx.currentTime + duration);
     },
     playCollect(tier) {
-        // Synthesize a chomp sound
         this.playTone(300 + tier*100, 'sawtooth', 0.1, 0.2, -100);
         this.playTone(150 + tier*50, 'square', 0.15, 0.2);
     },
@@ -678,7 +677,7 @@ function fbm(x, y, octaves = 6) {
     return v;
 }
 
-const C = { WORLD_SIZE: 12000, HOME_RADIUS: 180, MAX_FOOD: 3000, MAX_PARTICLES: 10000, GRASS_COUNT: 120000, TREE_COUNT: 5000 };
+const C = { WORLD_SIZE: 12000, HOME_RADIUS: 180, MAX_FOOD: 3000, MAX_PARTICLES: 10000, GRASS_COUNT: 10000, TREE_COUNT: 500 };
 
 const Engine = {
     scene: null, camera: null, renderer: null, clock: new THREE.Clock(),
