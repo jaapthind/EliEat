@@ -1,1199 +1,276 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EliEat - Advanced 3D Simulator V2</title>
+    <title>CUNION CLIMB - Protocol Edition</title>
     <style>
-        :root {
-            --bg-dark: #0a0a14; --bg-panel: rgba(15, 15, 25, 0.9); --primary: #ffaa00;
-            --secondary: #00ffaa; --danger: #ff3344; --text-main: #ffffff; --text-dim: #888899;
-            --border-glow: 0 0 15px rgba(255, 170, 0, 0.4);
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
-        body { background-color: #000; overflow: hidden; width: 100vw; height: 100vh; touch-action: none; }
-        #game-canvas { position: absolute; top: 0; left: 0; z-index: 1; }
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; }
-        .glass-panel { background: var(--bg-panel); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); pointer-events: auto; }
-        #top-bar { display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; }
-        #stats-container { display: flex; flex-direction: column; gap: 15px; width: 300px; padding: 20px; pointer-events: auto; }
-        .stat-box { display: flex; flex-direction: column; }
-        .stat-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; font-weight: bold; }
-        .stat-value { font-size: 28px; color: var(--text-main); font-weight: 900; font-family: monospace; text-shadow: 0 2px 4px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 10px; }
-        .currency-icon { width: 24px; height: 24px; background: gold; border-radius: 50%; display: inline-block; box-shadow: inset -2px -2px 5px rgba(0,0,0,0.3); border: 2px solid #ffcc00; }
-        .progress-wrapper { width: 100%; height: 24px; background: rgba(0,0,0,0.5); border-radius: 12px; border: 2px solid #333; overflow: hidden; position: relative; margin-top: 5px; }
-        .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #ff3344, #ffaa00, #00ffaa); transition: width 0.1s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px rgba(0, 255, 170, 0.5); }
-        .progress-text { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; font-size: 13px; font-weight: bold; color: white; text-shadow: 1px 1px 2px black; font-family: monospace; }
-        #controls-container { display: flex; gap: 15px; pointer-events: auto; }
-        .action-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 12px 24px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 1px; }
-        .action-btn:hover { background: rgba(255, 170, 0, 0.2); border-color: var(--primary); box-shadow: var(--border-glow); transform: translateY(-2px); }
-        .action-btn:active { transform: translateY(1px); }
-        #bottom-bar { display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; }
-        #minimap-wrapper { width: 250px; height: 250px; padding: 10px; border-radius: 50%; pointer-events: auto; position: relative; }
-        #minimap { width: 100%; height: 100%; background: radial-gradient(circle at center, #1a2a1a 0%, #0a100a 100%); border-radius: 50%; border: 3px solid #334433; position: relative; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
-        .minimap-blip { position: absolute; border-radius: 50%; transform: translate(-50%, -50%); }
-        #blip-player { width: 12px; height: 12px; background: #fff; box-shadow: 0 0 10px #fff; z-index: 10; border: 2px solid #000; }
-        #blip-hub { width: 40px; height: 40px; border: 2px dashed #0f0; background: rgba(0,255,0,0.2); border-radius: 50%; }
-        .blip-food { width: 6px; height: 6px; background: #f00; box-shadow: 0 0 5px #f00; }
-        #minimap-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; background: repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(0,255,0,0.1) 20px), repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(0,255,0,0.1) 20px); pointer-events: none; }
-        #notifications { position: absolute; bottom: 300px; left: 20px; display: flex; flex-direction: column-reverse; gap: 10px; pointer-events: none; width: 350px; }
-        .toast { background: rgba(10, 10, 20, 0.8); border-left: 4px solid var(--secondary); color: white; padding: 15px 20px; border-radius: 0 8px 8px 0; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, fadeOut 0.5s ease 3.5s forwards; transform-origin: left; }
-        @keyframes slideIn { from { transform: translateX(-100%) scale(0.9); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 1; } }
-        @keyframes fadeOut { to { opacity: 0; transform: translateY(-10px); } }
-        .toast.rare { border-left-color: #aa00ff; background: linear-gradient(90deg, rgba(30,0,50,0.9), rgba(10,10,20,0.8)); }
-        .modal-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 100; justify-content: center; align-items: center; pointer-events: auto; }
-        .modal { width: 900px; max-width: 95vw; height: 700px; max-height: 90vh; background: var(--bg-dark); border: 1px solid #333; border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.8); }
-        .modal-header { padding: 25px 30px; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(180deg, rgba(30,30,40,1) 0%, rgba(10,10,20,1) 100%); }
-        .modal-title { font-size: 28px; color: white; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; display: flex; align-items: center; gap: 15px; }
-        .modal-title::before { content: ''; display: block; width: 12px; height: 24px; background: var(--primary); border-radius: 4px; }
-        .close-btn { background: transparent; border: none; color: #888; font-size: 32px; cursor: pointer; transition: color 0.2s; padding: 0; line-height: 1; }
-        .close-btn:hover { color: var(--danger); }
-        .modal-nav { display: flex; border-bottom: 1px solid #222; background: #0f0f15; }
-        .nav-tab { padding: 15px 30px; color: #888; font-size: 16px; font-weight: bold; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px; }
-        .nav-tab:hover { color: white; background: rgba(255,255,255,0.02); }
-        .nav-tab.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(255,170,0,0.05); }
-        .modal-body { flex: 1; overflow-y: auto; padding: 30px; background: #05050a; }
-        .upgrade-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
-        .upgrade-card { background: #11111a; border: 1px solid #222; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px; position: relative; overflow: hidden; transition: all 0.2s; }
-        .upgrade-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #444; transition: background 0.2s; }
-        .upgrade-card:hover { transform: translateY(-5px); border-color: #444; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        .upgrade-card:hover::before { background: var(--primary); }
-        .upgrade-header { display: flex; justify-content: space-between; align-items: flex-start; }
-        .upgrade-name { font-size: 20px; color: white; font-weight: bold; margin-bottom: 5px; }
-        .upgrade-desc { font-size: 14px; color: #888; line-height: 1.4; min-height: 40px; }
-        .upgrade-level { background: rgba(255,255,255,0.1); color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; font-family: monospace; }
-        .upgrade-footer { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 15px; border-top: 1px dashed #333; }
-        .upgrade-cost { font-size: 18px; color: #00ffaa; font-weight: bold; font-family: monospace; display: flex; align-items: center; gap: 5px; }
-        .btn-buy { background: var(--primary); color: #000; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 900; font-size: 14px; text-transform: uppercase; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 0 #cc8800; }
-        .btn-buy:hover:not(:disabled) { background: #ffbb33; transform: translateY(-2px); box-shadow: 0 6px 0 #cc8800; }
-        .btn-buy:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #cc8800; }
-        .btn-buy:disabled { background: #333; color: #666; box-shadow: 0 4px 0 #111; cursor: not-allowed; }
-        
-        .achievement-list { display: flex; flex-direction: column; gap: 10px; }
-        .achievement-item { background: #111; border: 1px solid #222; border-radius: 10px; padding: 15px; display: flex; align-items: center; gap: 20px; opacity: 0.5; filter: grayscale(100%); transition: all 0.3s; }
-        .achievement-item.unlocked { opacity: 1; filter: grayscale(0%); border-color: gold; background: linear-gradient(90deg, rgba(50,40,0,0.8), #111); }
-        .ach-icon { width: 50px; height: 50px; background: #222; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 24px; border: 2px solid #444; }
-        .unlocked .ach-icon { background: gold; color: black; border-color: #ffaa00; box-shadow: 0 0 15px rgba(255,215,0,0.5); }
-        .ach-details { flex: 1; }
-        .ach-title { color: white; font-weight: bold; font-size: 18px; margin-bottom: 4px; }
-        .ach-desc { color: #888; font-size: 14px; }
-        
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .stat-card { background: #111; border: 1px solid #333; padding: 20px; border-radius: 10px; text-align: center; }
-        .stat-card .val { font-size: 32px; color: var(--secondary); font-family: monospace; font-weight: bold; margin-top: 10px; }
-        
-        #weather-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 10px; }
-        ::-webkit-scrollbar-track { background: #05050a; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 5px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        body { margin: 0; background: #010101; overflow: hidden; font-family: 'Courier New', monospace; cursor: none; }
+        canvas { display: block; }
+        #ui-container { position: absolute; top: 20px; left: 20px; color: #0ff; pointer-events: none; z-index: 10; }
+        .stat-text { font-size: 20px; font-weight: bold; text-shadow: 0 0 10px #0ff; margin-bottom: 5px; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 100; cursor: default; }
+        .menu-box { padding: 40px; border: 2px solid #0ff; background: #000; text-align: center; box-shadow: 0 0 20px #0ff; min-width: 320px; }
+        input { background: #000; border: 1px solid #0ff; color: #fff; padding: 10px; font-family: 'Courier New'; margin: 10px; width: 200px; outline: none; }
+        button { background: #0ff; border: none; padding: 10px 20px; font-family: 'Courier New'; font-weight: bold; cursor: pointer; margin: 5px; width: 100%; max-width: 240px; transition: 0.2s; }
+        button:hover { background: #fff; box-shadow: 0 0 15px #fff; }
+        #skin-list { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .skin-item { border: 2px solid #333; padding: 15px; background: #050505; transition: 0.3s; }
+        .hidden { display: none !important; }
+        #sync-notice { color: #f0f; font-size: 10px; margin-top: 10px; height: 12px; }
+        .mode-select { display: flex; gap: 5px; justify-content: center; margin: 10px 0; }
+        .m-btn { background: #111; color: #444; border: 1px solid #333; padding: 5px 10px; cursor: pointer; font-size: 10px; }
+        .m-btn.active { color: #0ff; border-color: #0ff; box-shadow: 0 0 5px #0ff; }
+        .m-btn.lava-on { color: #f44; border-color: #f44; box-shadow: 0 0 5px #f44; }
     </style>
 </head>
 <body>
 
-    <div id="ui-layer">
-        <div id="top-bar">
-            <div id="stats-container" class="glass-panel">
-                <div class="stat-box">
-                    <span class="stat-label">Currency Buffer</span>
-                    <span class="stat-value"><div class="currency-icon"></div> <span id="ui-coins">0</span></span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-label">Stomach Capacity Matrix</span>
-                    <div class="progress-wrapper">
-                        <div class="progress-fill" id="ui-stomach-bar"></div>
-                        <div class="progress-text"><span id="ui-stomach">0</span> / <span id="ui-max-stomach">100</span> Vol</div>
-                    </div>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-label">Current Digestion Multiplier</span>
-                    <span class="stat-value" style="color: var(--secondary); font-size: 20px;">x<span id="ui-multiplier">1.0</span></span>
-                </div>
+    <div id="overlay">
+        <div class="menu-box" id="main-menu">
+            <h1 style="color:#0ff; margin:0;">CUNION CLIMB</h1>
+            <p style="color:#0ff; font-size: 10px; letter-spacing: 2px; margin-bottom: 10px;">UPLINK STABLE</p>
+            <input type="text" id="name-input" placeholder="Pilot ID..." maxlength="12">
+            <input type="password" id="pass-input" placeholder="Access Key..." maxlength="12">
+            <div class="mode-select">
+                <div id="m-std" class="m-btn active" onclick="setProtocol('STD')">STANDARD</div>
+                <div id="m-lava" class="m-btn" onclick="setProtocol('LAVA')">LAVA CLIMB</div>
             </div>
-            
-            <div id="controls-container">
-                <button class="action-btn" onclick="UI.openModal('shop')">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    Terminal Upgrades
-                </button>
-                <button class="action-btn" onclick="UI.openModal('achievements')">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                    Data Logs
-                </button>
-            </div>
+            <button id="launch-btn" onclick="startGame()">LAUNCH ENGINE</button>
+            <button onclick="showSkins()">SKIN PROTOCOLS</button>
+            <div id="sync-notice"></div>
         </div>
-
-        <div id="notifications"></div>
-
-        <div id="bottom-bar">
-            <div style="color: rgba(255,255,255,0.4); font-family: monospace; font-size: 12px; pointer-events: auto; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 5px;">
-                [W][A][S][D] Move &nbsp;|&nbsp; [SPACE] Jump &nbsp;|&nbsp; [SHIFT] Sprint &nbsp;|&nbsp; [MOUSE] Look/Rotate
-            </div>
-            
-            <div id="minimap-wrapper" class="glass-panel">
-                <div id="minimap">
-                    <div id="minimap-overlay"></div>
-                    <div class="minimap-blip" id="blip-hub" style="left: 50%; top: 50%;"></div>
-                    <div class="minimap-blip" id="blip-player" style="left: 50%; top: 50%;"></div>
-                    </div>
-            </div>
+        <div class="menu-box hidden" id="pause-menu">
+            <h1 style="color:#0ff; margin:0;">PAUSED</h1>
+            <button onclick="resumeGame()">RESUME</button>
+            <button onclick="showSkins()">SKIN PROTOCOLS</button>
+            <button onclick="logout()" style="background:#f00; color:#fff;">LOG OUT</button>
+        </div>
+        <div class="menu-box hidden" id="skin-menu">
+            <h2 style="color:#f0f; margin:0;">EQUIPMENT BAY</h2>
+            <p style="color:#fff">Credits: <span id="credit-count" style="color:#0f0">0</span></p>
+            <div id="skin-list"></div>
+            <br>
+            <button onclick="backFromSkins()" style="background:#f0f; color:#000;">BACK</button>
         </div>
     </div>
 
-    <div class="modal-overlay" id="master-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title" id="modal-title">System Interface</div>
-                <button class="close-btn" onclick="UI.closeModal()">&times;</button>
-            </div>
-            <div class="modal-nav">
-                <div class="nav-tab active" onclick="UI.switchTab('shop')" id="tab-shop">Hardware Upgrades</div>
-                <div class="nav-tab" onclick="UI.switchTab('achievements')" id="tab-achievements">Achievements</div>
-                <div class="nav-tab" onclick="UI.switchTab('stats')" id="tab-stats">Analytics</div>
-                <div class="nav-tab" onclick="UI.switchTab('settings')" id="tab-settings">System Config</div>
-            </div>
-            
-            <div class="modal-body" id="body-shop">
-                <div class="upgrade-grid" id="upgrade-grid"></div>
-            </div>
-            
-            <div class="modal-body" id="body-achievements" style="display: none;">
-                <div class="achievement-list" id="achievement-list"></div>
-            </div>
-            
-            <div class="modal-body" id="body-stats" style="display: none;">
-                <div class="stats-grid" id="stats-grid">
-                    <div class="stat-card"><div>Total Mass Consumed</div><div class="val" id="stat-total-eaten">0</div></div>
-                    <div class="stat-card"><div>Total Currency Generated</div><div class="val" id="stat-total-coins">0</div></div>
-                    <div class="stat-card"><div>Jumps Executed</div><div class="val" id="stat-jumps">0</div></div>
-                    <div class="stat-card"><div>Distance Traveled (m)</div><div class="val" id="stat-distance">0</div></div>
-                    <div class="stat-card"><div>Rare Items Found</div><div class="val" id="stat-rares">0</div></div>
-                    <div class="stat-card"><div>Time Played (hrs)</div><div class="val" id="stat-time">0.00</div></div>
-                </div>
-            </div>
-            
-            <div class="modal-body" id="body-settings" style="display: none;">
-                <div style="max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
-                    <div class="upgrade-card">
-                        <div class="upgrade-name">Save Management</div>
-                        <div class="upgrade-desc">Manually save your progress to local storage, or wipe all data.</div>
-                        <div style="display: flex; gap: 10px; margin-top: 15px;">
-                            <button class="btn-buy" style="flex: 1;" onclick="SaveManager.save()">Force Save</button>
-                            <button class="btn-buy" style="flex: 1; background: #ff3344; box-shadow: 0 4px 0 #aa0011;" onclick="SaveManager.wipe()">Wipe Data</button>
-                        </div>
-                    </div>
-                    <div class="upgrade-card">
-                        <div class="upgrade-name">Graphics Processing</div>
-                        <div class="upgrade-desc">Adjust rendering parameters for performance.</div>
-                        <label style="color: white; margin-top: 10px; display: flex; align-items: center; gap: 10px;">
-                            <input type="checkbox" id="setting-shadows" checked onchange="Engine.toggleShadows(this.checked)" style="width: 20px; height: 20px;"> Enable Dynamic Shadows
-                        </label>
-                        <label style="color: white; margin-top: 10px; display: flex; align-items: center; gap: 10px;">
-                            <input type="checkbox" id="setting-particles" checked onchange="Engine.config.particles = this.checked" style="width: 20px; height: 20px;"> Enable Particle Physics
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-        </div>
+    <div id="ui-container">
+        <div class="stat-text">PILOT: <span id="d-name">---</span></div>
+        <div class="stat-text">ALTITUDE: <span id="height">0</span>m</div>
+        <div class="stat-text" style="color:#f0f">BEST: <span id="best-height">0</span>m</div>
+        <div id="lava-counter" class="stat-text hidden" style="color:#f44">LAVA DIST: <span id="lava-dist">0</span>m</div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <canvas id="canvas"></canvas>
 
-    <script>
-        // ============================================================================
-        // CORE UTILITIES & MATH (Simplex Noise implementation for terrain generation)
-        // ============================================================================
-        const MathUtils = {
-            lerp: (a, b, t) => a + (b - a) * t,
-            clamp: (val, min, max) => Math.max(min, Math.min(max, val)),
-            formatNumber: (num) => {
-                if(num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
-                if(num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
-                if(num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
-                return Math.floor(num).toString();
-            },
-            randomRange: (min, max) => Math.random() * (max - min) + min,
-            uuidv4: () => {
-                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-                    return v.toString(16);
-                });
-            }
-        };
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyHJkxAWX4UT-PNL4OgwPxy6NX_U3VWCepesdlQ4h5BDY1FqVw1peosoFD2bIew1QBJ7A/exec"; 
+const CREDIT_MULTIPLIER = 0.1; 
 
-        class SimplexNoise {
-            constructor() {
-                this.grad3 = [[1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],[1,0,1],[-1,0,1],[1,0,-1],[-1,0,-1],[0,1,1],[0,-1,1],[0,1,-1],[0,-1,-1]];
-                this.p = [];
-                for (let i=0; i<256; i++) this.p[i] = Math.floor(Math.random()*256);
-                this.perm = new Array(512);
-                this.permMod12 = new Array(512);
-                for (let i=0; i<512; i++) {
-                    this.perm[i] = this.p[i & 255];
-                    this.permMod12[i] = (this.perm[i] % 12);
-                }
-            }
-            dot(g, x, y) { return g[0]*x + g[1]*y; }
-            noise2D(xin, yin) {
-                let n0, n1, n2; 
-                const F2 = 0.5*(Math.sqrt(3.0)-1.0);
-                const s = (xin+yin)*F2;
-                const i = Math.floor(xin+s);
-                const j = Math.floor(yin+s);
-                const G2 = (3.0-Math.sqrt(3.0))/6.0;
-                const t = (i+j)*G2;
-                const X0 = i-t;
-                const Y0 = j-t;
-                const x0 = xin-X0;
-                const y0 = yin-Y0;
-                let i1, j1;
-                if(x0>y0) {i1=1; j1=0;} else {i1=0; j1=1;}
-                const x1 = x0 - i1 + G2;
-                const y1 = y0 - j1 + G2;
-                const x2 = x0 - 1.0 + 2.0 * G2;
-                const y2 = y0 - 1.0 + 2.0 * G2;
-                const ii = i & 255;
-                const jj = j & 255;
-                const gi0 = this.permMod12[ii+this.perm[jj]];
-                const gi1 = this.permMod12[ii+i1+this.perm[jj+j1]];
-                const gi2 = this.permMod12[ii+1+this.perm[jj+1]];
-                let t0 = 0.5 - x0*x0-y0*y0;
-                if(t0<0) n0 = 0.0; else { t0 *= t0; n0 = t0 * t0 * this.dot(this.grad3[gi0], x0, y0); }
-                let t1 = 0.5 - x1*x1-y1*y1;
-                if(t1<0) n1 = 0.0; else { t1 *= t1; n1 = t1 * t1 * this.dot(this.grad3[gi1], x1, y1); }
-                let t2 = 0.5 - x2*x2-y2*y2;
-                if(t2<0) n2 = 0.0; else { t2 *= t2; n2 = t2 * t2 * this.dot(this.grad3[gi2], x2, y2); }
-                return 70.0 * (n0 + n1 + n2);
-            }
+let gameActive = false, isPaused = false, gameMode = "STD", lavaY = 10000; 
+let user = { name: "Guest", pass: "", best: 0, credits: 0, color: "#0ff", unlocked: ["#0ff"] };
+
+const skinData = [
+    { name: "NEON_DEFAULT", color: "#0ff", cost: 0 },
+    { name: "VIOLET_PULSE", color: "#f0f", cost: 1000 },
+    { name: "SOLAR_FLARE", color: "#ff0", cost: 3000 },
+    { name: "PHANTOM_ICE", color: "#fff", cost: 6000 }
+];
+
+async function syncCloud() {
+    if (user.name === "Guest") return;
+    try {
+        await fetch(SCRIPT_URL, { 
+            method: "POST", 
+            body: JSON.stringify({ 
+                type: "saveScore", name: user.name, pass: user.pass, 
+                score: user.best, credits: Math.floor(user.credits), 
+                skins: user.unlocked.join(", ") 
+            }), 
+            mode: "no-cors" 
+        });
+    } catch (e) {}
+}
+
+async function startGame() {
+    const name = document.getElementById('name-input').value.trim();
+    const pass = document.getElementById('pass-input').value.trim();
+    if (!name || !pass) return;
+    document.getElementById('sync-notice').innerText = "SYNCING PROFILE...";
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify({ type: "loadUser", name: name, pass: pass }),
+            headers: { "Content-Type": "text/plain" }
+        });
+        const cloudData = await response.json();
+        if (cloudData.exists) {
+            user = { name: name, pass: pass, best: cloudData.best || 0, credits: cloudData.credits || 0, color: user.color || "#0ff", unlocked: cloudData.skins ? cloudData.skins.split(", ") : ["#0ff"] };
         }
-        const Noise = new SimplexNoise();
+    } catch (e) {}
+    document.getElementById('d-name').innerText = user.name;
+    document.getElementById('best-height').innerText = user.best;
+    document.getElementById('sync-notice').innerText = "";
+    document.getElementById('overlay').classList.add('hidden');
+    player.x = canvas.width / 2; player.y = FLOOR_Y - 30; player.vx = 0; player.vy = 0; player.history = [];
+    lavaY = FLOOR_Y + 600; 
+    gameActive = true; isPaused = false;
+}
 
-        // ============================================================================
-        // AUDIO ENGINE (Web Audio API)
-        // ============================================================================
-        class AudioSystem {
-            constructor() {
-                this.ctx = null;
-                this.master = null;
-                this.initialized = false;
-                
-                window.addEventListener('click', () => this.init(), {once:true});
-                window.addEventListener('keydown', () => this.init(), {once:true});
-            }
-            init() {
-                if(this.initialized) return;
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                this.ctx = new AudioContext();
-                this.master = this.ctx.createGain();
-                this.master.gain.value = 0.4;
-                this.master.connect(this.ctx.destination);
-                this.initialized = true;
-            }
-            playOsc(freq, type, dur, vol, slideTo=null) {
-                if(!this.initialized || this.ctx.state === 'suspended') return;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = type;
-                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                if(slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, this.ctx.currentTime + dur);
-                
-                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + dur);
-                
-                osc.connect(gain);
-                gain.connect(this.master);
-                osc.start();
-                osc.stop(this.ctx.currentTime + dur);
-            }
-            playNoise(dur, vol) {
-                if(!this.initialized) return;
-                const bufferSize = this.ctx.sampleRate * dur;
-                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for(let i=0; i<bufferSize; i++) data[i] = Math.random() * 2 - 1;
-                const noise = this.ctx.createBufferSource();
-                noise.buffer = buffer;
-                const gain = this.ctx.createGain();
-                
-                const filter = this.ctx.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.value = 1000;
+function setProtocol(m) {
+    gameMode = m;
+    document.getElementById('m-std').className = m === 'STD' ? 'm-btn active' : 'm-btn';
+    document.getElementById('m-lava').className = m === 'LAVA' ? 'm-btn lava-on' : 'm-btn';
+    document.getElementById('lava-counter').classList.toggle('hidden', m !== 'LAVA');
+}
 
-                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + dur);
-                
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.master);
-                noise.start();
-            }
+function logout() {
+    syncCloud(); gameActive = false;
+    document.getElementById('pause-menu').classList.add('hidden');
+    document.getElementById('main-menu').classList.remove('hidden');
+    document.getElementById('overlay').classList.remove('hidden');
+}
 
-            sfxEat() { this.playOsc(MathUtils.randomRange(300,500), 'sine', 0.15, 0.5, 200); }
-            sfxEatRare() { 
-                this.playOsc(600, 'square', 0.1, 0.4, 1200); 
-                setTimeout(()=>this.playOsc(800, 'sine', 0.2, 0.4, 1600), 100);
-            }
-            sfxJump() { this.playOsc(150, 'triangle', 0.3, 0.3, 300); }
-            sfxSell() { this.playNoise(0.2, 0.3); this.playOsc(800, 'square', 0.1, 0.2); }
-            sfxUpgrade() {
-                this.playOsc(400, 'sawtooth', 0.1, 0.3, 600);
-                setTimeout(()=>this.playOsc(600, 'sawtooth', 0.1, 0.3, 800), 100);
-                setTimeout(()=>this.playOsc(800, 'sawtooth', 0.3, 0.3, 1200), 200);
-            }
-            sfxError() { this.playOsc(150, 'sawtooth', 0.2, 0.4, 100); }
+function renderSkins() {
+    document.getElementById('credit-count').innerText = Math.floor(user.credits);
+    const list = document.getElementById('skin-list'); list.innerHTML = "";
+    skinData.forEach(s => {
+        const bought = user.unlocked.includes(s.color);
+        list.innerHTML += `<div class="skin-item" style="border-color: ${s.color};">
+            <div style="color:${s.color}; font-size: 12px;">${s.name}</div>
+            ${bought ? `<button onclick="setSkin('${s.color}')" style="background:${s.color}; color:#000;">EQUIP</button>` : `<button onclick="buySkin('${s.color}',${s.cost})">BUY ${s.cost}</button>`}
+        </div>`;
+    });
+}
+function buySkin(c, cost) { if(user.credits >= cost) { user.credits -= cost; user.unlocked.push(c); syncCloud(); renderSkins(); } }
+function setSkin(c) { user.color = c; backFromSkins(); }
+function resumeGame() { isPaused = false; document.getElementById('overlay').classList.add('hidden'); }
+function showSkins() { document.getElementById('main-menu').classList.add('hidden'); document.getElementById('pause-menu').classList.add('hidden'); document.getElementById('skin-menu').classList.remove('hidden'); renderSkins(); }
+function backFromSkins() { document.getElementById('skin-menu').classList.add('hidden'); if (gameActive) document.getElementById('pause-menu').classList.remove('hidden'); else document.getElementById('main-menu').classList.remove('hidden'); }
+
+const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+const GRAVITY = 0.28, FRICTION_AIR = 0.985, FRICTION_GROUND = 0.85;
+const WALK_SPEED = 0.7, JUMP_FORCE = -10, SWING_FORCE = 0.6, HOOK_RANGE = 380;
+const FLOOR_Y = canvas.height - 50;
+
+let player = { x: canvas.width/2, y: FLOOR_Y-30, vx: 0, vy: 0, hookedTo: null, ropeLen: 0, radius: 15, onGround: false, history: [], rotation: 0 };
+let mouse = { x: 0, y: 0 }, currentTarget = null, keys = {}, anchors = [];
+
+for (let i = 0; i < 2000; i++) { anchors.push({ x: Math.random() * (canvas.width - 200) + 100, y: (canvas.height - 250) - (i * 180) }); }
+
+window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+window.addEventListener('mousedown', () => { if(!gameActive || isPaused || !currentTarget) return; player.hookedTo = currentTarget; player.ropeLen = Math.sqrt((player.x-currentTarget.x)**2+(player.y-currentTarget.y)**2); });
+window.addEventListener('mouseup', () => player.hookedTo = null);
+window.addEventListener('keydown', e => { keys[e.code] = true; if (e.code === 'Escape') togglePause(); });
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+function togglePause() { if (!gameActive) return; isPaused = !isPaused; document.getElementById('overlay').classList.toggle('hidden', !isPaused); document.getElementById('pause-menu').classList.toggle('hidden', !isPaused); if(isPaused) syncCloud(); }
+
+function update() {
+    if (!gameActive || isPaused) return;
+    let h = Math.floor(Math.max(0, (FLOOR_Y - player.radius - player.y)/10));
+    if (gameMode === "LAVA") {
+        lavaY -= (0.8 + (h / 600));
+        let dist = Math.max(0, Math.floor((lavaY - (player.y + player.radius))/10));
+        document.getElementById('lava-dist').innerText = dist;
+        if (player.y + player.radius > lavaY) { gameActive = false; alert("MISSION FAILURE: " + h + "m"); logout(); return; }
+    }
+    player.rotation += player.vx * 0.05;
+    player.history.push({x: player.x, y: player.y});
+    if (player.history.length > 20) player.history.shift();
+    let camY = Math.min(0, player.y - canvas.height * 0.7);
+    currentTarget = null;
+    anchors.forEach(a => {
+        let d = Math.sqrt((mouse.x - a.x)**2 + (mouse.y - (a.y - camY))**2);
+        if (d < 55 && Math.sqrt((player.x - a.x)**2 + (player.y - a.y)**2) < HOOK_RANGE) currentTarget = a;
+    });
+    if (player.hookedTo) {
+        let dx = player.x-player.hookedTo.x, dy = player.y-player.hookedTo.y, dist = Math.sqrt(dx*dx+dy*dy);
+        if (dist > player.ropeLen) {
+            let angle = Math.atan2(dy, dx);
+            player.x = player.hookedTo.x + Math.cos(angle)*player.ropeLen;
+            player.y = player.hookedTo.y + Math.sin(angle)*player.ropeLen;
+            let vDot = player.vx*Math.cos(angle) + player.vy*Math.sin(angle);
+            player.vx -= vDot*Math.cos(angle)*1.1; player.vy -= vDot*Math.sin(angle)*1.1;
         }
-        const Audio = new AudioSystem();
+        if (keys['KeyA'] || keys['ArrowLeft']) player.vx -= SWING_FORCE;
+        if (keys['KeyD'] || keys['ArrowRight']) player.vx += SWING_FORCE;
+    } else if (player.onGround) {
+        if (keys['KeyA'] || keys['ArrowLeft']) player.vx -= WALK_SPEED;
+        if (keys['KeyD'] || keys['ArrowRight']) player.vx += WALK_SPEED;
+        if (keys['Space'] || keys['ArrowUp'] || keys['KeyW']) player.vy = JUMP_FORCE;
+        player.vx *= FRICTION_GROUND;
+    }
+    player.vy += GRAVITY; player.vx *= FRICTION_AIR; player.vy *= FRICTION_AIR;
+    player.x += player.vx; player.y += player.vy;
+    if (player.y > FLOOR_Y - player.radius) { player.y = FLOOR_Y-player.radius; player.vy = 0; player.onGround = true; } else { player.onGround = false; }
+    if (player.x < player.radius || player.x > canvas.width-player.radius) { player.vx *= -0.5; player.x = (player.x < player.radius) ? player.radius : canvas.width-player.radius; }
+    document.getElementById('height').innerText = h;
+    if(h > user.best) { 
+        user.credits += (h - user.best) * CREDIT_MULTIPLIER;
+        user.best = h; document.getElementById('best-height').innerText = h; 
+        if(h % 50 === 0) syncCloud();
+    }
+}
 
-        // ============================================================================
-        // GAME STATE & DATA MANAGEMENT
-        // ============================================================================
-        const UPGRADES_DB = {
-            stomach: { id:'stomach', name:"Gastric Expansion", desc:"Increases maximum stomach capacity by 50%. Essential for long foraging runs.", baseCost: 20, costMult: 1.8, maxLevel: 50 },
-            speed: { id:'speed', name:"Kinetic Actuators", desc:"Increases base movement speed. Helps cover ground faster.", baseCost: 50, costMult: 1.5, maxLevel: 30 },
-            multiplier: { id:'multiplier', name:"Metabolic Efficiency", desc:"Increases currency generated per unit of food digested.", baseCost: 100, costMult: 2.2, maxLevel: 40 },
-            jump: { id:'jump', name:"Pneumatic Legs", desc:"Increases vertical jump force.", baseCost: 75, costMult: 1.6, maxLevel: 15 },
-            magnet: { id:'magnet', name:"Gravitational Maw", desc:"Automatically pulls nearby food items towards the player.", baseCost: 500, costMult: 3.0, maxLevel: 10 },
-            sprint: { id:'sprint', name:"Adrenaline Injectors", desc:"Increases the speed multiplier when holding SHIFT.", baseCost: 250, costMult: 1.7, maxLevel: 10 },
-            luck: { id:'luck', name:"Quantum Probability", desc:"Increases the spawn rate of high-value rare food items.", baseCost: 1000, costMult: 2.5, maxLevel: 10 }
-        };
+function draw() {
+    let camY = Math.min(0, player.y - canvas.height * 0.7);
+    ctx.fillStyle = "#010101"; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = "#0a0a0a"; ctx.fillRect(0, FLOOR_Y-camY, canvas.width, 300);
+    ctx.strokeStyle = "#0ff"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0, FLOOR_Y-camY); ctx.lineTo(canvas.width, FLOOR_Y-camY); ctx.stroke();
 
-        const ACHIEVEMENTS_DB = [
-            { id: 'first_bite', title: 'First Bite', desc: 'Eat your very first item.', req: (s) => s.totalEaten >= 1, icon: '🍔' },
-            { id: 'hundred_eaten', title: 'Snack Time', desc: 'Consume 100 total food items.', req: (s) => s.totalEaten >= 100, icon: '🌮' },
-            { id: 'thousand_eaten', title: 'Gluttony', desc: 'Consume 1,000 total food items.', req: (s) => s.totalEaten >= 1000, icon: '🍕' },
-            { id: 'first_sell', title: 'Capitalism', desc: 'Digest food at the hub to earn currency.', req: (s) => s.totalCoins >= 1, icon: '💰' },
-            { id: 'rich', title: 'Wealth Accumulation', desc: 'Accumulate 10,000 lifetime coins.', req: (s) => s.totalCoins >= 10000, icon: '💎' },
-            { id: 'rare_find', title: 'Golden Ticket', desc: 'Find and eat a rare golden item.', req: (s) => s.raresFound >= 1, icon: '✨' },
-            { id: 'marathon', title: 'Marathon Runner', desc: 'Travel 10,000 meters.', req: (s) => s.distanceTraveled >= 10000, icon: '🏃' },
-            { id: 'jumper', title: 'Kangaroo', desc: 'Jump 100 times.', req: (s) => s.jumps >= 100, icon: '🦘' },
-            { id: 'max_stomach', title: 'Bottomless Pit', desc: 'Reach a stomach capacity of 1,000.', req: (s) => s.maxStomach >= 1000, icon: '🕳️' }
-        ];
+    if (gameMode === "LAVA") {
+        let lG = ctx.createLinearGradient(0, lavaY-camY, 0, lavaY-camY+600);
+        lG.addColorStop(0, "rgba(255,40,0,1)"); lG.addColorStop(0.2, "rgba(255,100,0,0.8)"); lG.addColorStop(1, "transparent");
+        ctx.fillStyle = lG; ctx.fillRect(0, lavaY-camY, canvas.width, 1000);
+    }
+    anchors.forEach(a => {
+        let isT = (a === currentTarget || a === player.hookedTo);
+        ctx.beginPath(); ctx.arc(a.x, a.y-camY, isT?10:5, 0, Math.PI*2);
+        ctx.fillStyle = isT?"#fff":"#333"; ctx.fill();
+    });
+    if (player.hookedTo) {
+        ctx.beginPath(); ctx.moveTo(player.x, player.y-camY); ctx.lineTo(player.hookedTo.x, player.hookedTo.y-camY);
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.stroke();
+        ctx.strokeStyle = user.color; ctx.lineWidth = 1; ctx.stroke();
+    }
 
-        class GameState {
-            constructor() {
-                this.version = 2;
-                this.reset();
-                this.load();
-                
-                // Real-time calculated properties
-                this.maxStomach = 0;
-                this.speed = 0;
-                this.multiplier = 0;
-                this.jumpForce = 0;
-                this.magnetRadius = 0;
-                this.sprintMult = 0;
-                this.luck = 0;
-                
-                this.recalculateStats();
-            }
-
-            reset() {
-                this.coins = 0;
-                this.stomach = 0;
-                this.levels = { stomach: 1, speed: 1, multiplier: 1, jump: 1, magnet: 0, sprint: 1, luck: 0 };
-                
-                // Analytics
-                this.totalEaten = 0;
-                this.totalCoins = 0;
-                this.distanceTraveled = 0;
-                this.jumps = 0;
-                this.raresFound = 0;
-                this.timePlayed = 0;
-                this.unlockedAchievements = [];
-                
-                this.lastSaveTime = Date.now();
-            }
-
-            recalculateStats() {
-                this.maxStomach = 100 * Math.pow(1.5, this.levels.stomach - 1);
-                this.speed = 0.25 + (this.levels.speed * 0.04);
-                this.multiplier = 1 + (this.levels.multiplier * 0.5);
-                this.jumpForce = 0.4 + (this.levels.jump * 0.05);
-                this.magnetRadius = this.levels.magnet * 8;
-                this.sprintMult = 1.4 + (this.levels.sprint * 0.1);
-                this.luck = this.levels.luck * 0.02; // +2% per level to rare spawns
-            }
-
-            getCost(id) {
-                const upg = UPGRADES_DB[id];
-                return Math.floor(upg.baseCost * Math.pow(upg.costMult, this.levels[id] - (upg.id==='magnet'||upg.id==='luck'?0:1)));
-            }
-
-            buyUpgrade(id) {
-                const cost = this.getCost(id);
-                const upg = UPGRADES_DB[id];
-                if (this.coins >= cost && this.levels[id] < upg.maxLevel) {
-                    this.coins -= cost;
-                    this.levels[id]++;
-                    this.recalculateStats();
-                    Audio.sfxUpgrade();
-                    SaveManager.save();
-                    UI.refresh();
-                    return true;
-                }
-                Audio.sfxError();
-                return false;
-            }
-
-            checkAchievements() {
-                let newUnlock = false;
-                for(let ach of ACHIEVEMENTS_DB) {
-                    if(!this.unlockedAchievements.includes(ach.id)) {
-                        if(ach.req(this)) {
-                            this.unlockedAchievements.push(ach.id);
-                            UI.notify(`🏆 Achievement Unlocked: ${ach.title}`, true);
-                            Audio.sfxUpgrade();
-                            newUnlock = true;
-                        }
-                    }
-                }
-                if(newUnlock) UI.renderAchievements();
-            }
+    // --- RE-INTEGRATED BEST SCRIPT RENDERING ---
+    ctx.save(); ctx.translate(player.x, player.y - camY);
+    if (user.color === "#ff0") { // SOLAR_FLARE
+        let pulse = (Math.sin(Date.now() * 0.015) + 1) / 2;
+        let glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 40 + (pulse * 10));
+        glow.addColorStop(0, "#fff"); glow.addColorStop(0.2, "rgba(255, 255, 0, 0.9)"); glow.addColorStop(1, "rgba(255, 0, 0, 0)");
+        ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 0, 50, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI * 2); ctx.fill();
+    } else if (user.color === "#f0f") { // VIOLET_PULSE
+        ctx.save(); ctx.rotate(Date.now()*0.002 - (player.vx*0.1));
+        for(let i=0; i<8; i++) {
+            ctx.save(); ctx.rotate(i*(Math.PI/4)); ctx.translate(35,0);
+            ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0,0,4,0,Math.PI*2); ctx.fill();
+            ctx.strokeStyle = "#f0f"; ctx.stroke(); ctx.restore();
         }
+        ctx.restore();
+        ctx.rotate(player.rotation);
+        ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = user.color; ctx.lineWidth = 2.5; ctx.stroke();
+    } else { // DEFAULT & PHANTOM
+        ctx.rotate(player.rotation);
+        ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = user.color; ctx.lineWidth = 2.5; ctx.stroke();
+        let pulse = (Math.sin(Date.now()*0.01) + 1) / 2;
+        ctx.beginPath(); ctx.arc(0, 0, player.radius * 0.5, 0, Math.PI*2);
+        ctx.fillStyle = user.color; ctx.globalAlpha = 0.3 + (pulse * 0.4); ctx.fill();
+    }
+    ctx.restore();
 
-        const State = new GameState();
-
-        const SaveManager = {
-            save: () => {
-                const data = {
-                    v: State.version, c: State.coins, s: State.stomach, l: State.levels,
-                    stats: { te: State.totalEaten, tc: State.totalCoins, dt: State.distanceTraveled, j: State.jumps, rf: State.raresFound, tp: State.timePlayed },
-                    ach: State.unlockedAchievements
-                };
-                const encoded = btoa(JSON.stringify(data));
-                localStorage.setItem('EliEat_SaveV2', encoded);
-                UI.notify("Game Data Saved.");
-            },
-            load: () => {
-                try {
-                    const str = localStorage.getItem('EliEat_SaveV2');
-                    if(!str) return;
-                    const data = JSON.parse(atob(str));
-                    if(data.v !== 2) return; // Basic migration check
-                    
-                    State.coins = data.c || 0;
-                    State.stomach = data.s || 0;
-                    State.levels = data.l || State.levels;
-                    
-                    if(data.stats) {
-                        State.totalEaten = data.stats.te || 0;
-                        State.totalCoins = data.stats.tc || 0;
-                        State.distanceTraveled = data.stats.dt || 0;
-                        State.jumps = data.stats.j || 0;
-                        State.raresFound = data.stats.rf || 0;
-                        State.timePlayed = data.stats.tp || 0;
-                    }
-                    State.unlockedAchievements = data.ach || [];
-                    console.log("Save loaded successfully.");
-                } catch(e) { console.error("Save corrupted or missing."); }
-            },
-            wipe: () => {
-                if(confirm("CRITICAL WARNING: This will permanently delete your save data. Proceed?")) {
-                    localStorage.removeItem('EliEat_SaveV2');
-                    location.reload();
-                }
-            }
-        };
-        
-        // Ensure load is called on startup
-        SaveManager.load();
-        State.recalculateStats();
-
-        // ============================================================================
-        // USER INTERFACE & MENUS
-        // ============================================================================
-        const UI = {
-            init: () => {
-                UI.renderShop();
-                UI.renderAchievements();
-                UI.startHUDLoop();
-            },
-            notify: (msg, rare=false) => {
-                const container = document.getElementById('notifications');
-                const el = document.createElement('div');
-                el.className = `toast ${rare ? 'rare' : ''}`;
-                el.innerHTML = msg;
-                container.appendChild(el);
-                setTimeout(() => { if(el.parentNode) el.remove(); }, 4000);
-            },
-            openModal: (tab='shop') => {
-                document.getElementById('master-modal').style.display = 'flex';
-                document.exitPointerLock?.();
-                UI.switchTab(tab);
-            },
-            closeModal: () => {
-                document.getElementById('master-modal').style.display = 'none';
-                Engine.requestPointerLock();
-            },
-            switchTab: (tabId) => {
-                ['shop', 'achievements', 'stats', 'settings'].forEach(id => {
-                    document.getElementById(`tab-${id}`).classList.remove('active');
-                    document.getElementById(`body-${id}`).style.display = 'none';
-                });
-                document.getElementById(`tab-${tabId}`).classList.add('active');
-                document.getElementById(`body-${tabId}`).style.display = 'block';
-                
-                document.getElementById('modal-title').innerText = 
-                    tabId === 'shop' ? 'Hardware Upgrades' : 
-                    tabId === 'achievements' ? 'Data Logs' : 
-                    tabId === 'stats' ? 'Analytics' : 'System Config';
-                    
-                if(tabId === 'stats') UI.renderStats();
-            },
-            renderShop: () => {
-                const grid = document.getElementById('upgrade-grid');
-                grid.innerHTML = '';
-                for(let key in UPGRADES_DB) {
-                    const upg = UPGRADES_DB[key];
-                    const lvl = State.levels[key];
-                    const cost = State.getCost(key);
-                    const isMax = lvl >= upg.maxLevel;
-                    const canAfford = State.coins >= cost && !isMax;
-                    
-                    grid.innerHTML += `
-                        <div class="upgrade-card" style="border-color: ${canAfford ? 'var(--secondary)' : '#333'}">
-                            <div class="upgrade-header">
-                                <div class="upgrade-name">${upg.name}</div>
-                                <div class="upgrade-level">LVL ${lvl}/${upg.maxLevel}</div>
-                            </div>
-                            <div class="upgrade-desc">${upg.desc}</div>
-                            <div class="upgrade-footer">
-                                <div class="upgrade-cost" style="color: ${isMax ? '#888' : (canAfford ? 'var(--secondary)' : 'var(--danger)')}">
-                                    ${isMax ? 'MAXED' : `<div class="currency-icon" style="width:16px;height:16px;border-width:1px;"></div> ${MathUtils.formatNumber(cost)}`}
-                                </div>
-                                <button class="btn-buy" ${!canAfford ? 'disabled' : ''} onclick="State.buyUpgrade('${key}')">
-                                    ${isMax ? 'MAXED' : 'UPGRADE'}
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }
-            },
-            renderAchievements: () => {
-                const list = document.getElementById('achievement-list');
-                list.innerHTML = '';
-                ACHIEVEMENTS_DB.forEach(ach => {
-                    const unlocked = State.unlockedAchievements.includes(ach.id);
-                    list.innerHTML += `
-                        <div class="achievement-item ${unlocked ? 'unlocked' : ''}">
-                            <div class="ach-icon">${unlocked ? ach.icon : '🔒'}</div>
-                            <div class="ach-details">
-                                <div class="ach-title">${ach.title}</div>
-                                <div class="ach-desc">${ach.desc}</div>
-                            </div>
-                        </div>
-                    `;
-                });
-            },
-            renderStats: () => {
-                document.getElementById('stat-total-eaten').innerText = MathUtils.formatNumber(State.totalEaten);
-                document.getElementById('stat-total-coins').innerText = MathUtils.formatNumber(State.totalCoins);
-                document.getElementById('stat-jumps').innerText = MathUtils.formatNumber(State.jumps);
-                document.getElementById('stat-distance').innerText = MathUtils.formatNumber(Math.floor(State.distanceTraveled));
-                document.getElementById('stat-rares').innerText = MathUtils.formatNumber(State.raresFound);
-                document.getElementById('stat-time').innerText = (State.timePlayed / 3600).toFixed(2);
-            },
-            refresh: () => {
-                UI.renderShop();
-                UI.renderStats();
-            },
-            startHUDLoop: () => {
-                setInterval(() => {
-                    document.getElementById('ui-coins').innerText = MathUtils.formatNumber(State.coins);
-                    document.getElementById('ui-stomach').innerText = MathUtils.formatNumber(Math.floor(State.stomach));
-                    document.getElementById('ui-max-stomach').innerText = MathUtils.formatNumber(Math.floor(State.maxStomach));
-                    document.getElementById('ui-multiplier').innerText = State.multiplier.toFixed(1);
-                    
-                    const pct = MathUtils.clamp((State.stomach / State.maxStomach) * 100, 0, 100);
-                    document.getElementById('ui-stomach-bar').style.width = pct + '%';
-                    
-                    State.checkAchievements();
-                }, 100); // 10fps UI updates for performance
-            }
-        };
-
-        // ============================================================================
-        // 3D RENDERING ENGINE (Three.js)
-        // ============================================================================
-        class Renderer {
-            constructor() {
-                this.scene = new THREE.Scene();
-                this.scene.background = new THREE.Color(0x0a0a14);
-                this.scene.fog = new THREE.FogExp2(0x0a0a14, 0.003);
-
-                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-                
-                this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio
-                this.renderer.shadowMap.enabled = true;
-                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                
-                document.body.insertBefore(this.renderer.domElement, document.body.firstChild);
-                this.renderer.domElement.id = 'game-canvas';
-
-                this.config = { particles: true };
-                this.buildWorld();
-                
-                window.addEventListener('resize', () => {
-                    this.camera.aspect = window.innerWidth / window.innerHeight;
-                    this.camera.updateProjectionMatrix();
-                    this.renderer.setSize(window.innerWidth, window.innerHeight);
-                });
-            }
-
-            toggleShadows(enabled) {
-                this.renderer.shadowMap.enabled = enabled;
-                this.scene.traverse(child => {
-                    if (child.isMesh) {
-                        child.castShadow = enabled;
-                        child.receiveShadow = enabled;
-                        child.material.needsUpdate = true;
-                    }
-                });
-            }
-
-            buildWorld() {
-                // Lighting
-                this.ambient = new THREE.AmbientLight(0x222233, 1.0);
-                this.scene.add(this.ambient);
-
-                this.dirLight = new THREE.DirectionalLight(0xffeedd, 1.5);
-                this.dirLight.position.set(100, 200, 50);
-                this.dirLight.castShadow = true;
-                this.dirLight.shadow.mapSize.width = 2048;
-                this.dirLight.shadow.mapSize.height = 2048;
-                const d = 250;
-                this.dirLight.shadow.camera.left = -d; this.dirLight.shadow.camera.right = d;
-                this.dirLight.shadow.camera.top = d; this.dirLight.shadow.camera.bottom = -d;
-                this.dirLight.shadow.camera.far = 1000;
-                this.scene.add(this.dirLight);
-
-                // Procedural Terrain Generation via Chunks
-                this.terrainSize = 600;
-                const geo = new THREE.PlaneGeometry(this.terrainSize, this.terrainSize, 100, 100);
-                const pos = geo.attributes.position;
-                
-                for(let i=0; i<pos.count; i++) {
-                    const x = pos.getX(i);
-                    const y = pos.getY(i);
-                    
-                    // Keep center flat for hub
-                    const distFromCenter = Math.sqrt(x*x + y*y);
-                    let z = 0;
-                    if(distFromCenter > 40) {
-                        z = Noise.noise2D(x*0.01, y*0.01) * 15;
-                        z += Noise.noise2D(x*0.05, y*0.05) * 3; // detail
-                        // Blend edge
-                        const blend = MathUtils.clamp((distFromCenter - 40) / 20, 0, 1);
-                        z *= blend;
-                    }
-                    pos.setZ(i, z);
-                }
-                geo.computeVertexNormals();
-
-                // Advanced Material for Terrain
-                const mat = new THREE.MeshStandardMaterial({ 
-                    color: 0x1a2e1a, roughness: 0.9, metalness: 0.05,
-                    flatShading: true // Low poly aesthetic
-                });
-                
-                this.ground = new THREE.Mesh(geo, mat);
-                this.ground.rotation.x = -Math.PI / 2;
-                this.ground.receiveShadow = true;
-                this.scene.add(this.ground);
-
-                // Sell Hub (The Digestor)
-                this.hubRadius = 25;
-                const hubGroup = new THREE.Group();
-                
-                // Hub Base
-                const hBaseGeo = new THREE.CylinderGeometry(this.hubRadius, this.hubRadius+2, 2, 32);
-                const hBaseMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5, metalness: 0.8 });
-                const hBase = new THREE.Mesh(hBaseGeo, hBaseMat);
-                hBase.position.y = 1;
-                hBase.receiveShadow = true;
-                hubGroup.add(hBase);
-                
-                // Hub Energy Pad
-                const hPadGeo = new THREE.CylinderGeometry(this.hubRadius-2, this.hubRadius-2, 2.1, 32);
-                const hPadMat = new THREE.MeshBasicMaterial({ color: 0x00ffaa });
-                const hPad = new THREE.Mesh(hPadGeo, hPadMat);
-                hPad.position.y = 1;
-                hubGroup.add(hPad);
-
-                // Hub Pillars
-                for(let i=0; i<4; i++) {
-                    const pillar = new THREE.Mesh(
-                        new THREE.BoxGeometry(2, 20, 2),
-                        new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.9 })
-                    );
-                    const angle = (Math.PI / 2) * i;
-                    pillar.position.set(Math.cos(angle)*this.hubRadius, 10, Math.sin(angle)*this.hubRadius);
-                    pillar.castShadow = true;
-                    hubGroup.add(pillar);
-                }
-                
-                this.scene.add(hubGroup);
-
-                // Add Scenery (Rocks, Trees)
-                const treeGeo = new THREE.ConeGeometry(3, 12, 5);
-                const treeMat = new THREE.MeshStandardMaterial({ color: 0x0d1f0d, flatShading: true });
-                const trunkGeo = new THREE.CylinderGeometry(0.8, 1, 4, 5);
-                const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3d2817, flatShading: true });
-
-                for(let i=0; i<300; i++) {
-                    const tx = MathUtils.randomRange(-this.terrainSize/2, this.terrainSize/2);
-                    const tz = MathUtils.randomRange(-this.terrainSize/2, this.terrainSize/2);
-                    
-                    if(Math.sqrt(tx*tx + tz*tz) < this.hubRadius + 20) continue; // Keep hub clear
-                    
-                    const ty = this.getTerrainHeight(tx, tz);
-                    
-                    const tree = new THREE.Group();
-                    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-                    trunk.position.y = 2; trunk.castShadow = true;
-                    const leaves = new THREE.Mesh(treeGeo, treeMat);
-                    leaves.position.y = 8; leaves.castShadow = true;
-                    
-                    tree.add(trunk); tree.add(leaves);
-                    tree.position.set(tx, ty, tz);
-                    
-                    // Random scale & rotation
-                    const s = MathUtils.randomRange(0.6, 1.5);
-                    tree.scale.set(s,s,s);
-                    tree.rotation.y = Math.random() * Math.PI;
-                    
-                    this.scene.add(tree);
-                }
-            }
-
-            getTerrainHeight(x, z) {
-                const distFromCenter = Math.sqrt(x*x + z*z);
-                if(distFromCenter <= 40) return 0;
-                let h = Noise.noise2D(x*0.01, z*0.01) * 15 + Noise.noise2D(x*0.05, z*0.05) * 3;
-                const blend = MathUtils.clamp((distFromCenter - 40) / 20, 0, 1);
-                return h * blend;
-            }
-        }
-
-        // ============================================================================
-        // GAMEPLAY SYSTEMS (Entities, Physics, Controller)
-        // ============================================================================
-        class EntityManager {
-            constructor(scene) {
-                this.scene = scene;
-                this.foods = [];
-                this.particles = [];
-                
-                // Food Models definitions
-                this.foodDefs = [
-                    { t:'burger', prob: 50, val: 5, col: 0x8b4513, geo: new THREE.CylinderGeometry(1.2, 1.2, 0.8, 12), s: 1 },
-                    { t:'pizza', prob: 30, val: 12, col: 0xffaa00, geo: new THREE.ConeGeometry(1.5, 0.5, 3), s: 1 },
-                    { t:'soda', prob: 15, val: 25, col: 0xff3344, geo: new THREE.CylinderGeometry(0.6, 0.6, 2, 8), s: 1 },
-                    { t:'cake', prob: 4, val: 100, col: 0xff66cc, geo: new THREE.BoxGeometry(1.5, 1.5, 1.5), s: 1.5 },
-                    { t:'golden', prob: 1, val: 1000, col: 0xffdd00, geo: new THREE.DodecahedronGeometry(1.5), s: 1.5, rare: true }
-                ];
-
-                // Materials cache
-                this.mats = {};
-                this.foodDefs.forEach(d => {
-                    this.mats[d.t] = new THREE.MeshStandardMaterial({ 
-                        color: d.col, roughness: d.rare ? 0.1 : 0.6, metalness: d.rare ? 0.9 : 0.1,
-                        emissive: d.rare ? 0x443300 : 0x000000
-                    });
-                });
-            }
-
-            spawnFood(forcedRare = false) {
-                if(this.foods.length > 200) return; // Cap
-
-                let def;
-                if(forcedRare) {
-                    def = this.foodDefs.find(d => d.t === 'golden');
-                } else {
-                    // Probability calc including luck
-                    const roll = Math.random() * 100;
-                    let accum = 0;
-                    for(let i=0; i<this.foodDefs.length; i++) {
-                        let prob = this.foodDefs[i].prob;
-                        if(this.foodDefs[i].rare) prob += (State.luck * 100); // Add luck to rare
-                        accum += prob;
-                        if(roll <= accum) { def = this.foodDefs[i]; break; }
-                    }
-                    if(!def) def = this.foodDefs[0];
-                }
-
-                const mesh = new THREE.Mesh(def.geo, this.mats[def.t]);
-                
-                // Position logic
-                let x, z;
-                do {
-                    x = MathUtils.randomRange(-280, 280);
-                    z = MathUtils.randomRange(-280, 280);
-                } while (Math.sqrt(x*x + z*z) < 30); // Avoid hub
-                
-                const y = Engine.gfx.getTerrainHeight(x, z) + 1;
-                
-                mesh.position.set(x, y, z);
-                mesh.castShadow = true;
-                
-                mesh.userData = { 
-                    val: def.val, type: def.t, rare: def.rare || false, 
-                    baseY: y, timeOffset: Math.random() * Math.PI * 2,
-                    rotSpeed: new THREE.Vector3(Math.random()*0.02, Math.random()*0.05, Math.random()*0.02)
-                };
-                
-                this.scene.add(mesh);
-                this.foods.push({ mesh: mesh, id: MathUtils.uuidv4() });
-                
-                this.updateMinimapBlips();
-            }
-
-            spawnParticles(pos, color, count=15) {
-                if(!Engine.gfx.config.particles) return;
-                const geo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
-                const mat = new THREE.MeshBasicMaterial({ color: color });
-                
-                for(let i=0; i<count; i++) {
-                    const p = new THREE.Mesh(geo, mat);
-                    p.position.copy(pos);
-                    p.userData = {
-                        vel: new THREE.Vector3(
-                            MathUtils.randomRange(-0.5, 0.5),
-                            MathUtils.randomRange(0.5, 1.0),
-                            MathUtils.randomRange(-0.5, 0.5)
-                        ),
-                        life: 1.0, decay: MathUtils.randomRange(0.01, 0.03)
-                    };
-                    this.scene.add(p);
-                    this.particles.push(p);
-                }
-            }
-
-            update(dt, time) {
-                // Animate Foods
-                this.foods.forEach(f => {
-                    const m = f.mesh;
-                    const ud = m.userData;
-                    m.rotation.x += ud.rotSpeed.x;
-                    m.rotation.y += ud.rotSpeed.y;
-                    m.rotation.z += ud.rotSpeed.z;
-                    m.position.y = ud.baseY + Math.sin(time * 2 + ud.timeOffset) * 0.5;
-                });
-
-                // Animate Particles
-                for(let i=this.particles.length-1; i>=0; i--) {
-                    const p = this.particles[i];
-                    p.position.add(p.userData.vel);
-                    p.userData.vel.y -= 0.05; // Gravity
-                    p.userData.life -= p.userData.decay;
-                    p.scale.setScalar(p.userData.life);
-                    
-                    if(p.userData.life <= 0) {
-                        this.scene.remove(p);
-                        p.geometry.dispose();
-                        p.material.dispose();
-                        this.particles.splice(i, 1);
-                    }
-                }
-            }
-
-            updateMinimapBlips() {
-                const map = document.getElementById('minimap');
-                // clear old food
-                document.querySelectorAll('.blip-food').forEach(e => e.remove());
-                
-                this.foods.forEach(f => {
-                    const ud = f.mesh.userData;
-                    if(ud.rare || ud.val > 20) { // Only show high value on map to save DOM
-                        const el = document.createElement('div');
-                        el.className = 'minimap-blip blip-food';
-                        if(ud.rare) el.style.background = 'gold';
-                        
-                        // Map pos
-                        const px = ((f.mesh.position.x + 300) / 600) * 100;
-                        const pz = ((f.mesh.position.z + 300) / 600) * 100;
-                        el.style.left = px + '%';
-                        el.style.top = pz + '%';
-                        map.appendChild(el);
-                    }
-                });
-            }
-        }
-
-        class PlayerController {
-            constructor(gfx, ent) {
-                this.gfx = gfx;
-                this.ent = ent;
-                
-                // Physics State
-                this.pos = new THREE.Vector3(0, 5, 50);
-                this.vel = new THREE.Vector3();
-                this.yaw = 0;
-                this.pitch = 0;
-                this.isGrounded = false;
-                
-                // Visual Mesh
-                this.group = new THREE.Group();
-                const bGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-                const bMat = new THREE.MeshStandardMaterial({ color: 0x0088ff, roughness: 0.2, metalness: 0.5 });
-                this.mesh = new THREE.Mesh(bGeo, bMat);
-                this.mesh.castShadow = true;
-                this.mesh.position.y = 0.75;
-                this.group.add(this.mesh);
-                
-                // Eyes
-                const eGeo = new THREE.BoxGeometry(0.3, 0.3, 0.1);
-                const eMat = new THREE.MeshBasicMaterial({color: 0xffffff});
-                const eyeR = new THREE.Mesh(eGeo, eMat); eyeR.position.set(0.4, 1.0, 0.76);
-                const eyeL = new THREE.Mesh(eGeo, eMat); eyeL.position.set(-0.4, 1.0, 0.76);
-                const pupil = new THREE.MeshBasicMaterial({color: 0x000000});
-                const pR = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.11), pupil); eyeR.add(pR);
-                const pL = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.11), pupil); eyeL.add(pL);
-                this.mesh.add(eyeR); this.mesh.add(eyeL);
-
-                this.gfx.scene.add(this.group);
-
-                // Input
-                this.keys = {};
-                window.addEventListener('keydown', e => this.keys[e.code] = true);
-                window.addEventListener('keyup', e => this.keys[e.code] = false);
-
-                // Mouse Look (Pointer Lock)
-                this.mouseSensitivity = 0.002;
-                document.addEventListener('mousemove', e => {
-                    if (document.pointerLockElement === document.body) {
-                        this.yaw -= e.movementX * this.mouseSensitivity;
-                        this.pitch -= e.movementY * this.mouseSensitivity;
-                        this.pitch = MathUtils.clamp(this.pitch, -Math.PI/2 + 0.1, Math.PI/2 - 0.1);
-                    }
-                });
-                
-                // Click to lock
-                document.getElementById('game-canvas').addEventListener('click', () => {
-                    if(document.getElementById('master-modal').style.display !== 'flex') {
-                        document.body.requestPointerLock();
-                    }
-                });
-
-                this.baseScale = 1;
-                this.targetScale = 1;
-            }
-
-            update(dt) {
-                // 1. Calculate Target Scale based on stomach fullness
-                const fillRatio = State.stomach / (State.maxStomach || 1);
-                // Size increases up to 5x max depending on stomach level capacity
-                const maxPossibleScale = 1 + (State.levels.stomach * 0.5); 
-                this.targetScale = 1 + (fillRatio * maxPossibleScale * 0.8);
-                
-                // Smooth scale lerp
-                this.baseScale = MathUtils.lerp(this.baseScale, this.targetScale, 0.05);
-                this.mesh.scale.set(this.baseScale, this.baseScale, this.baseScale);
-                this.mesh.position.y = (1.5 * this.baseScale) / 2;
-
-                // 2. Physics & Movement
-                const speed = State.speed * (this.keys['ShiftLeft'] ? State.sprintMult : 1.0);
-                const dir = new THREE.Vector3();
-                
-                if (this.keys['KeyW']) dir.z -= 1;
-                if (this.keys['KeyS']) dir.z += 1;
-                if (this.keys['KeyA']) dir.x -= 1;
-                if (this.keys['KeyD']) dir.x += 1;
-
-                if (dir.lengthSq() > 0) {
-                    dir.normalize();
-                    // Apply Yaw rotation to input vector
-                    dir.applyAxisAngle(new THREE.Vector3(0,1,0), this.yaw);
-                    
-                    this.vel.x += dir.x * speed * 0.1;
-                    this.vel.z += dir.z * speed * 0.1;
-                    
-                    // Rotate mesh visually towards movement
-                    const targetRot = Math.atan2(this.vel.x, this.vel.z);
-                    this.mesh.rotation.y = MathUtils.lerp(this.mesh.rotation.y, targetRot, 0.1);
-                }
-
-                // Friction & Gravity
-                this.vel.x *= 0.85;
-                this.vel.z *= 0.85;
-                this.vel.y -= 0.02; // Gravity
-
-                // Apply Velocity
-                this.pos.add(this.vel);
-
-                // Terrain Collision (Y-axis)
-                const tHeight = this.gfx.getTerrainHeight(this.pos.x, this.pos.z);
-                if (this.pos.y <= tHeight) {
-                    this.pos.y = tHeight;
-                    this.vel.y = 0;
-                    this.isGrounded = true;
-                } else {
-                    this.isGrounded = false;
-                }
-
-                // Jump
-                if (this.keys['Space'] && this.isGrounded) {
-                    this.vel.y = State.jumpForce;
-                    this.isGrounded = false;
-                    State.jumps++;
-                    Audio.sfxJump();
-                }
-
-                // Bounds
-                const b = 290; // Just inside terrain size
-                if(this.pos.x > b) { this.pos.x = b; this.vel.x = 0; }
-                if(this.pos.x < -b) { this.pos.x = -b; this.vel.x = 0; }
-                if(this.pos.z > b) { this.pos.z = b; this.vel.z = 0; }
-                if(this.pos.z < -b) { this.pos.z = -b; this.vel.z = 0; }
-
-                this.group.position.copy(this.pos);
-
-                // Update Analytics
-                State.distanceTraveled += Math.sqrt(this.vel.x**2 + this.vel.z**2);
-
-                // 3. Camera Update (Third Person)
-                // Distance based on scale
-                const camDist = 10 + (this.baseScale * 3);
-                
-                // Calculate position behind player based on yaw/pitch
-                const offset = new THREE.Vector3(
-                    Math.sin(this.yaw) * Math.cos(this.pitch) * camDist,
-                    -Math.sin(this.pitch) * camDist,
-                    Math.cos(this.yaw) * Math.cos(this.pitch) * camDist
-                );
-                
-                const targetCamPos = this.pos.clone().add(new THREE.Vector3(0, this.baseScale*2, 0)).add(offset);
-                this.gfx.camera.position.lerp(targetCamPos, 0.2);
-                
-                // Look at point slightly above player center
-                this.gfx.camera.lookAt(this.pos.clone().add(new THREE.Vector3(0, this.baseScale, 0)));
-
-                // 4. Update Minimap
-                const mapPlayer = document.getElementById('blip-player');
-                const px = ((this.pos.x + 300) / 600) * 100;
-                const pz = ((this.pos.z + 300) / 600) * 100;
-                mapPlayer.style.left = px + '%';
-                mapPlayer.style.top = pz + '%';
-                mapPlayer.style.transform = `translate(-50%, -50%) rotate(${-this.yaw}rad)`;
-
-                this.processCollisions();
-            }
-
-            processCollisions() {
-                const pRadiusSq = Math.pow(this.baseScale * 1.0, 2); // Effective eating radius
-                const mRadiusSq = Math.pow(State.magnetRadius + this.baseScale, 2);
-
-                for (let i = this.ent.foods.length - 1; i >= 0; i--) {
-                    const f = this.ent.foods[i];
-                    const distSq = this.pos.distanceToSquared(f.mesh.position);
-
-                    // Magnet
-                    if (State.magnetRadius > 0 && distSq < mRadiusSq) {
-                        const dir = this.pos.clone().sub(f.mesh.position).normalize();
-                        f.mesh.position.add(dir.multiplyScalar(0.8)); // Suck speed
-                    }
-
-                    // Eat
-                    if (distSq < pRadiusSq) {
-                        if (State.stomach < State.maxStomach) {
-                            State.stomach += f.mesh.userData.val;
-                            if (State.stomach > State.maxStomach) State.stomach = State.maxStomach;
-                            
-                            State.totalEaten++;
-                            if (f.mesh.userData.rare) {
-                                State.raresFound++;
-                                Audio.sfxEatRare();
-                                UI.notify("Consumed RARE Anomaly! MASSIVE GAINS!", true);
-                            } else {
-                                Audio.sfxEat();
-                            }
-
-                            this.ent.spawnParticles(f.mesh.position, f.mesh.material.color.getHex(), 8);
-                            this.gfx.scene.remove(f.mesh);
-                            f.mesh.geometry.dispose();
-                            f.mesh.material.dispose();
-                            this.ent.foods.splice(i, 1);
-                        }
-                    }
-                }
-
-                // Hub Selling
-                const distToHubSq = this.pos.x**2 + this.pos.z**2;
-                if (distToHubSq < Math.pow(this.gfx.hubRadius, 2)) {
-                    if (State.stomach > 0) {
-                        // Drain rate scales with max stomach to keep it satisfying
-                        const drainRate = Math.max(1, State.maxStomach * 0.05);
-                        let amount = Math.min(State.stomach, drainRate);
-                        
-                        State.stomach -= amount;
-                        if(State.stomach < 0.1) State.stomach = 0;
-                        
-                        const coinsGained = amount * State.multiplier;
-                        State.coins += coinsGained;
-                        State.totalCoins += coinsGained;
-
-                        if (Math.random() > 0.6) this.ent.spawnParticles(this.pos, 0x00ffaa, 2);
-                        if (Math.random() > 0.8) Audio.sfxSell();
-                    }
-                }
-            }
-        }
-
-        class MainEngine {
-            constructor() {
-                this.gfx = new Renderer();
-                this.ent = new EntityManager(this.gfx.scene);
-                this.player = new PlayerController(this.gfx, this.ent);
-                
-                this.clock = new THREE.Clock();
-                this.lastTime = performance.now();
-                
-                UI.init();
-                
-                // Initial food seeding
-                for(let i=0; i<100; i++) this.ent.spawnFood();
-                
-                // Spawner loops
-                setInterval(() => this.ent.spawnFood(), 400); // 1 per 0.4s
-                setInterval(() => {
-                    State.timePlayed += 1; // 1 second intervals
-                }, 1000);
-
-                this.animate();
-            }
-
-            requestPointerLock() {
-                document.body.requestPointerLock();
-            }
-
-            animate() {
-                requestAnimationFrame(() => this.animate());
-
-                const time = performance.now();
-                const dt = (time - this.lastTime) / 1000;
-                this.lastTime = time;
-
-                // Game Logic only if modal is closed
-                if (document.getElementById('master-modal').style.display !== 'flex') {
-                    this.player.update(dt);
-                    this.ent.update(dt, time * 0.001);
-                }
-
-                // Passive environment animations
-                this.gfx.renderer.render(this.gfx.scene, this.gfx.camera);
-            }
-        }
-
-        // Bootstrap
-        window.onload = () => {
-            window.Engine = new MainEngine();
-        };
-
-    </script>
+    if (!isPaused && gameActive) {
+        ctx.beginPath(); ctx.arc(mouse.x, mouse.y, 45, 0, Math.PI*2);
+        ctx.strokeStyle = "#0ff"; ctx.lineWidth = 2; ctx.setLineDash([10, 5]); ctx.stroke(); ctx.setLineDash([]);
+    }
+    update(); requestAnimationFrame(draw);
+}
+draw();
+</script>
 </body>
 </html>
