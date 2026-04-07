@@ -3,138 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JaapGym - 3D Fitness Simulator</title>
+    <title>JaapGym - Advanced 3D Fitness Simulator</title>
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #87CEEB;
-            user-select: none;
-        }
-        #game-canvas {
-            width: 100vw;
-            height: 100vh;
-            display: block;
-        }
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        .hud-panel {
-            background: rgba(0, 0, 0, 0.7);
-            border: 2px solid #4CAF50;
-            border-radius: 10px;
-            padding: 15px;
-            color: white;
-            pointer-events: auto;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-        #stats-panel {
-            width: 250px;
-        }
-        .stat-line {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
-        .stat-value {
-            color: #FFD700;
-        }
-        #controls-hint {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
-            font-size: 1.1rem;
-            text-shadow: 1px 1px 2px black;
-        }
-        #upgrade-menu {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(20, 20, 30, 0.95);
-            border: 3px solid #FF9800;
-            border-radius: 15px;
-            padding: 30px;
-            width: 400px;
-            color: white;
-            display: none;
-            pointer-events: auto;
-            flex-direction: column;
-            gap: 15px;
-            z-index: 100;
-        }
-        .menu-title {
-            text-align: center;
-            font-size: 2rem;
-            color: #FF9800;
-            margin-top: 0;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-        }
-        .upgrade-btn {
-            background: linear-gradient(to bottom, #4CAF50, #45a049);
-            border: none;
-            border-radius: 5px;
-            padding: 15px;
-            color: white;
-            font-size: 1.2rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            justify-content: space-between;
-            font-weight: bold;
-        }
-        .upgrade-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 15px rgba(76, 175, 80, 0.6);
-        }
-        .upgrade-btn:active {
-            transform: scale(0.95);
-        }
-        .upgrade-btn.locked {
-            background: linear-gradient(to bottom, #555, #333);
-            color: #888;
-            cursor: not-allowed;
-        }
-        #close-menu {
-            background: #f44336;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1.1rem;
-            margin-top: 10px;
-        }
-        #close-menu:hover { background: #d32f2f; }
-        .notification {
-            position: absolute;
-            top: 20%;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 2.5rem;
-            color: #00FF00;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px #000;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.5s;
-        }
+        /* ==========================================================================
+           CSS RESET & BASE STYLES
+           ========================================================================== */
+        * { box-sizing: border-box; user-select: none; margin: 0; padding: 0; }
+        body, html { width: 100vw; height: 100vh; overflow: hidden; background-color: #111; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        /* ==========================================================================
+           GAME CANVAS & OVERLAYS
+           ========================================================================== */
+        #game-canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; background: rgba(255, 255, 255, 0.5); border-radius: 50%; z-index: 10; pointer-events: none; }
+        
+        /* ==========================================================================
+           UI LAYER & HUD
+           ========================================================================== */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 15px; }
+        .interactive { pointer-events: auto; }
+        
+        /* Top Bar: Stats */
+        #top-hud { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; }
+        .hud-panel { background: rgba(20, 20, 25, 0.85); border: 2px solid #333; border-radius: 12px; padding: 15px; color: #fff; box-shadow: 0 8px 16px rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
+        #player-stats { width: 300px; border-top: 4px solid #4CAF50; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 1.1rem; align-items: center; }
+        .stat-label { font-weight: 600; color: #aaa; text-transform: uppercase; font-size: 0.9rem; }
+        .stat-val { font-weight: 800; font-family: monospace; font-size: 1.2rem; }
+        .val-str { color: #FF5722; text-shadow: 0 0 5px rgba(255, 87, 34, 0.5); }
+        .val-coin { color: #FFD700; text-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
+        .val-gem { color: #00BCD4; text-shadow: 0 0 5px rgba(0, 188, 212, 0.5); }
+        .val-rank { color: #9C27B0; text-shadow: 0 0 5px rgba(156, 39, 176, 0.5); }
+        
+        /* Progress Bar */
+        .progress-container { width: 100%; height: 12px; background: #222; border-radius: 6px; margin-top: 10px; overflow: hidden; border: 1px solid #444; }
+        #exp-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #4CAF50, #8BC34A); transition: width 0.3s; }
+        
+        /* Leaderboard */
+        #leaderboard { width: 250px; border-top: 4px solid #FFD700; max-height: 200px; overflow-y: auto; }
+        .lb-title { text-align: center; font-weight: bold; margin-bottom: 10px; color: #FFD700; text-transform: uppercase; border-bottom: 1px solid #444; padding-bottom: 5px; }
+        .lb-entry { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px; color: #ddd; }
+        
+        /* Left Side Buttons */
+        #side-menu { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 10px; }
+        .side-btn { width: 60px; height: 60px; border-radius: 50%; background: rgba(30, 30, 40, 0.9); border: 2px solid #555; color: white; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; flex-direction: column; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; }
+        .side-btn:hover { background: #4CAF50; border-color: #fff; transform: scale(1.1); }
+        .side-btn svg { width: 24px; height: 24px; fill: white; margin-bottom: 2px; }
+        
+        /* Bottom Controls */
+        #bottom-hud { display: flex; justify-content: center; width: 100%; margin-bottom: 20px; }
+        .action-btn { background: linear-gradient(180deg, #E91E63, #C2185B); border: 3px solid #F48FB1; padding: 15px 40px; border-radius: 30px; color: white; font-size: 1.5rem; font-weight: 900; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.5); text-transform: uppercase; letter-spacing: 2px; transition: 0.1s; }
+        .action-btn:active { transform: translateY(5px); box-shadow: 0 5px 10px rgba(0,0,0,0.5); }
+        #controls-hint { position: absolute; bottom: 15px; right: 15px; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; color: #aaa; font-size: 0.8rem; text-align: right; }
+
+        /* ==========================================================================
+           MENUS (SHOP, REBIRTH, SETTINGS)
+           ========================================================================== */
+        .window-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); background: rgba(15, 15, 20, 0.98); border: 1px solid #333; border-radius: 16px; width: 800px; height: 600px; display: none; flex-direction: column; z-index: 500; box-shadow: 0 0 50px rgba(0,0,0,0.8); opacity: 0; transition: opacity 0.2s, transform 0.2s; overflow: hidden; }
+        .window-modal.active { display: flex; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: linear-gradient(90deg, #1a1a2e, #16213e); border-bottom: 2px solid #4CAF50; }
+        .modal-title { font-size: 2rem; font-weight: 900; color: white; margin: 0; text-transform: uppercase; letter-spacing: 2px; }
+        .close-btn { background: #f44336; border: none; width: 40px; height: 40px; border-radius: 50%; color: white; font-size: 1.5rem; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; }
+        .close-btn:hover { background: #d32f2f; transform: rotate(90deg); }
+        
+        .modal-body { display: flex; flex: 1; overflow: hidden; }
+        .modal-tabs { width: 200px; background: rgba(0,0,0,0.5); display: flex; flex-direction: column; padding: 10px; gap: 5px; border-right: 1px solid #333; }
+        .tab-btn { background: transparent; border: none; color: #aaa; padding: 15px; text-align: left; font-size: 1.1rem; font-weight: bold; cursor: pointer; border-radius: 8px; transition: 0.2s; text-transform: uppercase; }
+        .tab-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .tab-btn.active { background: #4CAF50; color: white; }
+        
+        .modal-content-area { flex: 1; padding: 20px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; align-content: start; }
+        
+        /* Shop Items */
+        .shop-item { background: #222; border: 2px solid #444; border-radius: 10px; padding: 15px; display: flex; flex-direction: column; align-items: center; text-align: center; transition: 0.2s; }
+        .shop-item:hover { border-color: #4CAF50; transform: translateY(-3px); }
+        .item-icon { width: 80px; height: 80px; background: #333; border-radius: 50%; margin-bottom: 10px; display: flex; justify-content: center; align-items: center; font-size: 2.5rem; }
+        .item-name { font-weight: bold; color: white; font-size: 1.2rem; margin-bottom: 5px; }
+        .item-desc { color: #888; font-size: 0.9rem; margin-bottom: 15px; flex: 1; }
+        .buy-btn { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 5px; }
+        .buy-btn.coins { background: #FFC107; color: #000; }
+        .buy-btn.gems { background: #00BCD4; color: #fff; }
+        .buy-btn:hover:not(:disabled) { filter: brightness(1.2); }
+        .buy-btn:disabled { background: #555; color: #888; cursor: not-allowed; }
+        .equipped-badge { display: none; background: #4CAF50; color: white; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-top: 10px; width: 100%; }
+
+        /* Notifications */
+        #notification-container { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 10px; align-items: center; pointer-events: none; z-index: 1000; }
+        .toast { background: rgba(0,0,0,0.8); border-left: 4px solid #4CAF50; padding: 15px 25px; border-radius: 4px; color: white; font-weight: bold; font-size: 1.2rem; animation: slideDown 0.3s ease-out forwards, fadeOut 0.5s ease-in 2.5s forwards; opacity: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
+
+        /* Chat */
+        #chat-box { position: absolute; bottom: 15px; left: 15px; width: 300px; height: 200px; background: rgba(0,0,0,0.5); border-radius: 8px; display: flex; flex-direction: column; pointer-events: auto; }
+        #chat-messages { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; }
+        .chat-msg { color: white; font-size: 0.9rem; text-shadow: 1px 1px 2px black; word-wrap: break-word; }
+        .chat-sys { color: #FFEB3B; font-style: italic; }
+        .chat-player { color: #4CAF50; font-weight: bold; }
+        #chat-input-container { display: flex; border-top: 1px solid #444; }
+        #chat-input { flex: 1; background: rgba(0,0,0,0.8); border: none; padding: 10px; color: white; outline: none; border-radius: 0 0 0 8px; }
+        #chat-send { background: #4CAF50; border: none; padding: 0 15px; color: white; cursor: pointer; border-radius: 0 0 8px 0; font-weight: bold; }
+        #chat-send:hover { background: #45a049; }
+        
+        /* 3D Render Overlays (Loading) */
+        #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; transition: opacity 1s; }
+        .spinner { border: 8px solid #333; border-top: 8px solid #4CAF50; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #loading-text { font-size: 1.5rem; font-weight: bold; font-family: monospace; letter-spacing: 2px; }
+
     </style>
     <script type="importmap">
         {
@@ -146,484 +122,1087 @@
     </script>
 </head>
 <body>
+
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <div id="loading-text">LOADING JAAPGYM...</div>
+    </div>
+
+    <div id="game-canvas-container"></div>
+    <div id="crosshair"></div>
+
     <div id="ui-layer">
-        <div id="stats-panel" class="hud-panel">
-            <div class="stat-line"><span>Strength:</span> <span id="val-strength" class="stat-value">0</span></div>
-            <div class="stat-line"><span>Coins:</span> <span id="val-coins" class="stat-value">0</span></div>
-            <div class="stat-line"><span>Multiplier:</span> <span id="val-mult" class="stat-value">x1</span></div>
-            <div class="stat-line"><span>Weight:</span> <span id="val-weight" class="stat-value">1 kg</span></div>
-            <button id="btn-open-upgrades" style="width:100%; margin-top:15px; padding:10px; background:#FF9800; border:none; border-radius:5px; color:white; font-weight:bold; cursor:pointer;">UPGRADES (U)</button>
+        
+        <div id="top-hud">
+            <div id="player-stats" class="hud-panel interactive">
+                <div class="stat-row">
+                    <span class="stat-label">Strength</span>
+                    <span class="stat-val val-str" id="ui-strength">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Coins</span>
+                    <span class="stat-val val-coin" id="ui-coins">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Gems</span>
+                    <span class="stat-val val-gem" id="ui-gems">0</span>
+                </div>
+                <div class="stat-row" style="margin-top: 10px; border-top: 1px solid #444; padding-top: 5px;">
+                    <span class="stat-label">Rank</span>
+                    <span class="stat-val val-rank" id="ui-rank">Beginner</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Multiplier</span>
+                    <span class="stat-val" style="color: #fff;" id="ui-mult">x1.0</span>
+                </div>
+                <div class="progress-container">
+                    <div id="exp-bar"></div>
+                </div>
+            </div>
+
+            <div id="leaderboard" class="hud-panel interactive">
+                <div class="lb-title">Top Lifters</div>
+                <div id="lb-content">
+                    <div class="lb-entry"><span>1. MegaChad</span><span class="val-str">999T</span></div>
+                    <div class="lb-entry"><span>2. GymBro</span><span class="val-str">500B</span></div>
+                    <div class="lb-entry"><span>3. JaapGod</span><span class="val-str">100B</span></div>
+                    <div class="lb-entry"><span>4. LifterX</span><span class="val-str">50M</span></div>
+                    <div class="lb-entry"><span>5. Newbie123</span><span class="val-str">10</span></div>
+                </div>
+            </div>
         </div>
-        <div id="controls-hint" class="hud-panel">
-            W,A,S,D / Arrows to Move | SPACE to Lift | U to Open Shop
+
+        <div id="side-menu" class="interactive">
+            <button class="side-btn" id="btn-shop">
+                <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                Shop
+            </button>
+            <button class="side-btn" id="btn-sell" style="background: #2196F3; border-color: #1976D2;">
+                <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+                Sell
+            </button>
+            <button class="side-btn" id="btn-rebirth">
+                <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+                Rebirth
+            </button>
+            <button class="side-btn" id="btn-settings">
+                <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .43-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.49-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                Config
+            </button>
         </div>
+
+        <div id="bottom-hud">
+            <button id="btn-lift" class="action-btn interactive">LIFT (SPACE)</button>
+        </div>
+        
+        <div id="controls-hint">W A S D - Move | Mouse - Look & Zoom | SPACE - Lift</div>
+
+        <div id="chat-box">
+            <div id="chat-messages">
+                <span class="chat-msg chat-sys">Welcome to JaapGym 3D Simulator!</span>
+                <span class="chat-msg chat-sys">Start lifting to gain Strength. Sell Strength for Coins to buy upgrades!</span>
+            </div>
+            <div id="chat-input-container">
+                <input type="text" id="chat-input" placeholder="Say something..." autocomplete="off">
+                <button id="chat-send">Send</button>
+            </div>
+        </div>
+
     </div>
 
-    <div id="upgrade-menu">
-        <h2 class="menu-title">Gym Shop</h2>
-        <button class="upgrade-btn" id="upg-weight" onclick="purchaseUpgrade('weight')">
-            <span>Heavier Weight</span>
-            <span id="cost-weight">10 Coins</span>
-        </button>
-        <button class="upgrade-btn" id="upg-dna" onclick="purchaseUpgrade('dna')">
-            <span>Muscle DNA (Multiplier)</span>
-            <span id="cost-dna">100 Coins</span>
-        </button>
-        <button class="upgrade-btn" id="upg-sell" onclick="sellStrength()" style="background: linear-gradient(to bottom, #2196F3, #1976D2); margin-top: 20px;">
-            <span>Sell Strength for Coins</span>
-            <span>(Max Profit)</span>
-        </button>
-        <button id="close-menu" onclick="toggleMenu()">Close</button>
-    </div>
+    <div id="notification-container"></div>
 
-    <div id="level-up-text" class="notification">LEVEL UP!</div>
+    <div id="modal-container" class="window-modal interactive">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modal-title">Shop</h2>
+            <button class="close-btn" id="btn-close-modal">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-tabs" id="modal-tabs">
+                </div>
+            <div class="modal-content-area" id="modal-content">
+                </div>
+        </div>
+    </div>
 
     <script type="module">
         import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-        // --- GAME STATE ---
-        const gameState = {
-            strength: 0,
-            coins: 0,
-            multiplier: 1,
-            weightPower: 1,
-            costs: {
-                weight: 10,
-                dna: 100
-            },
-            lifting: false,
-            liftCooldown: 0,
-            isMenuOpen: false
+        /* ==========================================================================
+           1. CONFIGURATION & DATABASES
+           ========================================================================== */
+        
+        const DB = {
+            weights: [
+                { id: 'w1', name: 'Plastic Dumbbell', power: 1, cost: 0, modelScale: 1, color: 0xcccccc },
+                { id: 'w2', name: 'Iron Dumbbell', power: 5, cost: 100, modelScale: 1.2, color: 0x444444 },
+                { id: 'w3', name: 'Steel Barbell', power: 25, cost: 1000, modelScale: 1.5, color: 0x888888 },
+                { id: 'w4', name: 'Golden Dumbbell', power: 150, cost: 15000, modelScale: 1.8, color: 0xFFD700 },
+                { id: 'w5', name: 'Diamond Weight', power: 1000, cost: 250000, modelScale: 2.2, color: 0x00FFFF },
+                { id: 'w6', name: 'Dark Matter', power: 8500, cost: 5000000, modelScale: 2.8, color: 0x110022 },
+                { id: 'w7', name: 'Galactic Core', power: 99999, cost: 100000000, modelScale: 3.5, color: 0xFF00FF }
+            ],
+            dna: [
+                { id: 'd1', name: 'Weak Genetics', mult: 1, cost: 0 },
+                { id: 'd2', name: 'Average Genetics', mult: 2, cost: 250 },
+                { id: 'd3', name: 'Athlete DNA', mult: 5, cost: 2500 },
+                { id: 'd4', name: 'Bodybuilder DNA', mult: 15, cost: 35000 },
+                { id: 'd5', name: 'Mutant Genes', mult: 50, cost: 800000 },
+                { id: 'd6', name: 'Titan Blood', mult: 200, cost: 15000000 },
+                { id: 'd7', name: 'Godly Essence', mult: 1000, cost: 500000000 }
+            ],
+            ranks: [
+                { id: 'r1', name: 'Beginner', reqStrength: 0, color: '#aaa' },
+                { id: 'r2', name: 'Novice', reqStrength: 1000, color: '#4CAF50' },
+                { id: 'r3', name: 'Amateur', reqStrength: 25000, color: '#2196F3' },
+                { id: 'r4', name: 'Pro', reqStrength: 500000, color: '#9C27B0' },
+                { id: 'r5', name: 'Champion', reqStrength: 10000000, color: '#FF9800' },
+                { id: 'r6', name: 'Legend', reqStrength: 500000000, color: '#E91E63' },
+                { id: 'r7', name: 'God of Gym', reqStrength: 20000000000, color: '#FF0000' }
+            ]
         };
 
-        // --- THREE.JS SETUP ---
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB);
-        scene.fog = new THREE.Fog(0x87CEEB, 20, 100);
+        // Game State structure
+        const STATE = {
+            strength: 0,
+            coins: 0,
+            gems: 0,
+            rebirths: 0,
+            exp: 0,
+            level: 1,
+            equipped: {
+                weight: 'w1',
+                dna: 'd1'
+            },
+            inventory: {
+                weights: ['w1'],
+                dna: ['d1']
+            },
+            isLifting: false,
+            liftAnimTime: 0,
+            settings: {
+                music: true,
+                particles: true,
+                shadows: true
+            }
+        };
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        // Load Save Data
+        function loadGame() {
+            const save = localStorage.getItem('jaapGymSave');
+            if (save) {
+                try {
+                    const parsed = JSON.parse(save);
+                    Object.assign(STATE, parsed);
+                } catch(e) { console.error("Save corrupted"); }
+            }
+        }
+        function saveGame() {
+            localStorage.setItem('jaapGymSave', JSON.stringify(STATE));
+        }
+        loadGame();
+
+        /* ==========================================================================
+           2. FORMATTING UTILS
+           ========================================================================== */
         
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        function formatNumber(num) {
+            if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
+            if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+            if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+            if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+            return Math.floor(num).toString();
+        }
+
+        function getObjById(array, id) {
+            return array.find(item => item.id === id);
+        }
+
+        /* ==========================================================================
+           3. UI MANAGEMENT & EVENT LISTENERS
+           ========================================================================== */
+        
+        const UI = {
+            strEl: document.getElementById('ui-strength'),
+            coinEl: document.getElementById('ui-coins'),
+            gemEl: document.getElementById('ui-gems'),
+            rankEl: document.getElementById('ui-rank'),
+            multEl: document.getElementById('ui-mult'),
+            expBar: document.getElementById('exp-bar'),
+            modal: document.getElementById('modal-container'),
+            modalTitle: document.getElementById('modal-title'),
+            modalTabs: document.getElementById('modal-tabs'),
+            modalContent: document.getElementById('modal-content'),
+            notifContainer: document.getElementById('notification-container'),
+            
+            update() {
+                this.strEl.innerText = formatNumber(STATE.strength);
+                this.coinEl.innerText = formatNumber(STATE.coins);
+                this.gemEl.innerText = formatNumber(STATE.gems);
+                
+                // Calculate Rank
+                let currentRank = DB.ranks[0];
+                for(let r of DB.ranks) {
+                    if (STATE.strength >= r.reqStrength) currentRank = r;
+                }
+                this.rankEl.innerText = currentRank.name;
+                this.rankEl.style.color = currentRank.color;
+
+                // Multiplier calculation (DNA + Rebirths)
+                const dnaData = getObjById(DB.dna, STATE.equipped.dna);
+                const totalMult = dnaData.mult * (1 + (STATE.rebirths * 0.5));
+                this.multEl.innerText = `x${formatNumber(totalMult)}`;
+
+                // Update Progress bar (Leveling)
+                const expNeeded = STATE.level * 100;
+                const progress = (STATE.exp / expNeeded) * 100;
+                this.expBar.style.width = `${Math.min(progress, 100)}%`;
+            },
+
+            notify(msg, isWarning=false) {
+                const div = document.createElement('div');
+                div.className = 'toast';
+                div.innerText = msg;
+                if(isWarning) div.style.borderLeftColor = '#f44336';
+                this.notifContainer.appendChild(div);
+                setTimeout(() => div.remove(), 3000);
+            },
+
+            openModal(type) {
+                this.modal.classList.add('active');
+                if (type === 'shop') this.buildShop();
+                if (type === 'settings') this.buildSettings();
+                document.exitPointerLock(); // Free mouse for UI
+            },
+            
+            closeModal() {
+                this.modal.classList.remove('active');
+                // Re-lock pointer
+                if(renderer.domElement) renderer.domElement.requestPointerLock();
+            },
+
+            buildShop() {
+                this.modalTitle.innerText = "Shop";
+                this.modalTabs.innerHTML = `
+                    <button class="tab-btn active" id="tab-weights">Weights</button>
+                    <button class="tab-btn" id="tab-dna">DNA (Mult)</button>
+                `;
+                
+                document.getElementById('tab-weights').onclick = (e) => { this.switchTab(e); this.renderShopItems('weights'); };
+                document.getElementById('tab-dna').onclick = (e) => { this.switchTab(e); this.renderShopItems('dna'); };
+                
+                this.renderShopItems('weights');
+            },
+
+            switchTab(e) {
+                Array.from(this.modalTabs.children).forEach(c => c.classList.remove('active'));
+                e.target.classList.add('active');
+            },
+
+            renderShopItems(category) {
+                this.modalContent.innerHTML = '';
+                const dbSource = category === 'weights' ? DB.weights : DB.dna;
+                const stateInv = category === 'weights' ? STATE.inventory.weights : STATE.inventory.dna;
+                const equippedId = category === 'weights' ? STATE.equipped.weight : STATE.equipped.dna;
+
+                dbSource.forEach(item => {
+                    const isOwned = stateInv.includes(item.id);
+                    const isEquipped = equippedId === item.id;
+                    
+                    const el = document.createElement('div');
+                    el.className = 'shop-item';
+                    
+                    let btnHTML = '';
+                    if (isEquipped) {
+                        btnHTML = `<div class="equipped-badge" style="display:block">EQUIPPED</div>`;
+                    } else if (isOwned) {
+                        btnHTML = `<button class="buy-btn gems" onclick="window.equipItem('${category}', '${item.id}')">EQUIP</button>`;
+                    } else {
+                        const canAfford = STATE.coins >= item.cost;
+                        btnHTML = `<button class="buy-btn coins" ${!canAfford?'disabled':''} onclick="window.buyItem('${category}', '${item.id}')">BUY: ${formatNumber(item.cost)}</button>`;
+                    }
+
+                    const statText = category === 'weights' ? `+${formatNumber(item.power)} Power` : `x${formatNumber(item.mult)} Multiplier`;
+
+                    el.innerHTML = `
+                        <div class="item-icon">${category==='weights'?'🏋️':'🧬'}</div>
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-desc">${statText}</div>
+                        ${btnHTML}
+                    `;
+                    this.modalContent.appendChild(el);
+                });
+            },
+
+            buildSettings() {
+                this.modalTitle.innerText = "Settings";
+                this.modalTabs.innerHTML = `<button class="tab-btn active">General</button>`;
+                this.modalContent.innerHTML = `
+                    <div class="shop-item" style="flex-direction:row; justify-content:space-between; width:100%; grid-column: 1 / -1;">
+                        <span style="font-size:1.2rem; font-weight:bold; color:white;">Graphics (Shadows)</span>
+                        <button class="buy-btn gems" style="width:100px" onclick="window.toggleShadows()">${STATE.settings.shadows ? 'ON' : 'OFF'}</button>
+                    </div>
+                    <div class="shop-item" style="flex-direction:row; justify-content:space-between; width:100%; grid-column: 1 / -1;">
+                        <span style="font-size:1.2rem; font-weight:bold; color:white;">Reset Save Data</span>
+                        <button class="buy-btn" style="background:#f44336; width:100px; color:white" onclick="window.resetSave()">RESET</button>
+                    </div>
+                `;
+            }
+        };
+
+        // Window exposed functions for UI callbacks
+        window.equipItem = (category, id) => {
+            if(category === 'weights') STATE.equipped.weight = id;
+            if(category === 'dna') STATE.equipped.dna = id;
+            UI.renderShopItems(category);
+            UI.update();
+            updatePlayerVisuals();
+            saveGame();
+        };
+
+        window.buyItem = (category, id) => {
+            const dbSource = category === 'weights' ? DB.weights : DB.dna;
+            const item = getObjById(dbSource, id);
+            if (STATE.coins >= item.cost) {
+                STATE.coins -= item.cost;
+                if(category === 'weights') STATE.inventory.weights.push(id);
+                if(category === 'dna') STATE.inventory.dna.push(id);
+                UI.notify(`Purchased ${item.name}!`);
+                window.equipItem(category, id); // Auto equip
+            }
+        };
+
+        window.toggleShadows = () => {
+            STATE.settings.shadows = !STATE.settings.shadows;
+            renderer.shadowMap.enabled = STATE.settings.shadows;
+            scene.traverse(child => {
+                if (child.isMesh) {
+                    child.castShadow = STATE.settings.shadows;
+                    child.receiveShadow = STATE.settings.shadows;
+                }
+            });
+            UI.buildSettings();
+            saveGame();
+        };
+
+        window.resetSave = () => {
+            if(confirm("Are you sure? This deletes ALL progress!")) {
+                localStorage.removeItem('jaapGymSave');
+                location.reload();
+            }
+        };
+
+        // Setup DOM Listeners
+        document.getElementById('btn-close-modal').addEventListener('click', () => UI.closeModal());
+        document.getElementById('btn-shop').addEventListener('click', () => UI.openModal('shop'));
+        document.getElementById('btn-settings').addEventListener('click', () => UI.openModal('settings'));
+        
+        document.getElementById('btn-sell').addEventListener('click', () => {
+            if (STATE.strength > 0) {
+                const gain = STATE.strength * 2; // Conversion rate
+                STATE.coins += gain;
+                STATE.strength = 0;
+                UI.notify(`Sold strength for ${formatNumber(gain)} coins!`);
+                UI.update();
+                saveGame();
+                createConfetti();
+            } else {
+                UI.notify("You have no strength to sell!", true);
+            }
+        });
+
+        document.getElementById('btn-rebirth').addEventListener('click', () => {
+            const req = 1000000 * Math.pow(10, STATE.rebirths);
+            if (STATE.coins >= req) {
+                if(confirm(`Rebirth for ${formatNumber(req)} coins? You will lose stats but gain a permanent x0.5 multiplier!`)) {
+                    STATE.coins = 0;
+                    STATE.strength = 0;
+                    STATE.rebirths += 1;
+                    UI.notify(`REBIRTH SUCCESSFUL!`, false);
+                    UI.update();
+                    saveGame();
+                }
+            } else {
+                UI.notify(`Need ${formatNumber(req)} coins to Rebirth!`, true);
+            }
+        });
+
+        const chatInput = document.getElementById('chat-input');
+        const chatMessages = document.getElementById('chat-messages');
+        document.getElementById('chat-send').addEventListener('click', sendChat);
+        chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChat(); });
+
+        function sendChat() {
+            const txt = chatInput.value.trim();
+            if(!txt) return;
+            const span = document.createElement('span');
+            span.className = 'chat-msg';
+            span.innerHTML = `<span class="chat-player">[You]:</span> ${txt}`;
+            chatMessages.appendChild(span);
+            chatInput.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        /* ==========================================================================
+           4. THREE.JS ENGINE SETUP
+           ========================================================================== */
+        
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB); // Sky blue
+        scene.fog = new THREE.FogExp2(0x87CEEB, 0.002);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Perf optimization
+        renderer.shadowMap.enabled = STATE.settings.shadows;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        document.body.appendChild(renderer.domElement);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.0;
+        document.getElementById('game-canvas-container').appendChild(renderer.domElement);
 
-        // --- LIGHTING ---
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambientLight);
+        // Lighting
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+        hemiLight.position.set(0, 200, 0);
+        scene.add(hemiLight);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-        dirLight.position.set(20, 50, -20);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        dirLight.position.set(100, 150, 50);
         dirLight.castShadow = true;
-        dirLight.shadow.camera.top = 50;
-        dirLight.shadow.camera.bottom = -50;
-        dirLight.shadow.camera.left = -50;
-        dirLight.shadow.camera.right = 50;
+        dirLight.shadow.camera.top = 200;
+        dirLight.shadow.camera.bottom = -200;
+        dirLight.shadow.camera.left = -200;
+        dirLight.shadow.camera.right = 200;
         dirLight.shadow.mapSize.width = 2048;
         dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.bias = -0.001;
         scene.add(dirLight);
 
-        // --- ENVIRONMENT (GYM) ---
-        const floorGeo = new THREE.PlaneGeometry(200, 200);
-        const floorMat = new THREE.MeshStandardMaterial({ 
-            color: 0x333333,
-            roughness: 0.8,
-            metalness: 0.2
-        });
-        const floor = new THREE.Mesh(floorGeo, floorMat);
+        /* ==========================================================================
+           5. ENVIRONMENT / MAP GENERATION (ADVANCED)
+           ========================================================================== */
+        
+        const mapGroup = new THREE.Group();
+        scene.add(mapGroup);
+
+        const texLoader = new THREE.TextureLoader();
+        // Fallback procedural materials if no textures
+        const matFloor = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.8, metalness: 0.1 });
+        const matWall = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.9 });
+        const matGlass = new THREE.MeshPhysicalMaterial({ color: 0x88ccff, transmission: 0.9, opacity: 1, transparent: true, roughness: 0.1, ior: 1.5 });
+        const matAccent = new THREE.MeshStandardMaterial({ color: 0x4CAF50, roughness: 0.5 });
+        const matDarkMetal = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8, roughness: 0.2 });
+        const matPad = new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.9 }); // Red leather
+
+        // Main Floor
+        const floorGeo = new THREE.PlaneGeometry(300, 300);
+        const floor = new THREE.Mesh(floorGeo, matFloor);
         floor.rotation.x = -Math.PI / 2;
         floor.receiveShadow = true;
-        scene.add(floor);
+        mapGroup.add(floor);
 
-        // Grid lines to make it look like gym mats
-        const gridHelper = new THREE.GridHelper(200, 100, 0x000000, 0x111111);
-        gridHelper.position.y = 0.01;
-        scene.add(gridHelper);
+        // Grid lines for gym aesthetic
+        const gridHelper = new THREE.GridHelper(300, 150, 0x000000, 0x1a1a1a);
+        gridHelper.position.y = 0.05;
+        mapGroup.add(gridHelper);
 
-        // Walls
-        function createWall(w, h, d, x, y, z) {
+        // Walls Generation Helper
+        function createWall(w, h, d, x, y, z, mat = matWall) {
             const geo = new THREE.BoxGeometry(w, h, d);
-            const mat = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.9 });
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.set(x, y, z);
             mesh.receiveShadow = true;
             mesh.castShadow = true;
-            scene.add(mesh);
-        }
-        createWall(100, 20, 2, 0, 10, -50); // North
-        createWall(100, 20, 2, 0, 10, 50);  // South
-        createWall(2, 20, 100, -50, 10, 0); // West
-        createWall(2, 20, 100, 50, 10, 0);  // East
-
-        // Gym Equipment Props (Visual only)
-        function createDumbbellRack(x, z) {
-            const rackGroup = new THREE.Group();
-            
-            // Frame
-            const frameGeo = new THREE.BoxGeometry(10, 3, 2);
-            const frameMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8, roughness: 0.2 });
-            const frame = new THREE.Mesh(frameGeo, frameMat);
-            frame.position.y = 1.5;
-            frame.castShadow = true;
-            rackGroup.add(frame);
-
-            // Dumbbells
-            for(let i=0; i<4; i++) {
-                const dbGroup = new THREE.Group();
-                const handleGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.8);
-                const weightGeo = new THREE.CylinderGeometry(0.4 + (i*0.1), 0.4 + (i*0.1), 0.3);
-                const dbMat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.6 });
-                
-                const handle = new THREE.Mesh(handleGeo, dbMat);
-                handle.rotation.z = Math.PI / 2;
-                
-                const w1 = new THREE.Mesh(weightGeo, dbMat);
-                w1.rotation.z = Math.PI / 2;
-                w1.position.x = -0.4;
-                
-                const w2 = new THREE.Mesh(weightGeo, dbMat);
-                w2.rotation.z = Math.PI / 2;
-                w2.position.x = 0.4;
-
-                dbGroup.add(handle, w1, w2);
-                dbGroup.position.set(-3.5 + (i * 2.3), 3.3, 0);
-                dbGroup.castShadow = true;
-                rackGroup.add(dbGroup);
-            }
-            
-            rackGroup.position.set(x, 0, z);
-            scene.add(rackGroup);
+            mapGroup.add(mesh);
+            return mesh;
         }
 
-        createDumbbellRack(-20, -30);
-        createDumbbellRack(-20, -20);
-        createDumbbellRack(20, -30);
+        // Build Gym Building Structure
+        const wHeight = 30;
+        createWall(200, wHeight, 2, 0, wHeight/2, -100); // North Wall
+        createWall(200, wHeight, 2, 0, wHeight/2, 100);  // South Wall
+        createWall(2, wHeight, 200, -100, wHeight/2, 0); // West Wall
+        createWall(2, wHeight, 200, 100, wHeight/2, 0);  // East Wall
 
-        // Bench Press
-        function createBench(x, z, rot) {
-            const benchGrp = new THREE.Group();
-            const padGeo = new THREE.BoxGeometry(2, 0.5, 6);
-            const padMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.9 });
-            const pad = new THREE.Mesh(padGeo, padMat);
-            pad.position.y = 1.5;
+        // Interior Partitions
+        createWall(100, 15, 2, -50, 7.5, 0); // Boxing room wall
+
+        // Equipment Generation Helpers
+        function createBenchPress(x, z, rotY) {
+            const grp = new THREE.Group();
+            
+            // Pad
+            const pad = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.5, 7), matPad);
+            pad.position.y = 2;
             pad.castShadow = true;
-            benchGrp.add(pad);
+            grp.add(pad);
 
-            const legGeo = new THREE.CylinderGeometry(0.2, 0.2, 1.5);
-            const legMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.7 });
-            const l1 = new THREE.Mesh(legGeo, legMat); l1.position.set(-0.8, 0.75, -2.5);
-            const l2 = new THREE.Mesh(legGeo, legMat); l2.position.set(0.8, 0.75, -2.5);
-            const l3 = new THREE.Mesh(legGeo, legMat); l3.position.set(0, 0.75, 2.5);
-            benchGrp.add(l1, l2, l3);
+            // Legs/Frame
+            const f1 = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2, 0.5), matDarkMetal); f1.position.set(-1, 1, -2.5); f1.castShadow=true;
+            const f2 = f1.clone(); f2.position.set(1, 1, -2.5);
+            const f3 = f1.clone(); f3.position.set(0, 1, 3);
+            const rackL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 4, 0.3), matDarkMetal); rackL.position.set(-1.5, 2, -2.5); rackL.castShadow=true;
+            const rackR = rackL.clone(); rackR.position.set(1.5, 2, -2.5);
+            grp.add(f1, f2, f3, rackL, rackR);
 
-            const barGeo = new THREE.CylinderGeometry(0.1, 0.1, 5);
-            const bar = new THREE.Mesh(barGeo, legMat);
-            bar.rotation.z = Math.PI / 2;
-            bar.position.set(0, 3, -2);
-            benchGrp.add(bar);
+            // Barbell
+            const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 6), matDarkMetal);
+            bar.rotation.z = Math.PI/2;
+            bar.position.set(0, 4, -2.5);
+            bar.castShadow = true;
+            
+            // Plates
+            const plateMat = new THREE.MeshStandardMaterial({color:0x222222});
+            const p1 = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.4), plateMat); p1.rotation.z=Math.PI/2; p1.position.set(-2.2, 4, -2.5); p1.castShadow=true;
+            const p2 = p1.clone(); p2.position.set(2.2, 4, -2.5);
+            grp.add(bar, p1, p2);
 
-            const plateGeo = new THREE.CylinderGeometry(1, 1, 0.3);
-            const pMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-            const p1 = new THREE.Mesh(plateGeo, pMat); p1.rotation.z = Math.PI/2; p1.position.set(-2, 3, -2);
-            const p2 = new THREE.Mesh(plateGeo, pMat); p2.rotation.z = Math.PI/2; p2.position.set(2, 3, -2);
-            benchGrp.add(p1, p2);
-
-            benchGrp.position.set(x, 0, z);
-            benchGrp.rotation.y = rot;
-            scene.add(benchGrp);
+            grp.position.set(x, 0, z);
+            grp.rotation.y = rotY;
+            mapGroup.add(grp);
         }
 
-        createBench(15, 10, 0);
-        createBench(25, 10, 0);
-        createBench(15, 20, 0);
+        function createDumbbellRack(x, z, rotY) {
+            const grp = new THREE.Group();
+            const frameMat = matDarkMetal;
+            
+            // Shelf
+            const shelf1 = new THREE.Mesh(new THREE.BoxGeometry(15, 0.2, 1.5), frameMat); shelf1.position.set(0, 2, 0); shelf1.rotation.x = Math.PI/12; shelf1.castShadow=true;
+            const shelf2 = shelf1.clone(); shelf2.position.set(0, 3.5, -0.5);
+            
+            // Supports
+            const sup1 = new THREE.Mesh(new THREE.BoxGeometry(0.5, 4.5, 2), frameMat); sup1.position.set(-7.5, 2.25, 0); sup1.castShadow=true;
+            const sup2 = sup1.clone(); sup2.position.set(7.5, 2.25, 0);
+            
+            grp.add(shelf1, shelf2, sup1, sup2);
 
-        // --- PLAYER CHARACTER (ROBLOX STYLE BLOCKY) ---
+            // Add Dumbbells to shelves
+            for(let i=0; i<6; i++) {
+                const dbGrp = new THREE.Group();
+                const h = new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,1), frameMat); h.rotation.z = Math.PI/2;
+                const wGeo = new THREE.CylinderGeometry(0.4+i*0.05, 0.4+i*0.05, 0.3);
+                const dbMat = new THREE.MeshStandardMaterial({color:0x333333});
+                const w1 = new THREE.Mesh(wGeo, dbMat); w1.rotation.z = Math.PI/2; w1.position.x = -0.4;
+                const w2 = new THREE.Mesh(wGeo, dbMat); w2.rotation.z = Math.PI/2; w2.position.x = 0.4;
+                dbGrp.add(h, w1, w2);
+                dbGrp.castShadow = true;
+                
+                // Shelf 1
+                const d1 = dbGrp.clone(); d1.position.set(-6 + (i*2.4), 2.1, 0.2); d1.rotation.x = Math.PI/12;
+                // Shelf 2
+                const d2 = dbGrp.clone(); d2.scale.set(1.2,1.2,1.2); d2.position.set(-6 + (i*2.4), 3.6, -0.3); d2.rotation.x = Math.PI/12;
+                
+                grp.add(d1, d2);
+            }
+
+            grp.position.set(x, 0, z);
+            grp.rotation.y = rotY;
+            mapGroup.add(grp);
+        }
+
+        function createTreadmill(x, z, rotY) {
+            const grp = new THREE.Group();
+            
+            // Base
+            const base = new THREE.Mesh(new THREE.BoxGeometry(3, 0.5, 8), matDarkMetal);
+            base.position.y = 0.25; base.castShadow=true;
+            
+            // Belt
+            const belt = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.52, 7.6), new THREE.MeshStandardMaterial({color:0x111111}));
+            belt.position.y = 0.25;
+            
+            // Console structure
+            const p1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 4, 0.3), matDarkMetal); p1.position.set(-1.3, 2, -3.5); p1.rotation.x = -0.2; p1.castShadow=true;
+            const p2 = p1.clone(); p2.position.set(1.3, 2, -3.5);
+            const panel = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.5, 0.2), new THREE.MeshStandardMaterial({color:0x222222}));
+            panel.position.set(0, 4, -3.8); panel.rotation.x = -0.5; panel.castShadow=true;
+            
+            grp.add(base, belt, p1, p2, panel);
+            grp.position.set(x, 0, z);
+            grp.rotation.y = rotY;
+            mapGroup.add(grp);
+        }
+
+        // Populate Map
+        for(let i=0; i<4; i++) createBenchPress(20, -50 + (i*15), 0);
+        for(let i=0; i<4; i++) createBenchPress(40, -50 + (i*15), 0);
+        
+        createDumbbellRack(-20, -80, 0);
+        createDumbbellRack(0, -80, 0);
+        createDumbbellRack(20, -80, 0);
+        
+        for(let i=0; i<8; i++) createTreadmill(80, -60 + (i*12), -Math.PI/2);
+        for(let i=0; i<8; i++) createTreadmill(-80, -60 + (i*12), Math.PI/2);
+
+        // Center Piece / Statue
+        const statueBase = new THREE.Mesh(new THREE.CylinderGeometry(5, 6, 2, 8), new THREE.MeshStandardMaterial({color:0x金0, metalness:0.8, roughness:0.2}));
+        statueBase.position.set(0, 1, 0);
+        statueBase.castShadow = true;
+        statueBase.receiveShadow = true;
+        mapGroup.add(statueBase);
+        
+        const trophy = new THREE.Mesh(new THREE.BoxGeometry(2, 4, 2), new THREE.MeshStandardMaterial({color:0xFFD700, metalness:1, roughness:0.1}));
+        trophy.position.set(0, 4, 0);
+        trophy.castShadow = true;
+        mapGroup.add(trophy);
+
+        /* ==========================================================================
+           6. PLAYER CHARACTER (ROBLOX R15 STYLE)
+           ========================================================================== */
+        
         const playerGroup = new THREE.Group();
         scene.add(playerGroup);
 
-        const skinColor = 0xffcc99;
-        const shirtColor = 0x2196F3;
-        const pantsColor = 0x333333;
+        const skinMat = new THREE.MeshStandardMaterial({ color: 0xffcc99, roughness: 0.6 });
+        const shirtMat = new THREE.MeshStandardMaterial({ color: 0x2196F3 });
+        const pantsMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
 
-        const headGeo = new THREE.BoxGeometry(1, 1, 1);
-        const skinMat = new THREE.MeshStandardMaterial({ color: skinColor, roughness: 0.6 });
+        // Head
+        const headGeo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
         const head = new THREE.Mesh(headGeo, skinMat);
-        head.position.y = 3.5;
+        head.position.y = 4.2;
         head.castShadow = true;
         playerGroup.add(head);
 
-        const torsoGeo = new THREE.BoxGeometry(2, 2, 1);
-        const torsoMat = new THREE.MeshStandardMaterial({ color: shirtColor });
-        const torso = new THREE.Mesh(torsoGeo, torsoMat);
-        torso.position.y = 2;
+        // Face (Decal simulation)
+        const faceGeo = new THREE.PlaneGeometry(0.8, 0.4);
+        const faceMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const eyes = new THREE.Mesh(faceGeo, faceMat);
+        eyes.position.set(0, 4.3, 0.61);
+        playerGroup.add(eyes);
+
+        // Torso
+        const torsoGeo = new THREE.BoxGeometry(2, 2.5, 1);
+        const torso = new THREE.Mesh(torsoGeo, shirtMat);
+        torso.position.y = 2.5;
         torso.castShadow = true;
         playerGroup.add(torso);
 
-        // Arms structure for animation
-        const armGeo = new THREE.BoxGeometry(0.8, 2, 0.8);
+        // Arms (Pivots at shoulders)
+        const armGeo = new THREE.BoxGeometry(0.8, 2.5, 0.8);
         
-        const leftArmGroup = new THREE.Group();
-        leftArmGroup.position.set(-1.5, 2.5, 0);
-        const leftArm = new THREE.Mesh(armGeo, skinMat);
-        leftArm.position.y = -0.5; // Offset for pivot
-        leftArm.castShadow = true;
-        leftArmGroup.add(leftArm);
-        playerGroup.add(leftArmGroup);
-
         const rightArmGroup = new THREE.Group();
-        rightArmGroup.position.set(1.5, 2.5, 0);
+        rightArmGroup.position.set(1.5, 3.5, 0);
         const rightArm = new THREE.Mesh(armGeo, skinMat);
-        rightArm.position.y = -0.5;
-        rightArm.castShadow = true;
+        rightArm.position.y = -1; rightArm.castShadow = true;
         rightArmGroup.add(rightArm);
         playerGroup.add(rightArmGroup);
 
-        const legGeo = new THREE.BoxGeometry(0.9, 2, 0.9);
-        const legMat = new THREE.MeshStandardMaterial({ color: pantsColor });
-        
-        const leftLegGroup = new THREE.Group();
-        leftLegGroup.position.set(-0.5, 1, 0);
-        const leftLeg = new THREE.Mesh(legGeo, legMat);
-        leftLeg.position.y = -0.5;
-        leftLeg.castShadow = true;
-        leftLegGroup.add(leftLeg);
-        playerGroup.add(leftLegGroup);
+        const leftArmGroup = new THREE.Group();
+        leftArmGroup.position.set(-1.5, 3.5, 0);
+        const leftArm = new THREE.Mesh(armGeo, skinMat);
+        leftArm.position.y = -1; leftArm.castShadow = true;
+        leftArmGroup.add(leftArm);
+        playerGroup.add(leftArmGroup);
 
+        // Legs (Pivots at hips)
+        const legGeo = new THREE.BoxGeometry(0.95, 2.5, 0.95);
+        
         const rightLegGroup = new THREE.Group();
-        rightLegGroup.position.set(0.5, 1, 0);
-        const rightLeg = new THREE.Mesh(legGeo, legMat);
-        rightLeg.position.y = -0.5;
-        rightLeg.castShadow = true;
+        rightLegGroup.position.set(0.5, 1.25, 0);
+        const rightLeg = new THREE.Mesh(legGeo, pantsMat);
+        rightLeg.position.y = -1.25; rightLeg.castShadow = true;
         rightLegGroup.add(rightLeg);
         playerGroup.add(rightLegGroup);
 
-        // Equipped Dumbbell
-        const equipGroup = new THREE.Group();
-        const eHandleGeo = new THREE.CylinderGeometry(0.1, 0.1, 1);
-        const eWeightGeo = new THREE.BoxGeometry(0.6, 0.6, 0.4);
-        const eMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
-        const eHandle = new THREE.Mesh(eHandleGeo, eMat);
-        const ew1 = new THREE.Mesh(eWeightGeo, eMat); ew1.position.y = 0.4;
-        const ew2 = new THREE.Mesh(eWeightGeo, eMat); ew2.position.y = -0.4;
-        equipGroup.add(eHandle, ew1, ew2);
-        
-        // Attach to right hand
-        equipGroup.position.set(0, -1.2, 0.5);
-        equipGroup.rotation.x = Math.PI / 2;
-        rightArmGroup.add(equipGroup);
+        const leftLegGroup = new THREE.Group();
+        leftLegGroup.position.set(-0.5, 1.25, 0);
+        const leftLeg = new THREE.Mesh(legGeo, pantsMat);
+        leftLeg.position.y = -1.25; leftLeg.castShadow = true;
+        leftLegGroup.add(leftLeg);
+        playerGroup.add(leftLegGroup);
 
-        // Camera Setup (3rd Person Spring Arm)
-        const cameraOffset = new THREE.Vector3(0, 5, 12);
-        const cameraTarget = new THREE.Vector3(0, 2, 0);
+        // Equipped Item Anchor (Right Hand)
+        const handAnchor = new THREE.Group();
+        handAnchor.position.set(0, -2, 0);
+        rightArmGroup.add(handAnchor);
 
-        // --- INPUT HANDLING ---
-        const keys = { w: false, a: false, s: false, d: false, arrowup: false, arrowdown: false, arrowleft: false, arrowright: false, space: false };
-        
-        window.addEventListener('keydown', (e) => {
-            const key = e.key.toLowerCase();
-            if(keys.hasOwnProperty(key)) keys[key] = true;
-            if(key === 'u') toggleMenu();
-            if(key === ' ' || key === 'space') doLift();
-        });
+        let currentEquipMesh = null;
 
-        window.addEventListener('keyup', (e) => {
-            const key = e.key.toLowerCase();
-            if(keys.hasOwnProperty(key)) keys[key] = false;
-        });
+        function updatePlayerVisuals() {
+            // Update physical size based on level/strength
+            const scale = 1 + Math.min(Math.log10(STATE.strength + 1) * 0.1, 2); // Max scale 3x
+            playerGroup.scale.set(scale, scale, scale);
 
-        document.getElementById('btn-open-upgrades').addEventListener('click', toggleMenu);
+            // Update equipped weapon model
+            if (currentEquipMesh) {
+                handAnchor.remove(currentEquipMesh);
+                currentEquipMesh.geometry.dispose();
+                currentEquipMesh.material.dispose();
+            }
 
-        // --- GAME LOGIC ---
-        window.toggleMenu = function() {
-            gameState.isMenuOpen = !gameState.isMenuOpen;
-            document.getElementById('upgrade-menu').style.display = gameState.isMenuOpen ? 'flex' : 'none';
-        }
-
-        window.doLift = function() {
-            if(gameState.lifting || gameState.isMenuOpen) return;
-            gameState.lifting = true;
-            
-            // Add strength based on weight power and DNA multiplier
-            const gain = gameState.weightPower * gameState.multiplier;
-            gameState.strength += gain;
-            
-            // Update UI
-            updateUI();
-            
-            // Animation reset handled in main loop
-            gameState.liftCooldown = 0.5; // seconds
-        }
-
-        window.purchaseUpgrade = function(type) {
-            const cost = gameState.costs[type];
-            if(gameState.coins >= cost) {
-                gameState.coins -= cost;
+            const wData = getObjById(DB.weights, STATE.equipped.weight);
+            if (wData) {
+                const grp = new THREE.Group();
+                const mat = new THREE.MeshStandardMaterial({color: wData.color, metalness:0.5, roughness:0.5});
+                const h = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1), mat);
+                const wGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.4);
+                const w1 = new THREE.Mesh(wGeo, mat); w1.position.y = 0.5;
+                const w2 = new THREE.Mesh(wGeo, mat); w2.position.y = -0.5;
+                grp.add(h, w1, w2);
                 
-                if(type === 'weight') {
-                    gameState.weightPower += 1;
-                    gameState.costs.weight = Math.floor(gameState.costs.weight * 1.5);
-                    // Make dumbbell bigger visually
-                    const scale = 1 + (gameState.weightPower * 0.1);
-                    ew1.scale.set(scale, scale, scale);
-                    ew2.scale.set(scale, scale, scale);
-                    
-                    // Make player slightly bigger
-                    const pScale = 1 + (gameState.weightPower * 0.05);
-                    if(pScale < 3) playerGroup.scale.set(pScale, pScale, pScale);
-                } 
-                else if(type === 'dna') {
-                    gameState.multiplier += 1;
-                    gameState.costs.dna = Math.floor(gameState.costs.dna * 2.5);
-                    showNotification("DNA UPGRADED!");
+                grp.scale.set(wData.modelScale, wData.modelScale, wData.modelScale);
+                grp.rotation.x = Math.PI/2;
+                grp.position.z = 0.5;
+                
+                currentEquipMesh = grp;
+                handAnchor.add(currentEquipMesh);
+            }
+        }
+        updatePlayerVisuals();
+
+        /* ==========================================================================
+           7. PARTICLES & EFFECTS ENGINE
+           ========================================================================== */
+        
+        const particles = [];
+        const partGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        
+        function createConfetti() {
+            if(!STATE.settings.particles) return;
+            const colors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF];
+            for(let i=0; i<30; i++) {
+                const mat = new THREE.MeshBasicMaterial({ color: colors[Math.floor(Math.random()*colors.length)] });
+                const mesh = new THREE.Mesh(partGeo, mat);
+                
+                // Spawn above player
+                mesh.position.copy(playerGroup.position);
+                mesh.position.y += 6 * playerGroup.scale.y;
+                
+                scene.add(mesh);
+                particles.push({
+                    mesh: mesh,
+                    velocity: new THREE.Vector3((Math.random()-0.5)*10, Math.random()*15, (Math.random()-0.5)*10),
+                    life: 2.0
+                });
+            }
+        }
+
+        function createSweat() {
+            if(!STATE.settings.particles) return;
+            const mat = new THREE.MeshBasicMaterial({ color: 0x88ccff, transparent:true, opacity:0.6 });
+            const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.1, 4, 4), mat);
+            
+            mesh.position.copy(playerGroup.position);
+            mesh.position.y += 4 * playerGroup.scale.y;
+            mesh.position.x += (Math.random()-0.5) * 2;
+            mesh.position.z += (Math.random()-0.5) * 2;
+            
+            scene.add(mesh);
+            particles.push({
+                mesh: mesh,
+                velocity: new THREE.Vector3(0, -5, 0),
+                life: 0.5
+            });
+        }
+
+        function updateParticles(dt) {
+            for(let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.life -= dt;
+                
+                p.velocity.y -= 20 * dt; // Gravity
+                p.mesh.position.addScaledVector(p.velocity, dt);
+                p.mesh.rotation.x += p.velocity.y * dt;
+                p.mesh.rotation.y += p.velocity.x * dt;
+
+                if (p.mesh.position.y < 0.1) p.mesh.position.y = 0.1; // Floor collision
+
+                if (p.life <= 0) {
+                    scene.remove(p.mesh);
+                    p.mesh.geometry.dispose();
+                    p.mesh.material.dispose();
+                    particles.splice(i, 1);
                 }
-                updateUI();
             }
         }
 
-        window.sellStrength = function() {
-            if(gameState.strength > 0) {
-                const earned = Math.floor(gameState.strength * 2);
-                gameState.coins += earned;
-                gameState.strength = 0;
-                showNotification(`SOLD FOR ${earned} COINS!`);
-                updateUI();
+        /* ==========================================================================
+           8. INPUT, PHYSICS & CAMERA CONTROLLER
+           ========================================================================== */
+        
+        // Custom 3rd Person Camera variables
+        const camState = {
+            radius: 15,
+            theta: Math.PI / 4,
+            phi: Math.PI / 3,
+            target: new THREE.Vector3()
+        };
+
+        const keys = { w:false, a:false, s:false, d:false, space:false, shift:false };
+        
+        document.addEventListener('keydown', (e) => {
+            const k = e.key.toLowerCase();
+            if (keys.hasOwnProperty(k)) keys[k] = true;
+            if (k === ' ' && document.activeElement !== chatInput) { e.preventDefault(); doLift(); }
+            if (e.code === 'Space' && document.activeElement !== chatInput) keys.space = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            const k = e.key.toLowerCase();
+            if (keys.hasOwnProperty(k)) keys[k] = false;
+            if (e.code === 'Space') keys.space = false;
+        });
+
+        // Mouse Controls for Camera (Roblox style right-click drag)
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+
+        document.getElementById('game-canvas-container').addEventListener('mousedown', (e) => {
+            if (e.button === 2 || e.button === 0) { // Right or Left click drag
+                isDragging = true;
+                if(!UI.modal.classList.contains('active')) renderer.domElement.requestPointerLock();
             }
+        });
+
+        document.addEventListener('mouseup', () => { isDragging = false; });
+
+        document.addEventListener('mousemove', (e) => {
+            if (document.pointerLockElement === renderer.domElement) {
+                camState.theta -= e.movementX * 0.005;
+                camState.phi -= e.movementY * 0.005;
+                // Clamp Phi
+                camState.phi = Math.max(0.1, Math.min(Math.PI / 2.1, camState.phi));
+            }
+        });
+
+        document.addEventListener('wheel', (e) => {
+            camState.radius += e.deltaY * 0.05;
+            camState.radius = Math.max(5, Math.min(50, camState.radius));
+        });
+
+        // Lift Action Logic
+        const btnLift = document.getElementById('btn-lift');
+        btnLift.addEventListener('mousedown', () => doLift());
+        
+        function doLift() {
+            if (STATE.isLifting || UI.modal.classList.contains('active')) return;
+            
+            STATE.isLifting = true;
+            STATE.liftAnimTime = 0;
+            
+            // Calculate Gain
+            const wData = getObjById(DB.weights, STATE.equipped.weight);
+            const dData = getObjById(DB.dna, STATE.equipped.dna);
+            const rebirthMult = 1 + (STATE.rebirths * 0.5);
+            
+            const gain = wData.power * dData.mult * rebirthMult;
+            STATE.strength += gain;
+            
+            // EXP System
+            STATE.exp += 10;
+            if (STATE.exp >= STATE.level * 100) {
+                STATE.exp = 0;
+                STATE.level += 1;
+                UI.notify(`LEVEL UP! You are now level ${STATE.level}`, false);
+                createConfetti();
+            }
+
+            createSweat();
+            UI.update();
+            updatePlayerVisuals(); // In case scale changed
+            
+            // Text popup effect
+            const floatText = document.createElement('div');
+            floatText.innerText = `+${formatNumber(gain)}`;
+            floatText.style.position = 'absolute';
+            floatText.style.left = '50%';
+            floatText.style.top = '50%';
+            floatText.style.color = '#FF5722';
+            floatText.style.fontWeight = 'bold';
+            floatText.style.fontSize = '2rem';
+            floatText.style.pointerEvents = 'none';
+            floatText.style.zIndex = '1000';
+            floatText.style.transition = 'all 1s ease-out';
+            document.body.appendChild(floatText);
+            
+            setTimeout(() => {
+                floatText.style.top = '30%';
+                floatText.style.opacity = '0';
+            }, 50);
+            setTimeout(() => floatText.remove(), 1050);
         }
 
-        function updateUI() {
-            document.getElementById('val-strength').innerText = Math.floor(gameState.strength);
-            document.getElementById('val-coins').innerText = Math.floor(gameState.coins);
-            document.getElementById('val-mult').innerText = `x${gameState.multiplier}`;
-            document.getElementById('val-weight').innerText = `${gameState.weightPower * 5} kg`;
-
-            // Button states
-            const btnWeight = document.getElementById('upg-weight');
-            document.getElementById('cost-weight').innerText = `${gameState.costs.weight} Coins`;
-            if(gameState.coins >= gameState.costs.weight) btnWeight.classList.remove('locked');
-            else btnWeight.classList.add('locked');
-
-            const btnDna = document.getElementById('upg-dna');
-            document.getElementById('cost-dna').innerText = `${gameState.costs.dna} Coins`;
-            if(gameState.coins >= gameState.costs.dna) btnDna.classList.remove('locked');
-            else btnDna.classList.add('locked');
-        }
-
-        function showNotification(text) {
-            const notif = document.getElementById('level-up-text');
-            notif.innerText = text;
-            notif.style.opacity = 1;
-            setTimeout(() => { notif.style.opacity = 0; }, 1500);
-        }
-
-        // --- MAIN LOOP ---
+        /* ==========================================================================
+           9. MAIN GAME LOOP (ANIMATION, MOVEMENT, RENDER)
+           ========================================================================== */
+        
         const clock = new THREE.Clock();
-        const moveSpeed = 15;
-        const rotSpeed = 5;
-        let walkTime = 0;
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+        let isWalking = false;
+        let walkCycle = 0;
+
+        // Player physics config
+        const speedBase = 30.0;
+        const jumpForce = 40.0;
+        const gravity = 100.0;
+        let canJump = true;
 
         function animate() {
             requestAnimationFrame(animate);
+            const dt = Math.min(clock.getDelta(), 0.1); // Cap dt
 
-            const dt = clock.getDelta();
+            // --- MOVEMENT PHYSICS ---
+            if (document.activeElement !== chatInput) {
+                // Apply Gravity
+                velocity.y -= gravity * dt;
 
-            if(!gameState.isMenuOpen) {
-                // Movement
-                let isMoving = false;
-                const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerGroup.quaternion);
-                const right = new THREE.Vector3(1, 0, 0).applyQuaternion(playerGroup.quaternion);
+                direction.z = Number(keys.w) - Number(keys.s);
+                direction.x = Number(keys.d) - Number(keys.a);
+                direction.normalize();
 
-                const velocity = new THREE.Vector3();
+                isWalking = direction.lengthSq() > 0.1;
 
-                if(keys.w || keys.arrowup) { velocity.add(forward); isMoving = true; }
-                if(keys.s || keys.arrowdown) { velocity.sub(forward); isMoving = true; }
-                
-                // Rotational movement for A/D
-                if(keys.a || keys.arrowleft) playerGroup.rotation.y += rotSpeed * dt;
-                if(keys.d || keys.arrowright) playerGroup.rotation.y -= rotSpeed * dt;
-
-                if(isMoving) {
-                    velocity.normalize().multiplyScalar(moveSpeed * dt);
+                if (isWalking) {
+                    // Calculate move direction based on camera angle
+                    const camDir = new THREE.Vector3();
+                    camera.getWorldDirection(camDir);
+                    camDir.y = 0;
+                    camDir.normalize();
                     
-                    // Simple boundary collision
-                    const nextPos = playerGroup.position.clone().add(velocity);
-                    if(Math.abs(nextPos.x) < 48 && Math.abs(nextPos.z) < 48) {
-                        playerGroup.position.copy(nextPos);
-                    }
+                    const camRight = new THREE.Vector3();
+                    camRight.crossVectors(camDir, new THREE.Vector3(0,1,0)).normalize();
 
-                    // Walking animation
-                    walkTime += dt * 15;
-                    leftLegGroup.rotation.x = Math.sin(walkTime) * 0.5;
-                    rightLegGroup.rotation.x = Math.sin(walkTime + Math.PI) * 0.5;
-                    if(!gameState.lifting) {
-                        leftArmGroup.rotation.x = Math.sin(walkTime + Math.PI) * 0.5;
-                        rightArmGroup.rotation.x = Math.sin(walkTime) * 0.5;
-                    }
+                    const moveVector = new THREE.Vector3()
+                        .addScaledVector(camDir, direction.z)
+                        .addScaledVector(camRight, -direction.x)
+                        .normalize();
+
+                    // Apply velocity
+                    const currentSpeed = keys.shift ? speedBase * 1.5 : speedBase;
+                    velocity.x = moveVector.x * currentSpeed;
+                    velocity.z = moveVector.z * currentSpeed;
+
+                    // Rotate player to face movement direction smoothly
+                    const targetRotation = Math.atan2(velocity.x, velocity.z);
+                    
+                    // Smooth rotation interpolation
+                    let diff = targetRotation - playerGroup.rotation.y;
+                    // Normalize diff to -PI to PI
+                    while (diff < -Math.PI) diff += Math.PI * 2;
+                    while (diff > Math.PI) diff -= Math.PI * 2;
+                    playerGroup.rotation.y += diff * 10 * dt;
+
                 } else {
-                    walkTime = 0;
-                    leftLegGroup.rotation.x = 0;
-                    rightLegGroup.rotation.x = 0;
-                    if(!gameState.lifting) {
-                        leftArmGroup.rotation.x = 0;
-                        rightArmGroup.rotation.x = 0;
-                    }
+                    // Friction
+                    velocity.x -= velocity.x * 10.0 * dt;
+                    velocity.z -= velocity.z * 10.0 * dt;
                 }
 
-                // Lifting Animation Logic
-                if(gameState.lifting) {
-                    gameState.liftCooldown -= dt;
-                    // Bicep curl motion
-                    const animProgress = 1 - (gameState.liftCooldown / 0.5);
-                    if(animProgress < 0.5) {
-                        // Up
-                        rightArmGroup.rotation.x = -Math.PI * (animProgress * 2);
-                        leftArmGroup.rotation.x = -Math.PI * (animProgress * 2); // Do both arms for fun
-                    } else {
-                        // Down
-                        rightArmGroup.rotation.x = -Math.PI * ((1 - animProgress) * 2);
-                        leftArmGroup.rotation.x = -Math.PI * ((1 - animProgress) * 2);
-                    }
-
-                    if(gameState.liftCooldown <= 0) {
-                        gameState.lifting = false;
-                        rightArmGroup.rotation.x = 0;
-                        leftArmGroup.rotation.x = 0;
-                    }
+                // Jump
+                if (keys.space && canJump) {
+                    velocity.y = jumpForce;
+                    canJump = false;
                 }
             }
 
-            // Update Camera (Smoothly follow player)
-            const idealOffset = cameraOffset.clone().applyQuaternion(playerGroup.quaternion);
-            idealOffset.add(playerGroup.position);
-            
-            const idealLookat = cameraTarget.clone().applyQuaternion(playerGroup.quaternion);
-            idealLookat.add(playerGroup.position);
+            // Apply Velocity to Position
+            playerGroup.position.x += velocity.x * dt;
+            playerGroup.position.y += velocity.y * dt;
+            playerGroup.position.z += velocity.z * dt;
 
-            const t = 1.0 - Math.pow(0.001, dt);
-            camera.position.lerp(idealOffset, t);
-            
-            // Look at player head area
-            const currentLookat = new THREE.Vector3(0,0,0);
-            camera.getWorldDirection(currentLookat);
-            currentLookat.add(camera.position);
-            currentLookat.lerp(idealLookat, t);
-            camera.lookAt(currentLookat);
+            // Simple Floor Collision
+            if (playerGroup.position.y < 0) {
+                velocity.y = 0;
+                playerGroup.position.y = 0;
+                canJump = true;
+            }
 
+            // Map Bounds Collision
+            const bounds = 98;
+            if (playerGroup.position.x > bounds) playerGroup.position.x = bounds;
+            if (playerGroup.position.x < -bounds) playerGroup.position.x = -bounds;
+            if (playerGroup.position.z > bounds) playerGroup.position.z = bounds;
+            if (playerGroup.position.z < -bounds) playerGroup.position.z = -bounds;
+
+            // --- ANIMATIONS ---
+            if (isWalking) {
+                walkCycle += dt * (keys.shift ? 15 : 10);
+                rightLegGroup.rotation.x = Math.sin(walkCycle) * 0.8;
+                leftLegGroup.rotation.x = Math.sin(walkCycle + Math.PI) * 0.8;
+                
+                if (!STATE.isLifting) {
+                    rightArmGroup.rotation.x = Math.sin(walkCycle + Math.PI) * 0.5;
+                    leftArmGroup.rotation.x = Math.sin(walkCycle) * 0.5;
+                }
+            } else {
+                walkCycle = 0;
+                // Lerp back to idle
+                rightLegGroup.rotation.x = THREE.MathUtils.lerp(rightLegGroup.rotation.x, 0, dt * 10);
+                leftLegGroup.rotation.x = THREE.MathUtils.lerp(leftLegGroup.rotation.x, 0, dt * 10);
+                if (!STATE.isLifting) {
+                    rightArmGroup.rotation.x = THREE.MathUtils.lerp(rightArmGroup.rotation.x, 0, dt * 10);
+                    leftArmGroup.rotation.x = THREE.MathUtils.lerp(leftArmGroup.rotation.x, 0, dt * 10);
+                }
+            }
+
+            // Lift Animation Override
+            if (STATE.isLifting) {
+                STATE.liftAnimTime += dt * 3; // Speed of lift
+                
+                // Bicep curl arc (0 to PI)
+                const animPhase = Math.sin(STATE.liftAnimTime * Math.PI);
+                
+                rightArmGroup.rotation.x = -animPhase * Math.PI * 0.6;
+                leftArmGroup.rotation.x = -animPhase * Math.PI * 0.6;
+                
+                if (STATE.liftAnimTime >= 1) {
+                    STATE.isLifting = false;
+                    STATE.liftAnimTime = 0;
+                }
+            }
+
+            // --- CAMERA UPDATE ---
+            // Calculate orbital camera position
+            const camOffsetX = camState.radius * Math.sin(camState.phi) * Math.sin(camState.theta);
+            const camOffsetY = camState.radius * Math.cos(camState.phi);
+            const camOffsetZ = camState.radius * Math.sin(camState.phi) * Math.cos(camState.theta);
+
+            // Target is player head area, considering dynamic scale
+            const pScale = playerGroup.scale.y;
+            camState.target.copy(playerGroup.position).add(new THREE.Vector3(0, 4 * pScale, 0));
+
+            // Lerp camera for smoothness
+            camera.position.lerp(new THREE.Vector3(
+                camState.target.x + camOffsetX,
+                camState.target.y + camOffsetY,
+                camState.target.z + camOffsetZ
+            ), 0.2);
+
+            camera.lookAt(camState.target);
+
+            // --- PARTICLES ---
+            updateParticles(dt);
+
+            // --- RENDER ---
             renderer.render(scene, camera);
         }
 
-        // Handle Resize
+        // --- WINDOW RESIZE ---
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Initialize UI values
-        updateUI();
+        // --- INIT SEQUENCE ---
+        UI.update();
+        
+        // Hide loading screen
+        setTimeout(() => {
+            const loader = document.getElementById('loading-screen');
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 1000);
+            
+            // Auto save loop
+            setInterval(saveGame, 10000);
+            
+            // Start main loop
+            animate();
+        }, 1500); // Fake load time for heavy assets simulation
 
-        // Start Loop
-        animate();
     </script>
 </body>
 </html>
