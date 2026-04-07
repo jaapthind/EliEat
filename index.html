@@ -2,1005 +2,1413 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chicken Clicker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Gourmet Tycoon 3D: Ascended Eater V1 (Omega Engine)</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍔</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
-    :root {
-        --bg-dark: #121212;
-        --bg-panel: #1e1e1e;
-        --bg-panel-hover: #2a2a2a;
-        --text-main: #ffffff;
-        --text-muted: #aaaaaa;
-        --accent: #f39c12;
-        --accent-hover: #e67e22;
-        --border-color: #333333;
-        --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
 
-    * {
-        box-sizing: border-box;
-        user-select: none;
-    }
+:root {
+    --primary: #ffaa00;
+    --primary-glow: rgba(255, 170, 0, 0.6);
+    --secondary: #ff3366;
+    --secondary-glow: rgba(255, 51, 102, 0.6);
+    --tertiary: #00ffcc;
+    --tertiary-glow: rgba(0, 255, 204, 0.6);
+    --bg-dark: #050508;
+    --bg-panel: rgba(15, 10, 10, 0.92);
+    --text-main: #e0e0e0;
+    --text-dim: #888888;
+    --food-color: #ff5500;
+    --food-glow: rgba(255, 85, 0, 0.6);
+    --danger: #ff3333;
+    --danger-glow: rgba(255, 51, 51, 0.6);
+    --gold: #ffd700;
+    --gold-glow: rgba(255, 215, 0, 0.6);
+    --border-radius: 12px;
+    --transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
 
-    body {
-        margin: 0;
-        padding: 0;
-        background-color: var(--bg-dark);
-        color: var(--text-main);
-        font-family: var(--font-main);
-        overflow: hidden;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-    }
+* { box-sizing: border-box; user-select: none; margin: 0; padding: 0; }
+body, html { width: 100%; height: 100%; overflow: hidden; background-color: #000; font-family: 'Rajdhani', sans-serif; color: var(--text-main); }
+#webgl-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; cursor: crosshair; }
 
-    #game-container {
-        display: flex;
-        flex: 1;
-        height: 100%;
-        width: 100%;
-    }
+/* Overlays */
+.fullscreen-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 900; display: none; flex-direction: column; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
+.fullscreen-overlay h1 { font-family: 'Orbitron', sans-serif; color: var(--tertiary); text-shadow: 0 0 30px var(--tertiary-glow); font-size: 56px; margin-bottom: 20px; letter-spacing: 5px; text-transform: uppercase; }
+.btn-resume { font-size: 24px; color: #fff; cursor: pointer; background: rgba(255,255,255,0.05); padding: 20px 50px; border-radius: 40px; border: 2px solid var(--tertiary); transition: var(--transition); font-family: 'Orbitron', sans-serif; font-weight: bold; letter-spacing: 2px; }
+.btn-resume:hover { background: var(--tertiary); color: #000; box-shadow: 0 0 40px var(--tertiary-glow); transform: scale(1.05); }
 
-    .column {
-        height: 100%;
-        overflow-y: auto;
-        overflow-x: hidden;
-        border-right: 1px solid var(--border-color);
-    }
+/* Core HUD */
+.hud-element { position: absolute; z-index: 10; background: var(--bg-panel); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--border-radius); backdrop-filter: blur(20px); box-shadow: 0 15px 50px rgba(0,0,0,0.9); transition: var(--transition); }
+.glitch-text { font-family: 'Orbitron', sans-serif; position: relative; display: inline-block; }
+.glitch-text::before, .glitch-text::after { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.8; }
+.glitch-text::before { left: 2px; text-shadow: -1px 0 var(--danger); animation: glitch-anim-1 2s infinite linear alternate-reverse; }
+.glitch-text::after { left: -2px; text-shadow: -1px 0 var(--tertiary); animation: glitch-anim-2 3s infinite linear alternate-reverse; }
 
-    .column::-webkit-scrollbar {
-        width: 8px;
-    }
+@keyframes glitch-anim-1 { 0% { clip-path: inset(20% 0 80% 0); } 20% { clip-path: inset(60% 0 10% 0); } 40% { clip-path: inset(40% 0 50% 0); } 60% { clip-path: inset(80% 0 5% 0); } 80% { clip-path: inset(10% 0 70% 0); } 100% { clip-path: inset(30% 0 20% 0); } }
+@keyframes glitch-anim-2 { 0% { clip-path: inset(10% 0 60% 0); } 20% { clip-path: inset(30% 0 20% 0); } 40% { clip-path: inset(70% 0 10% 0); } 60% { clip-path: inset(20% 0 50% 0); } 80% { clip-path: inset(50% 0 30% 0); } 100% { clip-path: inset(5% 0 80% 0); } }
 
-    .column::-webkit-scrollbar-track {
-        background: var(--bg-dark);
-    }
+/* Expanded Stats Panel */
+#stats-panel { top: 20px; left: 20px; width: 420px; padding: 25px; border-top: 5px solid var(--primary); display: flex; flex-direction: column; gap: 10px; }
+#stats-panel h1 { margin: 0 0 15px 0; font-family: 'Orbitron', sans-serif; font-size: 30px; color: var(--primary); text-shadow: 0 0 20px var(--primary-glow); text-transform: uppercase; letter-spacing: 2px; border-bottom: 2px solid rgba(255,170,0,0.2); padding-bottom: 10px; }
+.stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 18px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 8px; }
+.stat-label { color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px; font-size: 14px; font-weight: bold; }
+.stat-val { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 20px; }
+.val-cal { color: var(--primary); text-shadow: 0 0 10px var(--primary-glow); }
+.val-food { color: var(--food-color); text-shadow: 0 0 10px var(--food-glow); }
+.val-mult { color: var(--secondary); text-shadow: 0 0 10px var(--secondary-glow); }
 
-    .column::-webkit-scrollbar-thumb {
-        background: #555;
-        border-radius: 4px;
-    }
+#distance-ticker { bottom: 20px; right: 80px; padding: 15px 30px; border: 1px solid var(--tertiary); display: flex; align-items: center; gap: 15px; }
+#distance-ticker .label { font-size: 14px; color: var(--text-dim); text-transform: uppercase; font-weight: bold; letter-spacing: 2px; }
+#distance-ticker .val { font-family: 'Orbitron', sans-serif; font-size: 26px; color: var(--tertiary); text-shadow: 0 0 15px var(--tertiary-glow); font-weight: bold; }
 
-    /* LEFT COLUMN - THE CHICKEN */
-    #left-column {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        position: relative;
-        background: radial-gradient(circle, #3a2e1d 0%, var(--bg-dark) 70%);
-    }
+/* Progress Bars */
+.bar-container { width: 100%; height: 28px; background: rgba(0,0,0,0.8); border-radius: 6px; margin-top: 5px; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: inset 0 3px 8px rgba(0,0,0,0.9); }
+.bar-fill { height: 100%; width: 0%; transition: width 0.1s linear; position: relative; }
+.bar-fill::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); animation: shimmer 2s infinite; }
+@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+#stomach-fill { background: linear-gradient(90deg, #aa3300, var(--food-color), #ffcc00); box-shadow: 0 0 15px var(--food-glow); }
+#stamina-fill { background: linear-gradient(90deg, #0033aa, var(--tertiary), #ffffff); box-shadow: 0 0 15px var(--tertiary-glow); }
+.bar-text { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 900; text-shadow: 1px 1px 2px #000, -1px -1px 2px #000; letter-spacing: 2px; font-family: 'Orbitron', sans-serif; color: #fff; z-index: 2; }
 
-    #score-container {
-        text-align: center;
-        margin-top: 50px;
-        z-index: 10;
-        background: rgba(0, 0, 0, 0.5);
-        padding: 20px;
-        border-radius: 15px;
-        width: 80%;
-    }
+/* Mega Shop Panel */
+#shop-panel { top: 20px; right: 20px; width: 650px; bottom: 20px; display: flex; flex-direction: column; padding: 25px; border-right: 6px solid var(--secondary); background: rgba(15, 10, 10, 0.96); border-top-left-radius: 20px; border-bottom-left-radius: 20px; transform: translateX(110%); opacity: 0; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s; pointer-events: none; }
+#shop-panel.open { transform: translateX(0); opacity: 1; pointer-events: auto; }
 
-    #eggs-count {
-        font-size: 3rem;
-        font-weight: bold;
-        color: var(--accent);
-        text-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
-        margin: 0;
-    }
+.shop-header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid rgba(255,255,255,0.1); }
+.shop-title { font-family: 'Orbitron', sans-serif; font-size: 28px; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.5); font-weight: 900; letter-spacing: 2px; }
 
-    #cps-count {
-        font-size: 1.2rem;
-        color: var(--text-muted);
-        margin: 5px 0 0 0;
-    }
+/* Multiplier Toggles */
+.multiplier-controls { display: flex; gap: 5px; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+.mult-btn { background: transparent; border: 1px solid transparent; color: #888; font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: bold; padding: 5px 10px; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
+.mult-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+.mult-btn.active { background: var(--secondary); color: #fff; box-shadow: 0 0 10px var(--secondary-glow); border-color: var(--secondary); }
 
-    #chicken-container {
-        margin-top: auto;
-        margin-bottom: auto;
-        position: relative;
-        cursor: pointer;
-        transition: transform 0.05s ease-in-out;
-    }
+.shop-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.tab-btn { flex: 1; padding: 12px 0; background: rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: var(--text-dim); font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 900; text-transform: uppercase; cursor: pointer; transition: var(--transition); letter-spacing: 1px; }
+.tab-btn:hover { background: rgba(255,255,255,0.1); color: #fff; transform: translateY(-2px); }
+.tab-btn.active { background: var(--secondary); color: #fff; border-color: var(--secondary); box-shadow: 0 0 20px var(--secondary-glow); transform: scale(1.03); z-index: 2; }
+.tab-btn[data-target="prestige"].active { background: var(--gold); color: #000; border-color: var(--gold); box-shadow: 0 0 20px var(--gold-glow); }
+.tab-btn-sys { background: rgba(0, 150, 255, 0.1); border-color: #0096ff; color: #0096ff; }
+.tab-btn-sys.active { background: #0096ff; color: #000; box-shadow: 0 0 20px rgba(0,150,255,0.6); }
+.tab-btn-close { flex: 1; min-width: 100%; margin-top: 10px; background: rgba(255, 51, 51, 0.1); border-color: var(--danger); color: var(--danger); font-size: 18px; padding: 15px; }
+.tab-btn-close:hover { background: var(--danger); color: #000; box-shadow: 0 0 20px var(--danger-glow); }
 
-    #chicken-container:active {
-        transform: scale(0.95);
-    }
+.shop-content { flex: 1; display: flex; flex-direction: column; gap: 12px; padding-right: 15px; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: var(--secondary) rgba(0,0,0,0.5); }
+.shop-content::-webkit-scrollbar { width: 8px; }
+.shop-content::-webkit-scrollbar-track { background: rgba(0,0,0,0.5); border-radius: 4px; }
+.shop-content::-webkit-scrollbar-thumb { background: var(--secondary); border-radius: 4px; }
 
-    .chicken-art {
-        font-family: monospace;
-        white-space: pre;
-        color: white;
-        font-size: 12px;
-        line-height: 12px;
-        text-align: center;
-        pointer-events: none;
-        text-shadow: 0 0 5px #000;
-        animation: breathe 4s infinite ease-in-out;
-    }
+/* Enhanced Upgrade Cards */
+.upgrade-card { background: rgba(30, 20, 20, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 18px; cursor: pointer; position: relative; transition: var(--transition); overflow: hidden; display: flex; flex-direction: column; }
+.upgrade-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--primary); transition: var(--transition); }
+.upgrade-card::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(90deg, rgba(255,255,255,0.05), transparent); opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+.upgrade-card:hover:not(.locked) { transform: translateX(-5px) scale(1.01); border-color: var(--primary); background: rgba(50, 30, 30, 0.9); box-shadow: 0 10px 25px rgba(0,0,0,0.9), inset 0 0 20px rgba(255, 170, 0, 0.05); }
+.upgrade-card:hover:not(.locked)::before { width: 100%; opacity: 0.1; }
+.upgrade-card:hover:not(.locked)::after { opacity: 1; }
 
-    @keyframes breathe {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.02) translateY(-5px); }
-        100% { transform: scale(1); }
-    }
+.upgrade-card.locked { opacity: 0.5; filter: grayscale(100%); cursor: not-allowed; border-color: #333; }
+.upgrade-card.locked::before { background: #444; }
+.upgrade-card.maxed { border-color: var(--gold); background: rgba(40, 35, 10, 0.9); }
+.upgrade-card.maxed::before { background: var(--gold); }
+.upgrade-card.maxed:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,215,0,0.2); }
 
-    .particle {
-        position: absolute;
-        pointer-events: none;
-        font-size: 20px;
-        font-weight: bold;
-        color: var(--text-main);
-        text-shadow: 0 0 5px #000;
-        animation: floatUp 1.5s forwards ease-out;
-        z-index: 100;
-    }
+.uc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; pointer-events: none; }
+.uc-name { font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1px; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }
+.uc-level { background: rgba(0,0,0,0.8); padding: 4px 10px; border-radius: 12px; font-size: 13px; color: var(--tertiary); font-family: 'Orbitron', sans-serif; border: 1px solid var(--tertiary); box-shadow: 0 0 8px rgba(0,255,255,0.3); font-weight: bold; }
 
-    @keyframes floatUp {
-        0% { opacity: 1; transform: translateY(0) scale(1); }
-        100% { opacity: 0; transform: translateY(-150px) scale(1.5); }
-    }
+.uc-desc { font-size: 14px; color: #aaa; margin-bottom: 10px; line-height: 1.4; font-style: italic; pointer-events: none; }
+.uc-effect { font-size: 15px; color: var(--primary); margin-bottom: 15px; font-weight: bold; background: rgba(0,0,0,0.6); padding: 6px 12px; border-radius: 6px; display: inline-block; pointer-events: none; border-left: 3px solid var(--primary); }
 
-    /* MIDDLE COLUMN - UPGRADES & STATS */
-    #middle-column {
-        flex: 1;
-        background-color: var(--bg-dark);
-        display: flex;
-        flex-direction: column;
-    }
+.uc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; pointer-events: none; }
+.uc-cost { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 900; color: var(--primary); text-shadow: 0 0 8px rgba(255,170,0,0.4); background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,170,0,0.3); }
+.uc-cost.prestige-cost { color: var(--gold); text-shadow: 0 0 8px rgba(255,215,0,0.4); border-color: rgba(255,215,0,0.3); }
+.locked .uc-cost { color: var(--danger); text-shadow: none; border-color: var(--danger); }
 
-    .section-title {
-        background-color: var(--border-color);
-        margin: 0;
-        padding: 15px;
-        font-size: 1.5rem;
-        text-align: center;
-        border-bottom: 2px solid var(--accent);
-        position: sticky;
-        top: 0;
-        z-index: 5;
-    }
+/* Pagination Controls */
+.pagination-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 2px solid rgba(255,255,255,0.1); }
+.page-btn { background: #111; color: var(--secondary); border: 2px solid var(--secondary); padding: 12px 25px; font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 900; cursor: pointer; border-radius: 8px; transition: var(--transition); text-transform: uppercase; letter-spacing: 2px; }
+.page-btn:hover:not(:disabled) { background: var(--secondary); color: #fff; box-shadow: 0 0 20px var(--secondary-glow); transform: scale(1.05); }
+.page-btn:disabled { border-color: #333; color: #555; cursor: not-allowed; background: transparent; }
+.page-info { color: #fff; font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: bold; letter-spacing: 3px; background: rgba(0,0,0,0.5); padding: 8px 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
 
-    #upgrades-container {
-        display: flex;
-        flex-wrap: wrap;
-        padding: 10px;
-        gap: 10px;
-        align-content: flex-start;
-    }
+/* System/Save Tab Specifics */
+.sys-panel { background: rgba(0,0,0,0.6); border: 1px solid #333; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+.sys-panel h3 { color: #0096ff; font-family: 'Orbitron', sans-serif; margin-bottom: 15px; font-size: 20px; border-bottom: 1px solid rgba(0,150,255,0.3); padding-bottom: 10px; }
+.sys-btn-group { display: flex; gap: 15px; flex-wrap: wrap; }
+.sys-btn { flex: 1; min-width: 45%; padding: 15px; background: #111; border: 2px solid #555; color: #ddd; font-family: 'Orbitron', sans-serif; font-weight: bold; font-size: 16px; cursor: pointer; transition: all 0.2s; border-radius: 8px; text-transform: uppercase; }
+.sys-btn:hover { background: #222; border-color: #fff; color: #fff; transform: translateY(-2px); }
+.sys-btn.btn-save { border-color: #ffaa00; color: #ffaa00; }
+.sys-btn.btn-save:hover { background: #ffaa00; color: #000; box-shadow: 0 0 20px rgba(255,170,0,0.5); }
+.sys-btn.btn-wipe { border-color: #ff3333; color: #ff3333; }
+.sys-btn.btn-wipe:hover { background: #ff3333; color: #000; box-shadow: 0 0 20px rgba(255,51,51,0.5); }
+.save-textarea { width: 100%; height: 80px; background: #000; border: 1px solid #444; color: #00ffcc; font-family: monospace; padding: 10px; margin-bottom: 10px; resize: none; border-radius: 5px; }
 
-    .upgrade-btn {
-        width: 60px;
-        height: 60px;
-        background-color: var(--bg-panel);
-        border: 2px solid var(--border-color);
-        border-radius: 8px;
-        cursor: pointer;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 24px;
-        position: relative;
-        transition: all 0.2s;
-    }
+/* Logs & FX */
+.floating-text { position: absolute; font-family: 'Orbitron', sans-serif; font-weight: 900; pointer-events: none; z-index: 1000; text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 0 15px currentColor; animation: floatUpFade 1.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+@keyframes floatUpFade { 0% { opacity: 0; transform: translateY(0) scale(0.5); } 15% { opacity: 1; transform: translateY(-20px) scale(1.2); } 100% { opacity: 0; transform: translateY(-120px) scale(0.8); filter: blur(2px); } }
 
-    .upgrade-btn:hover {
-        background-color: var(--bg-panel-hover);
-        border-color: var(--accent);
-    }
+#notification-log { position: absolute; bottom: 20px; right: 20px; width: 350px; display: flex; flex-direction: column-reverse; gap: 10px; pointer-events: none; z-index: 100; }
+.log-entry { background: rgba(0,0,0,0.85); border-left: 4px solid var(--primary); padding: 12px 20px; border-radius: 6px; color: #fff; font-family: 'Rajdhani', sans-serif; font-size: 16px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); animation: slideInLog 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 1; transition: opacity 0.5s; }
+.log-entry.fade-out { opacity: 0; }
+.log-entry.achievement { border-color: var(--gold); background: linear-gradient(90deg, rgba(40,30,0,0.95), rgba(0,0,0,0.85)); }
+@keyframes slideInLog { 0% { transform: translateX(120%); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
 
-    .upgrade-btn.purchased {
-        border-color: #27ae60;
-        opacity: 0.5;
-        cursor: default;
-    }
+#fx-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; transition: box-shadow 0.3s; }
+.fx-damage { box-shadow: inset 0 0 300px rgba(255, 0, 0, 0.8); }
+.fx-heal { box-shadow: inset 0 0 250px rgba(255, 170, 0, 0.4); }
+.fx-speed { box-shadow: inset 0 0 200px rgba(0, 255, 204, 0.2); }
 
-    .upgrade-btn.locked {
-        display: none;
-    }
+#time-panel { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); border: 2px solid var(--tertiary); padding: 12px 30px; border-radius: 30px; font-family: 'Orbitron', sans-serif; color: var(--tertiary); z-index: 10; font-size: 20px; box-shadow: 0 0 30px rgba(0,255,255,0.2), inset 0 0 10px rgba(0,255,255,0.1); display: flex; align-items: center; gap: 15px; font-weight: bold; border-bottom: 4px solid var(--tertiary); }
+#time-icon { font-size: 24px; }
 
-    .tooltip {
-        position: absolute;
-        bottom: 110%;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: #000;
-        color: #fff;
-        padding: 10px;
-        border-radius: 5px;
-        width: 200px;
-        text-align: center;
-        font-size: 14px;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.2s;
-        z-index: 1000;
-        border: 1px solid var(--accent);
-    }
+#crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 24px; height: 24px; pointer-events: none; z-index: 50; transition: transform 0.1s; display: none; }
+#crosshair.active { transform: translate(-50%, -50%) scale(1.5); }
+#crosshair::before, #crosshair::after { content: ''; position: absolute; background: rgba(255,255,255,0.9); box-shadow: 0 0 6px #000; }
+#crosshair::before { top: 11px; left: 0; width: 24px; height: 2px; }
+#crosshair::after { top: 0; left: 11px; width: 2px; height: 24px; }
 
-    .upgrade-btn:hover .tooltip, .building-btn:hover .tooltip {
-        opacity: 1;
-    }
+.interact-prompt { position: absolute; top: 65%; left: 50%; transform: translateX(-50%); font-size: 22px; font-weight: 900; font-family: 'Orbitron', sans-serif; color: var(--gold); text-shadow: 0 0 15px var(--gold-glow); display: none; z-index: 50; pointer-events: none; background: rgba(0,0,0,0.85); padding: 12px 35px; border-radius: 30px; border: 2px solid var(--gold); letter-spacing: 3px; animation: pulsePrompt 1.5s infinite alternate; }
+@keyframes pulsePrompt { 0% { transform: translateX(-50%) scale(1); box-shadow: 0 0 10px rgba(255,215,0,0.2); } 100% { transform: translateX(-50%) scale(1.08); box-shadow: 0 0 30px rgba(255,215,0,0.6); } }
 
-    .tooltip-title {
-        font-weight: bold;
-        color: var(--accent);
-        margin-bottom: 5px;
-        display: block;
-    }
+#loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #020202; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--primary); font-family: 'Orbitron', sans-serif; transition: opacity 1.5s ease-out; }
+.spinner { width: 120px; height: 120px; border: 8px solid rgba(255, 170, 0, 0.1); border-top-color: var(--primary); border-bottom-color: var(--secondary); border-radius: 50%; animation: spin 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite; margin-bottom: 40px; box-shadow: 0 0 50px rgba(255,170,0,0.3); }
+@keyframes spin { 100% { transform: rotate(360deg); } }
 
-    .tooltip-cost {
-        color: #e74c3c;
-        font-weight: bold;
-        display: block;
-        margin-bottom: 5px;
-    }
-
-    .tooltip-desc {
-        color: var(--text-muted);
-        font-size: 12px;
-    }
-
-    /* RIGHT COLUMN - BUILDINGS */
-    #right-column {
-        flex: 1;
-        background-color: var(--bg-dark);
-        display: flex;
-        flex-direction: column;
-    }
-
-    #buildings-container {
-        display: flex;
-        flex-direction: column;
-        padding: 10px;
-        gap: 10px;
-    }
-
-    .building-btn {
-        background-color: var(--bg-panel);
-        border: 2px solid var(--border-color);
-        border-radius: 10px;
-        padding: 15px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        transition: all 0.2s;
-        position: relative;
-    }
-
-    .building-btn:hover {
-        background-color: var(--bg-panel-hover);
-        border-color: var(--accent);
-    }
-
-    .building-btn.locked {
-        filter: brightness(0.2);
-        cursor: not-allowed;
-    }
-
-    .building-icon {
-        font-size: 40px;
-        margin-right: 15px;
-        width: 50px;
-        text-align: center;
-    }
-
-    .building-info {
-        flex: 1;
-    }
-
-    .building-name {
-        font-size: 1.2rem;
-        font-weight: bold;
-        margin: 0 0 5px 0;
-    }
-
-    .building-cost {
-        color: #e74c3c;
-        font-weight: bold;
-        margin: 0;
-        font-size: 0.9rem;
-    }
-
-    .building-count {
-        font-size: 2rem;
-        font-weight: bold;
-        color: var(--text-muted);
-        opacity: 0.5;
-    }
-
-    /* HEADER / TICKER */
-    #header {
-        height: 40px;
-        background-color: #000;
-        border-bottom: 1px solid var(--border-color);
-        display: flex;
-        align-items: center;
-        padding: 0 20px;
-        overflow: hidden;
-        white-space: nowrap;
-    }
-
-    #ticker-text {
-        color: var(--text-main);
-        font-family: monospace;
-        font-size: 14px;
-        animation: ticker 30s linear infinite;
-    }
-
-    @keyframes ticker {
-        0% { transform: translateX(100vw); }
-        100% { transform: translateX(-100%); }
-    }
-
-    /* CONTROLS */
-    #controls {
-        display: flex;
-        justify-content: space-around;
-        padding: 10px;
-        border-top: 1px solid var(--border-color);
-        background-color: var(--bg-panel);
-    }
-
-    .control-btn {
-        background-color: transparent;
-        border: 1px solid var(--text-muted);
-        color: var(--text-main);
-        padding: 5px 15px;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-
-    .control-btn:hover {
-        background-color: var(--border-color);
-    }
-
-    .control-btn.danger {
-        color: #e74c3c;
-        border-color: #e74c3c;
-    }
-    
-    .control-btn.danger:hover {
-        background-color: rgba(231, 76, 60, 0.2);
-    }
-
-    /* TOAST NOTIFICATIONS */
-    #toast-container {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        z-index: 9999;
-    }
-
-    .toast {
-        background-color: var(--bg-panel);
-        border-left: 5px solid var(--accent);
-        color: var(--text-main);
-        padding: 15px 20px;
-        border-radius: 5px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-        animation: slideIn 0.3s forwards, fadeOut 0.5s forwards 3s;
-        min-width: 250px;
-    }
-
-    @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-
-    @keyframes fadeOut {
-        from { opacity: 1; }
-        to { opacity: 0; display: none; }
-    }
+/* Rebirth Screen styling */
+.rebirth-box { background: #030303; border: 4px solid var(--gold); padding: 50px 70px; border-radius: 20px; text-align: center; max-width: 850px; box-shadow: 0 0 100px rgba(255, 215, 0, 0.4), inset 0 0 60px rgba(255, 215, 0, 0.2); animation: floatBox 4s infinite ease-in-out; }
+@keyframes floatBox { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+.rebirth-box h2 { font-family: 'Orbitron', sans-serif; color: var(--gold); font-size: 55px; margin: 0 0 25px 0; text-shadow: 0 0 30px var(--gold-glow); text-transform: uppercase; letter-spacing: 10px; border-bottom: 2px solid rgba(255,215,0,0.3); padding-bottom: 15px; }
+.rebirth-box p { font-size: 20px; color: #ccc; margin-bottom: 20px; line-height: 1.6; font-family: 'Rajdhani', sans-serif; }
+.rebirth-gain { font-family: 'Orbitron', sans-serif; font-size: 70px; color: var(--gold); font-weight: 900; margin: 30px 0; display: block; text-shadow: 0 0 50px var(--gold-glow); }
+.btn-ascend { background: rgba(255,215,0,0.05); border: 3px solid var(--gold); color: var(--gold); padding: 25px 80px; font-size: 28px; font-family: 'Orbitron', sans-serif; font-weight: 900; text-transform: uppercase; cursor: pointer; transition: var(--transition); border-radius: 12px; letter-spacing: 5px; position: relative; overflow: hidden; }
+.btn-ascend::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent); transform: rotate(45deg); transition: 0.5s; opacity: 0; }
+.btn-ascend:hover { background: var(--gold); color: #000; box-shadow: 0 0 80px var(--gold-glow); transform: scale(1.05); }
+.btn-ascend:hover::after { opacity: 1; left: 100%; }
+.btn-cancel { background: transparent; border: none; color: #666; font-family: 'Rajdhani', sans-serif; font-size: 20px; margin-top: 25px; cursor: pointer; text-decoration: underline; transition: color 0.2s; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
+.btn-cancel:hover { color: #fff; }
 </style>
 </head>
 <body>
 
-<div id="header">
-    <div id="ticker-text">Welcome to Chicken Clicker! The most egg-cellent game on the web. Click the chicken to begin your poultry empire.</div>
+<div id="loading-screen">
+    <div class="spinner"></div>
+    <h2 class="glitch-text" data-text="INITIALIZING KITCHEN ENGINE...">INITIALIZING KITCHEN ENGINE...</h2>
+    <p style="margin-top: 25px; color: #666; font-family: 'Rajdhani', sans-serif; font-size: 22px; letter-spacing: 2px;">Preparing 250,000+ Ingredients & Flavor Profiles...</p>
 </div>
 
-<div id="game-container">
+<div id="webgl-container"></div>
+<div id="fx-overlay"></div>
+<div id="interact-prompt" class="interact-prompt">[SPACE] DIGEST FOOD</div>
+
+<div id="pause-overlay" class="fullscreen-overlay">
+    <h1>SIMULATION PAUSED</h1>
+    <div class="btn-resume" onclick="document.body.requestPointerLock()">RESUME EATING</div>
+</div>
+
+<div id="rebirth-overlay" class="fullscreen-overlay">
+    <div class="rebirth-box">
+        <h2>ASCENSION PROTOCOL</h2>
+        <p>WARNING: Initiating will permanently reset your physical form.</p>
+        <p>All Calories, Food Storage, Upgrades, and Mutations will be purged.</p>
+        <p>Your culinary mastery will crystallize into Michelin Stars.</p>
+        <span class="rebirth-gain">+<span id="rebirth-amt">0</span> STARS</span>
+        <button class="btn-ascend" onclick="Game.executeRebirth()">ASCEND</button><br>
+        <button class="btn-cancel" onclick="document.getElementById('rebirth-overlay').style.display='none'">ABORT SEQUENCE</button>
+    </div>
+</div>
+
+<div id="time-panel">
+    <span id="time-icon">☀️</span>
+    <span id="time-text">12:00</span>
+    <span style="font-size: 15px; margin-left: 10px; color: #aaa; padding-left:15px; border-left:2px solid rgba(255,255,255,0.2);">DAY <span id="time-day" style="color:#fff;">1</span></span>
+</div>
+
+<div id="distance-ticker" class="hud-element">
+    <span class="label">ODOMETER:</span>
+    <span class="val"><span id="txt-dist">0</span>m</span>
+</div>
+
+
+<div id="stats-panel" class="hud-element">
+    <h1 class="glitch-text" data-text="GOURMET TYCOON V1">GOURMET TYCOON V1</h1>
     
-    <div id="left-column" class="column">
-        <div id="score-container">
-            <div id="eggs-count">0</div>
-            <div id="cps-count">0 eggs per second</div>
+    <div class="stat-row">
+        <span class="stat-label">Calories Digested</span>
+        <span id="txt-cals" class="stat-val val-cal">0</span>
+    </div>
+    <div class="stat-row">
+        <span class="stat-label">Digestion Multiplier</span>
+        <span id="txt-mult" class="stat-val val-mult">x1.00</span>
+    </div>
+    <div class="stat-row">
+        <span class="stat-label">Passive Digestion</span>
+        <span class="stat-val" style="color:#aaa;"><span id="txt-auto">0</span>/s</span>
+    </div>
+    <div class="stat-row">
+        <span class="stat-label">Food Consumed</span>
+        <span id="txt-food" class="stat-val val-food">0</span>
+    </div>
+    <div class="stat-row" id="row-prestige" style="display:none; border-color:rgba(255,215,0,0.3);">
+        <span class="stat-label" style="color:var(--gold)">Michelin Stars</span>
+        <span id="txt-tokens" class="stat-val" style="color:var(--gold); text-shadow:0 0 15px var(--gold-glow)">0</span>
+    </div>
+    
+    <div style="margin-top: 15px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+            <span class="stat-label" style="color:#fff;">Stomach Capacity</span>
+            <span id="txt-stom" style="font-family:'Orbitron',sans-serif; font-size:15px; font-weight:900;">0 / 10</span>
         </div>
-
-        <div id="chicken-container">
-            <div class="chicken-art" id="big-chicken">
-                                     @@@@@@@@@@@@@@@@@@@@                                     
-                                  @@@@@@@@@@@@@@@@@@@@@@@@@@@                                 
-                                @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                               
-                              @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                             
-                            @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                           
-                           @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                          
-                          @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                         
-                         @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                        
-                         @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                        
-                        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                       
-                        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                       
-                        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                       
-                        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                       
-                        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                       
-                        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                       
-                         @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                        
-                         @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                        
-                          @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                         
-                           @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                          
-                            @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                           
-                              @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                             
-                                @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                               
-                                  @@@@@@@@@@@@@@@@@@@@@@@@@@@                                 
-                                     @@@@@@@@@@@@@@@@@@@@                                     
-            </div>
-        </div>
-        
-        <div id="controls">
-            <button class="control-btn" onclick="Game.save()">Save</button>
-            <button class="control-btn" onclick="Game.load()">Load</button>
-            <button class="control-btn danger" onclick="Game.wipe()">Hard Reset</button>
-        </div>
+        <div class="bar-container"><div id="stomach-fill" class="bar-fill"></div><div id="stomach-pct" class="bar-text">0%</div></div>
     </div>
 
-    <div id="middle-column" class="column">
-        <h2 class="section-title">Upgrades</h2>
-        <div id="upgrades-container">
-            </div>
-        <h2 class="section-title" style="margin-top: 20px;">Stats</h2>
-        <div style="padding: 20px; color: var(--text-muted); font-size: 1.1rem; line-height: 1.6;">
-            <div>Total Eggs Baked: <span id="stat-total-eggs" style="color:#fff">0</span></div>
-            <div>Hand Clicks: <span id="stat-clicks" style="color:#fff">0</span></div>
-            <div>Play Time: <span id="stat-time" style="color:#fff">0s</span></div>
-            <div>Upgrades Unlocked: <span id="stat-upgrades" style="color:#fff">0</span></div>
+    <div style="margin-top: 12px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+            <span class="stat-label" style="color:#fff;">Stamina [SHIFT]</span>
         </div>
+        <div class="bar-container"><div id="stamina-fill" class="bar-fill" style="width:100%;"></div><div class="bar-text">MAXIMUM</div></div>
     </div>
 
-    <div id="right-column" class="column">
-        <h2 class="section-title">Buildings</h2>
-        <div id="buildings-container">
-            </div>
+    <div style="margin-top: 20px; font-size: 13px; color: #777; text-align: center; font-family: 'Rajdhani', sans-serif; letter-spacing: 1.5px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; line-height:1.4;">
+        [W,A,S,D] Move | [MOUSE] Look | [SHIFT] Sprint<br>[TAB] Open Kitchen Terminal | Return to Base & press [SPACE]
     </div>
-
 </div>
 
-<div id="toast-container"></div>
+<div id="shop-panel" class="hud-element">
+    <div class="shop-header-area">
+        <span class="shop-title glitch-text" data-text="KITCHEN TERMINAL">KITCHEN TERMINAL</span>
+        <div class="multiplier-controls">
+            <button class="mult-btn active" onclick="UI.setBuyMode(1)" id="btn-buy-1">x1</button>
+            <button class="mult-btn" onclick="UI.setBuyMode(10)" id="btn-buy-10">x10</button>
+            <button class="mult-btn" onclick="UI.setBuyMode('max')" id="btn-buy-max">MAX</button>
+        </div>
+    </div>
+
+    <div class="shop-tabs">
+        <button class="tab-btn active" data-target="upgrades" onclick="UI.switchTab('upgrades')">Tech</button>
+        <button class="tab-btn" data-target="mutations" onclick="UI.switchTab('mutations')">Biology</button>
+        <button class="tab-btn" data-target="prestige" onclick="UI.switchTab('prestige')">Astral</button>
+        <button class="tab-btn" data-target="achievements" onclick="UI.switchTab('achievements')">Trophies</button>
+        <button class="tab-btn tab-btn-sys" data-target="system" onclick="UI.switchTab('system')">System</button>
+        <button class="tab-btn tab-btn-close" onclick="document.body.requestPointerLock()">[ CLOSE TERMINAL ]</button>
+    </div>
+    
+    <div id="list-upgrades" class="shop-content"></div>
+    <div id="list-mutations" class="shop-content" style="display:none;"></div>
+    <div id="list-prestige" class="shop-content" style="display:none;"></div>
+    <div id="list-achievements" class="shop-content" style="display:none;"></div>
+    <div id="list-system" class="shop-content" style="display:none;">
+        <div class="sys-panel">
+            <h3>SAVE MANAGEMENT</h3>
+            <p style="color:#aaa; font-size:14px; margin-bottom:15px;">The simulation auto-saves every 10 seconds, but manual backups are advised.</p>
+            <div class="sys-btn-group">
+                <button class="sys-btn btn-save" onclick="SaveSys.save(true)">FORCE SAVE</button>
+                <button class="sys-btn btn-wipe" onclick="SaveSys.hardReset()">WIPE DATA</button>
+            </div>
+        </div>
+        <div class="sys-panel">
+            <h3>IMPORT / EXPORT</h3>
+            <p style="color:#aaa; font-size:14px; margin-bottom:10px;">Copy this string to backup your timeline, or paste one to overwrite.</p>
+            <textarea id="save-string" class="save-textarea" onclick="this.select()"></textarea>
+            <div class="sys-btn-group">
+                <button class="sys-btn" onclick="SaveSys.export()">GENERATE STRING</button>
+                <button class="sys-btn" onclick="SaveSys.import()">LOAD STRING</button>
+            </div>
+        </div>
+        <div class="sys-panel">
+            <h3>ENVIRONMENT OVERRIDES</h3>
+            <div class="sys-btn-group" style="margin-top:10px;">
+                <button class="sys-btn" id="btn-weather" onclick="WeatherSys.cycle()">CYCLE WEATHER: ☀️</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="notification-log"></div>
 
 <script>
 /**
- * CHICKEN CLICKER GAME ENGINE
- * Massive monolithic script block.
+ * GOURMET TYCOON 3D: ASCENDED EATER V1 (OMEGA ENGINE)
+ * MASSIVELY EXPANDED VERSION - 3RD PERSON
+ * - Deep Database Generation
+ * - Save/Load System
+ * - Notification Log System
+ * - 3rd Person Orbital Camera Logic
  */
 
-// --- CORE GAME OBJECT ---
-const Game = {
-    eggs: 0,
-    totalEggs: 0,
-    cps: 0,
-    clickPower: 1,
-    clickCount: 0,
-    startTime: Date.now(),
-    lastSave: Date.now(),
-    lastTick: Date.now(),
-    fps: 30,
+// ==========================================
+// DATABASE GENERATION (MASSIVE EXPANSION)
+// ==========================================
+const DB = { upgrades: [], mutations: [], prestige: [], achievements: [] };
+
+// --- 10 HIGH-QUALITY CORE UPGRADES ---
+const manualUpgrades = [
+    { id: 'u_1', name: "Expandable Stomach", type: 'cap', cost: 50, mult: 1.5, max: 35, desc: "Massively increases your food storage.", val: 25 },
+    { id: 'u_2', name: "Athletic Legs", type: 'speed', cost: 150, mult: 1.6, max: 20, desc: "Increases movement speed by 15% per level.", val: 0.15 },
+    { id: 'u_3', name: "Aroma Vacuum", type: 'rad', cost: 300, mult: 1.4, max: 25, desc: "Sucks up food from much further away.", val: 8 },
+    { id: 'u_4', name: "Hyper Metabolism", type: 'cal', cost: 600, mult: 1.8, max: 50, desc: "Multiplies Caloric output significantly.", val: 2.0 },
+    { id: 'u_5', name: "Acidic Bile", type: 'digest', cost: 2000, mult: 2.0, max: 15, desc: "Digest FOOD at 3x speed per level.", val: 3.0 },
+    { id: 'u_6', name: "Passive Digestion", type: 'auto', cost: 10000, mult: 3.0, max: 50, desc: "Passively digests food to generate Calories.", val: 250 },
+    { id: 'u_7', name: "Iron Jaw", type: 'cal', cost: 45000, mult: 2.5, max: 20, desc: "Crunch harder. Calorie multiplier +3.5x.", val: 3.5 },
+    { id: 'u_8', name: "Endless Hunger", type: 'stam', cost: 80000, mult: 1.7, max: 30, desc: "Boosts max sprinting stamina.", val: 50 },
+    { id: 'u_9', name: "Tractor Beam Mouth", type: 'rad', cost: 250000, mult: 2.2, max: 15, desc: "Unnatural food suction range.", val: 20 },
+    { id: 'u_10', name: "Quantum Stomach", type: 'cap', cost: 1000000, mult: 3.0, max: 20, desc: "Store food in a pocket dimension.", val: 500 }
+];
+
+manualUpgrades.forEach(u => {
+    DB.upgrades.push({
+        id: u.id, name: u.name, desc: u.desc, type: u.type, cost: u.cost, 
+        mult: u.mult, max: u.max, val: u.val,
+        effectDesc: `${u.type.toUpperCase()}: +${u.val}`
+    });
+});
+
+// --- MUTATIONS ---
+const manualMutations = [
+    { id: 'm_1', name: "Extra Intestine", type: 'auto', cost: 5000, mult: 2.1, max: 40, desc: "Grows another organ for auto-digestion.", val: 500 },
+    { id: 'm_2', name: "Four Stomachs", type: 'cal', cost: 15000, mult: 2.5, max: 30, desc: "Like a cow, but for fast food.", val: 2.5 },
+    { id: 'm_3', name: "Symbiotic Worm", type: 'auto', cost: 50000, mult: 3.0, max: 20, desc: "It helps you eat. Mostly.", val: 2500 },
+    { id: 'm_4', name: "Bioluminescent Saliva", type: 'cal', cost: 120000, mult: 3.5, max: 15, desc: "Chemical breakdown enhances calories.", val: 4.0 }
+];
+
+manualMutations.forEach(m => {
+    DB.mutations.push({
+        id: m.id, name: m.name, desc: m.desc, type: m.type, cost: m.cost,
+        mult: m.mult, max: m.max, val: m.val,
+        effectDesc: `${m.type.toUpperCase()}: +${m.val}`
+    });
+});
+
+// Generate 40 Prestige Items
+const pNames = ["Golden Palate", "Astral Tastebuds", "Divine Digestion", "Omni Radius", "Temporal Stride", "Void Capacity", "Creator Core", "Singularity Stomach", "Nebula Aura", "Galactic Hunger", "Cosmic Craving", "Universal Feast"];
+for(let i=0; i<40; i++) {
+    let pTypes = ['pcal', 'pcap', 'pdigest', 'prad', 'pspeed', 'pstam', 'pauto'];
+    let type = pTypes[i % pTypes.length];
+    let val = (type === 'pauto') ? Math.pow(10, Math.floor(i/7)+1) : (2.5 + i*0.5);
+    let effectDesc = type === 'pauto' ? `Passive base generation +${val.toLocaleString()}/lvl` : `Base stat multiplied x${val.toLocaleString()}/lvl`;
     
-    // Multipliers
-    globalMultiplier: 1,
-    clickMultiplier: 1,
+    DB.prestige.push({
+        id: `p_${i}`, name: `${pNames[i%pNames.length]} Mk.${Math.floor(i/pNames.length)+1}`, desc: `Rewrites fundamental reality laws.`,
+        effectDesc: effectDesc, cost: 1 * Math.pow(4.5, i), mult: 3.2, max: 999, type: type, val: val
+    });
+}
 
-    // Data stores
-    buildings: [],
-    upgrades: [],
-    achievements: [],
-    
-    // DOM Elements
-    el: {
-        eggs: document.getElementById('eggs-count'),
-        cps: document.getElementById('cps-count'),
-        chicken: document.getElementById('chicken-container'),
-        buildings: document.getElementById('buildings-container'),
-        upgrades: document.getElementById('upgrades-container'),
-        ticker: document.getElementById('ticker-text'),
-        statTotalEggs: document.getElementById('stat-total-eggs'),
-        statClicks: document.getElementById('stat-clicks'),
-        statTime: document.getElementById('stat-time'),
-        statUpgrades: document.getElementById('stat-upgrades'),
-        toast: document.getElementById('toast-container')
-    },
+// Achievements
+const achData = [
+    { id: 'a_1', name: "First Bite", desc: "Generate 100 total calories.", req: { type: 'cals', val: 100 } },
+    { id: 'a_2', name: "Snacker", desc: "Devour 50 food items.", req: { type: 'food', val: 50 } },
+    { id: 'a_3', name: "Marathon", desc: "Travel 10,000 meters.", req: { type: 'dist', val: 10000 } },
+    { id: 'a_4', name: "Feast", desc: "Generate 1,000,000 calories.", req: { type: 'cals', val: 1000000 } },
+    { id: 'a_5', name: "Bottomless", desc: "Reach 5,000 capacity.", req: { type: 'cap', val: 5000 } },
+    { id: 'a_6', name: "Ascension", desc: "Perform 1 Ascension.", req: { type: 'rebirth', val: 1 } },
+    { id: 'a_7', name: "Devourer", desc: "Devour 5,000 food items.", req: { type: 'food', val: 5000 } },
+    { id: 'a_8', name: "Global Warming", desc: "Generate 1 Billion calories.", req: { type: 'cals', val: 1e9 } },
+    { id: 'a_9', name: "Flash", desc: "Travel 100,000 meters.", req: { type: 'dist', val: 100000 } },
+    { id: 'a_10', name: "Godhood", desc: "Perform 10 Ascensions.", req: { type: 'rebirth', val: 10 } },
+    { id: 'a_11', name: "Black Hole", desc: "Reach 1,000,000 capacity.", req: { type: 'cap', val: 1000000 } },
+    { id: 'a_12', name: "Universal Catastrophe", desc: "Generate 1 Trillion calories.", req: { type: 'cals', val: 1e12 } },
+    { id: 'a_13', name: "Gluttony Prime", desc: "Devour 50,000 food items.", req: { type: 'food', val: 50000 } },
+    { id: 'a_14', name: "Infinite Dimensions", desc: "Reach 500,000,000 capacity.", req: { type: 'cap', val: 500000000 } }
+];
+DB.achievements = achData.map(a => ({ ...a, unlocked: false }));
 
-    // Initialize Game
-    init: function() {
-        this.defineBuildings();
-        this.defineUpgrades();
-        this.defineAchievements();
-        this.defineNews();
-        
-        this.load();
-        
-        this.renderBuildings();
-        this.renderUpgrades();
-        
-        this.el.chicken.addEventListener('mousedown', this.click.bind(this));
-        
-        // Game Loop
-        setInterval(this.update.bind(this), 1000 / this.fps);
-        setInterval(this.updateUI.bind(this), 100);
-        setInterval(this.save.bind(this), 60000); // Autosave every 60s
-        setInterval(this.updateNews.bind(this), 15000);
-        
-        this.updateNews();
-        this.notify("Game Started!", "Welcome to Chicken Clicker!");
-    },
+// ==========================================
+// STATE & SAVE SYSTEM
+// ==========================================
+const State = {
+    version: 1.0,
+    calories: 0, foodEaten: 0, foodInStomach: 0, prestigeTokens: 0, rebirths: 0, distanceTraveled: 0,
+    stomachCap: 10, maxStamina: 100, stamina: 100, multCal: 1, multSpeed: 1, multRadius: 1, multDigest: 1, autoCal: 0,
+    pos: new THREE.Vector3(0, 5, 0), vel: new THREE.Vector3(0, 0, 0), baseSpeed: 55, sprintMult: 2.4, yaw: 0, pitch: 0,
+    inSafeZone: true, isSprinting: false,
+    inventory: {}, achievementsData: {}
+};
 
-    // --- DEFINITIONS ---
-    
-    defineBuildings: function() {
-        class Building {
-            constructor(id, name, baseCost, baseCps, icon, description) {
-                this.id = id;
-                this.name = name;
-                this.baseCost = baseCost;
-                this.baseCps = baseCps;
-                this.icon = icon;
-                this.description = description;
-                this.count = 0;
-                this.multiplier = 1;
-                this.free = 0;
-            }
-            getCost() {
-                return Math.ceil(this.baseCost * Math.pow(1.15, this.count));
-            }
-            getCps() {
-                return this.baseCps * this.count * this.multiplier;
-            }
-            buy() {
-                let cost = this.getCost();
-                if (Game.eggs >= cost) {
-                    Game.eggs -= cost;
-                    this.count++;
-                    Game.recalculateCPS();
-                    Game.renderBuildings();
-                    Game.renderUpgrades();
-                    return true;
-                }
-                return false;
-            }
-        }
+// Initialize inventory
+[...DB.upgrades, ...DB.mutations, ...DB.prestige].forEach(item => { State.inventory[item.id] = { count: 0, currentCost: item.cost }; });
+DB.achievements.forEach(a => { State.achievementsData[a.id] = false; });
 
-        this.buildings = [
-            new Building(0, "Nest", 15, 0.1, "🧺", "A simple nest of twigs. Produces a slow trickle of eggs."),
-            new Building(1, "Coop", 100, 1, "🛖", "A wooden coop holding a few chickens."),
-            new Building(2, "Barn", 1100, 8, "🏚️", "A large barn to hold even more chickens."),
-            new Building(3, "Farm", 12000, 47, "🚜", "A sprawling farm dedicated entirely to egg production."),
-            new Building(4, "Factory", 130000, 260, "🏭", "Industrial-scale egg manufacturing."),
-            new Building(5, "Mine", 1400000, 1400, "⛏️", "Mines deep into the earth's crust to extract fossilized prehistoric eggs."),
-            new Building(6, "Shipment", 20000000, 7800, "🚀", "Brings in fresh eggs from the poultry planet of Cluck-9."),
-            new Building(7, "Alchemy Lab", 330000000, 44000, "⚗️", "Turns raw dirt directly into perfectly formed eggs."),
-            new Building(8, "Portal", 5100000000, 260000, "🌌", "Opens a doorway to the Eggverse."),
-            new Building(9, "Time Machine", 75000000000, 1600000, "⏳", "Travels to the past to harvest eggs before they are even laid."),
-            new Building(10, "Antimatter Condenser", 1000000000000, 10000000, "⚛️", "Condenses the antimatter in the universe into pure egg mass."),
-            new Building(11, "Prism", 14000000000000, 65000000, "🌈", "Converts light itself into eggs."),
-            new Building(12, "Chancemaker", 170000000000000, 430000000, "🎲", "Generates eggs out of pure probability."),
-            new Building(13, "Fractal Engine", 2100000000000000, 2900000000, "🌀", "Eggs made of eggs made of eggs..."),
-            new Building(14, "Javascript Console", 26000000000000000, 21000000000, "💻", "Hacks the game's code to simply spawn eggs."),
-            new Building(15, "Idleverse", 310000000000000000, 150000000000, "🪐", "Hijacks other idle games and steals their numbers.")
-        ];
-    },
-
-    defineUpgrades: function() {
-        class Upgrade {
-            constructor(id, name, cost, icon, description, reqType, reqAmount, effect) {
-                this.id = id;
-                this.name = name;
-                this.cost = cost;
-                this.icon = icon;
-                this.description = description;
-                this.reqType = reqType; // 'building', 'eggs', 'clicks'
-                this.reqAmount = reqAmount;
-                this.effect = effect; // Function to run when bought
-                this.purchased = false;
-            }
-            isUnlocked() {
-                if (this.purchased) return false;
-                if (this.reqType === 'eggs' && Game.totalEggs >= this.reqAmount) return true;
-                if (this.reqType === 'clicks' && Game.clickCount >= this.reqAmount) return true;
-                if (typeof this.reqType === 'number') { // Building ID
-                    return Game.buildings[this.reqType].count >= this.reqAmount;
-                }
-                return false;
-            }
-            buy() {
-                if (this.isUnlocked() && Game.eggs >= this.cost) {
-                    Game.eggs -= this.cost;
-                    this.purchased = true;
-                    this.effect();
-                    Game.recalculateCPS();
-                    Game.renderUpgrades();
-                    Game.notify("Upgrade Bought!", this.name);
-                    return true;
-                }
-                return false;
-            }
-        }
-
-        this.upgrades = [
-            // Click Upgrades
-            new Upgrade(0, "Reinforced Index Finger", 100, "👆", "Clicking is twice as efficient.", 'clicks', 10, () => { Game.clickMultiplier *= 2; }),
-            new Upgrade(1, "Carpal Tunnel Prevention Cream", 500, "🧴", "Clicking is twice as efficient.", 'clicks', 100, () => { Game.clickMultiplier *= 2; }),
-            new Upgrade(2, "Ambidextrous", 10000, "👐", "Clicking is twice as efficient.", 'clicks', 1000, () => { Game.clickMultiplier *= 2; }),
-            new Upgrade(3, "Thousand Fingers", 100000, "🖐️", "Gain +0.1 clicks for each building owned.", 'clicks', 5000, () => { 
-                // Handled in click calculation
-            }),
-
-            // Nest Upgrades (ID: 0)
-            new Upgrade(10, "Softer Twigs", 100, "🌿", "Nests are twice as efficient.", 0, 1, () => { Game.buildings[0].multiplier *= 2; }),
-            new Upgrade(11, "Feather Padding", 500, "🪶", "Nests are twice as efficient.", 0, 10, () => { Game.buildings[0].multiplier *= 2; }),
-            new Upgrade(12, "Heated Nests", 10000, "🔥", "Nests are twice as efficient.", 0, 50, () => { Game.buildings[0].multiplier *= 2; }),
-            
-            // Coop Upgrades (ID: 1)
-            new Upgrade(20, "Sturdier Wood", 1000, "🪵", "Coops are twice as efficient.", 1, 1, () => { Game.buildings[1].multiplier *= 2; }),
-            new Upgrade(21, "Automated Feeders", 5000, "🌾", "Coops are twice as efficient.", 1, 10, () => { Game.buildings[1].multiplier *= 2; }),
-            new Upgrade(22, "Rooster Guards", 50000, "🐓", "Coops are twice as efficient.", 1, 50, () => { Game.buildings[1].multiplier *= 2; }),
-
-            // Barn Upgrades (ID: 2)
-            new Upgrade(30, "Red Paint", 11000, "🎨", "Barns are twice as efficient.", 2, 1, () => { Game.buildings[2].multiplier *= 2; }),
-            new Upgrade(31, "Hay Bales", 55000, "🌾", "Barns are twice as efficient.", 2, 10, () => { Game.buildings[2].multiplier *= 2; }),
-            new Upgrade(32, "Loft Storage", 550000, "🪜", "Barns are twice as efficient.", 2, 50, () => { Game.buildings[2].multiplier *= 2; }),
-
-            // Farm Upgrades (ID: 3)
-            new Upgrade(40, "Fertilizer", 120000, "💩", "Farms are twice as efficient.", 3, 1, () => { Game.buildings[3].multiplier *= 2; }),
-            new Upgrade(41, "Tractors", 600000, "🚜", "Farms are twice as efficient.", 3, 10, () => { Game.buildings[3].multiplier *= 2; }),
-            new Upgrade(42, "GMO Seeds", 6000000, "🧬", "Farms are twice as efficient.", 3, 50, () => { Game.buildings[3].multiplier *= 2; }),
-
-            // Factory Upgrades (ID: 4)
-            new Upgrade(50, "Assembly Line", 1300000, "⚙️", "Factories are twice as efficient.", 4, 1, () => { Game.buildings[4].multiplier *= 2; }),
-            new Upgrade(51, "Robot Workers", 6500000, "🤖", "Factories are twice as efficient.", 4, 10, () => { Game.buildings[4].multiplier *= 2; }),
-            new Upgrade(52, "Overtime", 65000000, "⏰", "Factories are twice as efficient.", 4, 50, () => { Game.buildings[4].multiplier *= 2; }),
-
-            // Mine Upgrades (ID: 5)
-            new Upgrade(60, "Dynamite", 14000000, "🧨", "Mines are twice as efficient.", 5, 1, () => { Game.buildings[5].multiplier *= 2; }),
-            new Upgrade(61, "Diamond Pickaxes", 70000000, "💎", "Mines are twice as efficient.", 5, 10, () => { Game.buildings[5].multiplier *= 2; }),
-            new Upgrade(62, "Core Drilling", 700000000, "🌋", "Mines are twice as efficient.", 5, 50, () => { Game.buildings[5].multiplier *= 2; }),
-
-            // Global / Synergy Upgrades
-            new Upgrade(100, "Golden Egg", 1000000, "✨", "Overall egg production +10%.", 'eggs', 100000, () => { Game.globalMultiplier *= 1.1; }),
-            new Upgrade(101, "Platinum Egg", 100000000, "💿", "Overall egg production +15%.", 'eggs', 10000000, () => { Game.globalMultiplier *= 1.15; }),
-            new Upgrade(102, "Diamond Egg", 10000000000, "💎", "Overall egg production +20%.", 'eggs', 1000000000, () => { Game.globalMultiplier *= 1.2; })
-        ];
-    },
-
-    defineAchievements: function() {
-        // Keeping it conceptual for logic
-        this.achievements = [
-            { id: 0, name: "First Blood", desc: "Click the chicken.", req: () => Game.clickCount >= 1, won: false },
-            { id: 1, name: "Novice Clicker", desc: "Click the chicken 100 times.", req: () => Game.clickCount >= 100, won: false },
-            { id: 2, name: "Expert Clicker", desc: "Click the chicken 1,000 times.", req: () => Game.clickCount >= 1000, won: false },
-            { id: 3, name: "Chicken Whisperer", desc: "Click the chicken 10,000 times.", req: () => Game.clickCount >= 10000, won: false },
-            { id: 4, name: "Humble Beginnings", desc: "Bake 100 eggs.", req: () => Game.totalEggs >= 100, won: false },
-            { id: 5, name: "Making Dough", desc: "Bake 10,000 eggs.", req: () => Game.totalEggs >= 10000, won: false },
-            { id: 6, name: "Millionaire", desc: "Bake 1,000,000 eggs.", req: () => Game.totalEggs >= 1000000, won: false },
-            { id: 7, name: "Billionaire", desc: "Bake 1,000,000,000 eggs.", req: () => Game.totalEggs >= 1000000000, won: false },
-            { id: 8, name: "Trillionaire", desc: "Bake 1,000,000,000,000 eggs.", req: () => Game.totalEggs >= 1000000000000, won: false }
-        ];
-    },
-
-    defineNews: function() {
-        this.news = [
-            "News: Chicken crosses road, motives remain unclear.",
-            "News: Local farmer discovers egg made of solid gold, eats it.",
-            "News: 'Why did the chicken do it?' asks philosopher.",
-            "News: Egg prices skyrocket as strange digital entity clicks rapidly.",
-            "News: New study shows chickens may be smarter than politicians.",
-            "News: World covered in thin layer of egg yolk following factory explosion.",
-            "News: 'I just want to click,' says local maniac.",
-            "News: Breaking - The egg came first, scientists conclude. Or maybe the chicken. They are still fighting.",
-            "News: Massive influx of eggs destabilizes global economy.",
-            "News: Chicken cult formed in the midwest, worships giant digital bird."
-        ];
-    },
-
-    // --- GAME LOGIC ---
-
-    click: function(e) {
-        let power = this.getClickPower();
-        this.eggs += power;
-        this.totalEggs += power;
-        this.clickCount++;
-        
-        this.spawnParticle(e, power);
-        this.checkUnlocks();
-    },
-
-    getClickPower: function() {
-        let power = 1;
-        // Apply basic click multiplier
-        power *= this.clickMultiplier;
-        
-        // Calculate "Thousand Fingers" style logic if upgrade 3 is bought
-        if (this.upgrades[3].purchased) {
-            let totalBuildings = this.buildings.reduce((sum, b) => sum + b.count, 0);
-            power += totalBuildings * 0.1;
-        }
-
-        // Add % of CPS to click power (optional classic clicker mechanic)
-        power += this.cps * 0.01; 
-
-        return power;
-    },
-
-    recalculateCPS: function() {
-        let rawCps = 0;
-        for (let i = 0; i < this.buildings.length; i++) {
-            rawCps += this.buildings[i].getCps();
-        }
-        this.cps = rawCps * this.globalMultiplier;
-    },
-
-    update: function() {
-        let now = Date.now();
-        let delta = (now - this.lastTick) / 1000; // time since last tick in seconds
-        this.lastTick = now;
-
-        if (this.cps > 0) {
-            let generated = this.cps * delta;
-            this.eggs += generated;
-            this.totalEggs += generated;
-        }
-
-        this.checkUnlocks();
-    },
-
-    checkUnlocks: function() {
-        // Check Achievements
-        for (let i = 0; i < this.achievements.length; i++) {
-            let ach = this.achievements[i];
-            if (!ach.won && ach.req()) {
-                ach.won = true;
-                this.notify("Achievement Unlocked!", ach.name);
-            }
-        }
-        // UI updates for unlocks handled in updateUI
-    },
-
-    // --- UI & RENDERING ---
-
-    formatNumber: function(num) {
-        if (num < 1000) return Math.floor(num).toString();
-        const suffixes = ["", "k", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
-        const suffixNum = Math.floor(("" + Math.floor(num)).length / 3);
-        let shortValue = parseFloat((suffixNum != 0 ? (num / Math.pow(1000, suffixNum)) : num).toPrecision(3));
-        if (shortValue % 1 != 0) shortValue = shortValue.toFixed(1);
-        return shortValue + suffixes[suffixNum];
-    },
-
-    updateUI: function() {
-        this.el.eggs.innerText = this.formatNumber(this.eggs);
-        this.el.cps.innerText = this.formatNumber(this.cps) + " eggs per second";
-        
-        this.el.statTotalEggs.innerText = this.formatNumber(this.totalEggs);
-        this.el.statClicks.innerText = this.formatNumber(this.clickCount);
-        this.el.statTime.innerText = this.formatNumber((Date.now() - this.startTime) / 1000) + "s";
-        
-        let upgCount = this.upgrades.filter(u => u.purchased).length;
-        this.el.statUpgrades.innerText = upgCount + " / " + this.upgrades.length;
-
-        // Update building buttons availability
-        for (let i = 0; i < this.buildings.length; i++) {
-            let b = this.buildings[i];
-            let el = document.getElementById('building-' + b.id);
-            if (el) {
-                if (this.eggs >= b.getCost()) {
-                    el.classList.remove('locked');
-                } else {
-                    el.classList.add('locked');
-                }
-                document.getElementById('b-cost-' + b.id).innerText = this.formatNumber(b.getCost());
-                document.getElementById('b-count-' + b.id).innerText = b.count > 0 ? b.count : '';
-            }
-        }
-
-        // Update upgrade buttons
-        for (let i = 0; i < this.upgrades.length; i++) {
-            let u = this.upgrades[i];
-            let el = document.getElementById('upgrade-' + u.id);
-            if (u.isUnlocked() && !u.purchased) {
-                if (!el) {
-                    this.renderUpgrades(); // Re-render if new upgrade unlocked
-                    break;
-                }
-                if (this.eggs >= u.cost) {
-                    el.style.opacity = "1";
-                    el.style.cursor = "pointer";
-                } else {
-                    el.style.opacity = "0.5";
-                    el.style.cursor = "not-allowed";
-                }
-            } else if (u.purchased && el) {
-                el.remove(); // Remove bought upgrades from DOM
-            }
-        }
-    },
-
-    renderBuildings: function() {
-        this.el.buildings.innerHTML = '';
-        for (let i = 0; i < this.buildings.length; i++) {
-            let b = this.buildings[i];
-            // Only show buildings if we have at least half the cost of the first one, 
-            // or if we have previous building
-            if (i === 0 || this.totalEggs >= b.baseCost * 0.5 || this.buildings[i-1].count > 0) {
-                let div = document.createElement('div');
-                div.className = 'building-btn ' + (this.eggs >= b.getCost() ? '' : 'locked');
-                div.id = 'building-' + b.id;
-                div.onclick = () => b.buy();
-                
-                div.innerHTML = `
-                    <div class="building-icon">${b.icon}</div>
-                    <div class="building-info">
-                        <h3 class="building-name">${b.name}</h3>
-                        <p class="building-cost">🪙 <span id="b-cost-${b.id}">${this.formatNumber(b.getCost())}</span></p>
-                    </div>
-                    <div class="building-count" id="b-count-${b.id}">${b.count > 0 ? b.count : ''}</div>
-                    
-                    <div class="tooltip">
-                        <span class="tooltip-title">${b.name}</span>
-                        <span class="tooltip-desc">${b.description}</span><br><br>
-                        <span class="tooltip-desc">Produces ${this.formatNumber(b.baseCps * b.multiplier)} CpS.</span>
-                    </div>
-                `;
-                this.el.buildings.appendChild(div);
-            }
-        }
-    },
-
-    renderUpgrades: function() {
-        this.el.upgrades.innerHTML = '';
-        for (let i = 0; i < this.upgrades.length; i++) {
-            let u = this.upgrades[i];
-            if (u.isUnlocked() && !u.purchased) {
-                let btn = document.createElement('div');
-                btn.className = 'upgrade-btn';
-                btn.id = 'upgrade-' + u.id;
-                btn.onclick = () => u.buy();
-                btn.innerHTML = `
-                    ${u.icon}
-                    <div class="tooltip">
-                        <span class="tooltip-title">${u.name}</span>
-                        <span class="tooltip-cost">🪙 ${this.formatNumber(u.cost)}</span>
-                        <span class="tooltip-desc">${u.description}</span>
-                    </div>
-                `;
-                this.el.upgrades.appendChild(btn);
-            }
-        }
-    },
-
-    updateNews: function() {
-        let text = this.news[Math.floor(Math.random() * this.news.length)];
-        this.el.ticker.innerText = text;
-        
-        // Reset animation
-        this.el.ticker.style.animation = 'none';
-        this.el.ticker.offsetHeight; /* trigger reflow */
-        this.el.ticker.style.animation = null; 
-    },
-
-    spawnParticle: function(e, amount) {
-        let particle = document.createElement('div');
-        particle.className = 'particle';
-        particle.innerText = "+" + this.formatNumber(amount);
-        
-        // Position at mouse click
-        let rect = this.el.chicken.getBoundingClientRect();
-        let x = e.clientX - rect.left - 20 + (Math.random() * 40 - 20); // Random jitter
-        let y = e.clientY - rect.top - 20;
-        
-        particle.style.left = x + 'px';
-        particle.style.top = y + 'px';
-        
-        this.el.chicken.appendChild(particle);
-        
-        setTimeout(() => {
-            particle.remove();
-        }, 1500);
-    },
-
-    notify: function(title, message) {
-        let toast = document.createElement('div');
-        toast.className = 'toast';
-        toast.innerHTML = `<strong>${title}</strong><br><span style="font-size:12px;color:var(--text-muted)">${message}</span>`;
-        this.el.toast.appendChild(toast);
-        setTimeout(() => {
-            toast.remove();
-        }, 3500);
-    },
-
-    // --- SAVE / LOAD SYSTEM ---
-
-    save: function() {
-        let saveObj = {
-            eggs: this.eggs,
-            totalEggs: this.totalEggs,
-            clickCount: this.clickCount,
-            startTime: this.startTime,
-            buildings: this.buildings.map(b => b.count),
-            upgrades: this.upgrades.map(u => u.purchased),
-            achievements: this.achievements.map(a => a.won),
-            timestamp: Date.now()
+const SaveSys = {
+    saveKey: 'gourmet_tycoon_v1_save',
+    save(manual = false) {
+        const saveData = {
+            calories: State.calories, foodEaten: State.foodEaten, prestigeTokens: State.prestigeTokens,
+            rebirths: State.rebirths, distanceTraveled: State.distanceTraveled,
+            inv: State.inventory, ach: State.achievementsData
         };
-        localStorage.setItem('chickenClickerSave', btoa(JSON.stringify(saveObj)));
-        this.notify("Game Saved", "Your progress is secured.");
+        localStorage.setItem(this.saveKey, JSON.stringify(saveData));
+        if(manual) UI.spawnLog("TIMELINE SAVED SECURELY", "var(--primary)");
     },
-
-    load: function() {
-        let saveStr = localStorage.getItem('chickenClickerSave');
-        if (saveStr) {
-            try {
-                let saveObj = JSON.parse(atob(saveStr));
-                
-                this.eggs = saveObj.eggs || 0;
-                this.totalEggs = saveObj.totalEggs || 0;
-                this.clickCount = saveObj.clickCount || 0;
-                this.startTime = saveObj.startTime || Date.now();
-                
-                if (saveObj.buildings) {
-                    for (let i = 0; i < saveObj.buildings.length; i++) {
-                        if (this.buildings[i]) this.buildings[i].count = saveObj.buildings[i];
+    load() {
+        try {
+            const dataStr = localStorage.getItem(this.saveKey);
+            if(!dataStr) return false;
+            const data = JSON.parse(dataStr);
+            
+            State.calories = data.calories || 0;
+            State.foodEaten = data.foodEaten || 0;
+            State.prestigeTokens = data.prestigeTokens || 0;
+            State.rebirths = data.rebirths || 0;
+            State.distanceTraveled = data.distanceTraveled || 0;
+            
+            if(data.inv) {
+                for(let key in data.inv) {
+                    if(State.inventory[key]) {
+                        State.inventory[key].count = data.inv[key].count;
+                        State.inventory[key].currentCost = data.inv[key].currentCost;
                     }
                 }
-                
-                if (saveObj.upgrades) {
-                    for (let i = 0; i < saveObj.upgrades.length; i++) {
-                        if (this.upgrades[i] && saveObj.upgrades[i]) {
-                            this.upgrades[i].purchased = true;
-                            this.upgrades[i].effect(); // Apply effect on load
-                        }
-                    }
-                }
-                
-                if (saveObj.achievements) {
-                    for (let i = 0; i < saveObj.achievements.length; i++) {
-                        if (this.achievements[i]) this.achievements[i].won = saveObj.achievements[i];
-                    }
-                }
-
-                // Calculate offline progress
-                if (saveObj.timestamp) {
-                    let now = Date.now();
-                    let offlineSeconds = (now - saveObj.timestamp) / 1000;
-                    if (offlineSeconds > 60) { // Only give offline progress if away for more than a minute
-                        this.recalculateCPS();
-                        let earned = this.cps * offlineSeconds;
-                        this.eggs += earned;
-                        this.totalEggs += earned;
-                        this.notify("Welcome Back!", `You earned ${this.formatNumber(earned)} eggs while away.`);
-                    }
-                }
-
-                this.recalculateCPS();
-                this.notify("Game Loaded", "Welcome back to the farm.");
-            } catch (e) {
-                console.error("Save file corrupted.", e);
-                this.notify("Error", "Save file corrupted.");
             }
+            if(data.ach) {
+                for(let key in data.ach) {
+                    State.achievementsData[key] = data.ach[key];
+                    let dbMatch = DB.achievements.find(a => a.id === key);
+                    if(dbMatch) dbMatch.unlocked = data.ach[key];
+                }
+            }
+            Logic.recalculateStats();
+            if(State.rebirths > 0) document.getElementById('row-prestige').style.display = 'flex';
+            console.log("Save loaded successfully.");
+            return true;
+        } catch(e) {
+            console.error("Save load failed", e);
+            return false;
         }
     },
-
-    wipe: function() {
-        if (confirm("Are you sure you want to hard reset? You will lose ALL progress!")) {
-            localStorage.removeItem('chickenClickerSave');
+    hardReset() {
+        if(confirm("CRITICAL WARNING: This will permanently delete your save file. Are you sure?")) {
+            localStorage.removeItem(this.saveKey);
             location.reload();
+        }
+    },
+    export() {
+        this.save();
+        const str = btoa(localStorage.getItem(this.saveKey));
+        document.getElementById('save-string').value = str;
+        UI.spawnLog("SAVE EXPORTED TO CLIPBOARD", "var(--tertiary)");
+    },
+    import() {
+        try {
+            const str = document.getElementById('save-string').value;
+            const decoded = atob(str);
+            JSON.parse(decoded); // Validate JSON
+            localStorage.setItem(this.saveKey, decoded);
+            location.reload();
+        } catch(e) {
+            UI.spawnLog("INVALID SAVE STRING", "var(--danger)");
         }
     }
 };
 
-// Start Game
-window.onload = () => Game.init();
+// ==========================================
+// AUDIO SYSTEM
+// ==========================================
+const AudioSys = {
+    ctx: null, enabled: false,
+    init() { 
+        try { 
+            window.AudioContext = window.AudioContext || window.webkitAudioContext; 
+            this.ctx = new AudioContext(); 
+            this.enabled = true; 
+        } catch(e) {} 
+    },
+    playTone(freq, type, duration, vol, detune=0) {
+        if(!this.enabled || this.ctx.state === 'suspended') return;
+        const osc = this.ctx.createOscillator(); 
+        const gain = this.ctx.createGain();
+        osc.type = type; 
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime); 
+        osc.detune.setValueAtTime(detune, this.ctx.currentTime);
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime); 
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        osc.connect(gain); gain.connect(this.ctx.destination); 
+        osc.start(); osc.stop(this.ctx.currentTime + duration);
+    },
+    playCollect(tier) {
+        // Synthesize a chomp sound
+        this.playTone(300 + tier*100, 'sawtooth', 0.1, 0.2, -100);
+        this.playTone(150 + tier*50, 'square', 0.15, 0.2);
+    },
+    playDigest() {
+        if(!this.enabled) return;
+        const dur = Math.random() * 0.3 + 0.2;
+        this.playTone(Math.random() * 50 + 80, 'triangle', dur, 0.3, Math.random()*200 - 100);
+        this.playTone(Math.random() * 40 + 60, 'sine', dur*1.2, 0.2);
+    },
+    playFootstep() {
+        if(!this.enabled) return;
+        this.playTone(70 + Math.random() * 15, 'sine', 0.08, 0.03);
+    },
+    playAscend() {
+        this.playTone(200, 'sine', 2.0, 0.4); 
+        setTimeout(()=>this.playTone(400, 'sine', 1.8, 0.4), 200);
+        setTimeout(()=>this.playTone(800, 'sine', 1.5, 0.4), 400); 
+        setTimeout(()=>this.playTone(1600, 'triangle', 1.0, 0.4), 600);
+    },
+    playBuy() {
+        this.playTone(1200, 'sine', 0.1, 0.15); 
+        setTimeout(()=>this.playTone(1800, 'sine', 0.2, 0.15), 50);
+    },
+    playError() {
+        this.playTone(150, 'sawtooth', 0.2, 0.2);
+    }
+};
 
+// ==========================================
+// WEATHER & PARTICLE SYSTEM
+// ==========================================
+const WeatherSys = {
+    particles: null, count: 6000, geo: null, mat: null, speeds: [], wMode: 0,
+    wTypes: ['☀️ CLEAR','🌧️ RAIN','❄️ SNOW','🌫️ FOG','☣️ ACID'],
+    init(scene) {
+        this.geo = new THREE.BufferGeometry();
+        const pos = new Float32Array(this.count * 3);
+        for(let i=0; i<this.count; i++) {
+            pos[i*3] = (Math.random()-0.5) * C.WORLD_SIZE;
+            pos[i*3+1] = Math.random() * 800;
+            pos[i*3+2] = (Math.random()-0.5) * C.WORLD_SIZE;
+            this.speeds.push(Math.random() * 120 + 80);
+        }
+        this.geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        this.mat = new THREE.PointsMaterial({ color: 0xffffff, size: 2.0, transparent: true, opacity: 0, depthWrite: false });
+        this.particles = new THREE.Points(this.geo, this.mat);
+        scene.add(this.particles);
+    },
+    cycle() {
+        this.wMode = (this.wMode + 1) % 5;
+        document.getElementById('btn-weather').innerText = `CYCLE WEATHER: ${this.wTypes[this.wMode]}`;
+        
+        const colors = [0, 0x6688cc, 0xffffff, 0, 0xffaa00];
+        this.mat.color.setHex(colors[this.wMode]);
+        this.mat.opacity = (this.wMode === 1 || this.wMode === 2 || this.wMode === 4) ? 0.6 : 0;
+        
+        Engine.scene.fog.density = this.wMode === 3 ? 0.008 : 0.0015;
+        if(Engine.matGround) Engine.matGround.color.setHex(this.wMode === 2 ? 0xdddddd : 0x779966);
+        
+        const isSun = this.wMode === 0;
+        if(EnvSys.sunLight) EnvSys.sunLight.intensity = isSun ? 1.5 : 0.5;
+
+        if(this.wMode === 4) UI.spawnLog("WARNING: ACID STORM INBOUND", "var(--danger)");
+    },
+    update(dt) {
+        if(this.wMode === 4 && Math.random() < 0.005) { 
+            document.getElementById('fx-overlay').style.boxShadow = "inset 0 0 400px rgba(255,170,0,0.8)"; 
+            setTimeout(()=>document.getElementById('fx-overlay').style.boxShadow="none", 100); 
+            AudioSys.playTone(40,'sawtooth',1,0.2); 
+        }
+        if(this.mat.opacity === 0) return;
+        const pos = this.geo.attributes.position.array;
+        for(let i=0; i<this.count; i++) {
+            let speedMult = (this.wMode === 2) ? 0.25 : 1.0;
+            pos[i*3+1] -= this.speeds[i] * dt * speedMult;
+            if(pos[i*3+1] < 0) {
+                pos[i*3+1] = 800;
+                pos[i*3] = State.pos.x + (Math.random()-0.5) * 800;
+                pos[i*3+2] = State.pos.z + (Math.random()-0.5) * 800;
+            }
+        }
+        this.geo.attributes.position.needsUpdate = true;
+    }
+};
+
+const EnvSys = {
+    time: 12.0, day: 1, timeSpeed: 0.025, sunLight: null, ambLight: null, skyColor: new THREE.Color(), fogColor: new THREE.Color(),
+    colors: {
+        daySky: new THREE.Color(0x4a82a6), dayFog: new THREE.Color(0x4a82a6), dayLight: new THREE.Color(0xffffff),
+        duskSky: new THREE.Color(0xcc6644), duskFog: new THREE.Color(0x994433), duskLight: new THREE.Color(0xffaa66),
+        nightSky: new THREE.Color(0x04050a), nightFog: new THREE.Color(0x020306), nightLight: new THREE.Color(0x3333aa),
+        dawnSky: new THREE.Color(0xba6a8c), dawnFog: new THREE.Color(0x8a4a66), dawnLight: new THREE.Color(0xffbb88)
+    },
+    update(dt, scene) {
+        this.time += this.timeSpeed * dt;
+        if(this.time >= 24.0) { this.time -= 24.0; this.day++; document.getElementById('time-day').innerText = this.day; }
+        
+        let h = Math.floor(this.time); 
+        let m = Math.floor((this.time - h) * 60);
+        document.getElementById('time-text').innerText = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+
+        let blend = 0, cSky1, cSky2, cFog1, cFog2, cLight1, cLight2, int1, int2, icon;
+        
+        if(this.time >= 6 && this.time < 17) {
+            blend = (this.time - 6) / 11; cSky1 = this.colors.dawnSky; cSky2 = this.colors.daySky; cFog1 = this.colors.dawnFog; cFog2 = this.colors.dayFog;
+            cLight1 = this.colors.dawnLight; cLight2 = this.colors.dayLight; int1 = 0.5; int2 = 1.0; icon = '☀️';
+        } else if(this.time >= 17 && this.time < 20) {
+            blend = (this.time - 17) / 3; cSky1 = this.colors.daySky; cSky2 = this.colors.duskSky; cFog1 = this.colors.dayFog; cFog2 = this.colors.duskFog;
+            cLight1 = this.colors.dayLight; cLight2 = this.colors.duskLight; int1 = 1.0; int2 = 0.6; icon = '🌇';
+        } else if(this.time >= 20 || this.time < 5) {
+            let t = this.time >= 20 ? (this.time - 20) : (this.time + 4); blend = t / 9;
+            cSky1 = this.colors.duskSky; cSky2 = this.colors.nightSky; cFog1 = this.colors.duskFog; cFog2 = this.colors.nightFog;
+            cLight1 = this.colors.duskLight; cLight2 = this.colors.nightLight; int1 = 0.6; int2 = 0.1; icon = '🌙';
+        } else {
+            blend = (this.time - 5) / 1; cSky1 = this.colors.nightSky; cSky2 = this.colors.dawnSky; cFog1 = this.colors.nightFog; cFog2 = this.colors.dawnFog;
+            cLight1 = this.colors.nightLight; cLight2 = this.colors.dawnLight; int1 = 0.1; int2 = 0.5; icon = '🌅';
+        }
+
+        document.getElementById('time-icon').innerText = icon;
+        this.skyColor.copy(cSky1).lerp(cSky2, blend); 
+        this.fogColor.copy(cFog1).lerp(cFog2, blend);
+        scene.background = this.skyColor; scene.fog.color = this.fogColor;
+        
+        if(this.sunLight) {
+            this.skyColor.setHSL(0.55, 1.0, Math.max(0.02, Math.sin((this.time / 24) * Math.PI * 2) * 0.5 + 0.5)); scene.background = this.skyColor; scene.fog.color.copy(this.skyColor);            this.sunLight.color.copy(cLight1).lerp(cLight2, blend); 
+            if(WeatherSys.wMode === 0) this.sunLight.intensity = lerp(int1, int2, blend);
+            let angle = (this.time / 24) * Math.PI * 2 - Math.PI/2;
+            this.sunLight.position.set(Math.cos(angle)*1000, Math.sin(angle)*1000, 300);
+        }
+    }
+};
+
+// ==========================================
+// RENDERER & 3D ENGINE
+// ==========================================
+class PRNG { constructor(seed) { this.seed = seed; } next() { this.seed = (this.seed * 9301 + 49297) % 233280; return this.seed / 233280; } }
+function hash(x, y, seed) { let h = seed + x * 374761393 + y * 668265263; h = (h ^ (h >> 13)) * 1274126177; return h ^ (h >> 16); }
+function smoothStep(t) { return t * t * (3 - 2 * t); }
+function lerp(a, b, t) { return a + t * (b - a); }
+function noise2D(x, y, seed = 12345) {
+    let xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, u = smoothStep(xf), v = smoothStep(yf);
+    let a = hash(xi, yi, seed) % 256 / 256, b = hash(xi+1, yi, seed) % 256 / 256, c = hash(xi, yi+1, seed) % 256 / 256, d = hash(xi+1, yi+1, seed) % 256 / 256;
+    return lerp(lerp(a, b, u), lerp(c, d, u), v);
+}
+function fbm(x, y, octaves = 6) {
+    let v = 0, a = 0.5, f = 1.0;
+    for(let i=0; i<octaves; i++) { v += a * noise2D(x * f, y * f); f *= 2.0; a *= 0.5; }
+    return v;
+}
+
+const C = { WORLD_SIZE: 12000, HOME_RADIUS: 180, MAX_FOOD: 3000, MAX_PARTICLES: 10000, GRASS_COUNT: 120000, TREE_COUNT: 5000 };
+
+const Engine = {
+    scene: null, camera: null, renderer: null, clock: new THREE.Clock(),
+    foodsGroup: null, particlesGroup: null, playerMesh: null,
+    foods: [], particles: [], wisps: [],
+    matFoodNorm: null, matFoodEpic: null, matFoodLeg: null, matGround: null,
+    
+    init() {
+        const container = document.getElementById('webgl-container');
+        this.scene = new THREE.Scene();
+        this.scene.fog = new THREE.FogExp2(0x4a82a6, 0.0015);
+
+        this.camera = new THREE.PerspectiveCamera(85, window.innerWidth/window.innerHeight, 0.1, 5000);
+        this.scene.add(this.camera);
+
+        // --- 3RD PERSON PLAYER MESH ---
+        this.playerMesh = new THREE.Group();
+        const bodyGeo = new THREE.CapsuleGeometry(2.5, 5, 4, 16);
+        const bodyMat = new THREE.MeshStandardMaterial({color: 0xff3366, roughness: 0.4});
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 5;
+        body.castShadow = true;
+        
+        // Add eyes to show front
+        const eyeGeo = new THREE.SphereGeometry(0.6, 8, 8);
+        const eyeMat = new THREE.MeshBasicMaterial({color: 0xffffff});
+        const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(-1, 6.5, -2.2);
+        const eyeR = new THREE.Mesh(eyeGeo, eyeMat); eyeR.position.set(1, 6.5, -2.2);
+        
+        const pupilGeo = new THREE.SphereGeometry(0.3, 8, 8);
+        const pupilMat = new THREE.MeshBasicMaterial({color: 0x000000});
+        const pL = new THREE.Mesh(pupilGeo, pupilMat); pL.position.set(-1, 6.5, -2.7);
+        const pR = new THREE.Mesh(pupilGeo, pupilMat); pR.position.set(1, 6.5, -2.7);
+
+        this.playerMesh.add(body, eyeL, eyeR, pL, pR);
+        this.scene.add(this.playerMesh);
+
+        // --- NAVIGATION ARROW ---
+        const arrowGeo = new THREE.ConeGeometry(0.5, 2, 8);
+        arrowGeo.rotateX(Math.PI / 2); // Point the tip forward
+        const arrowMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, depthTest: false, transparent: true, opacity: 0.8 });
+        this.navArrow = new THREE.Mesh(arrowGeo, arrowMat);
+        this.navArrow.renderOrder = 999;
+        this.scene.add(this.navArrow);
+
+        this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(this.renderer.domElement);
+
+        EnvSys.ambLight = new THREE.AmbientLight(0xffffff, 0.3); 
+        this.scene.add(EnvSys.ambLight);
+        
+        EnvSys.sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        EnvSys.sunLight.castShadow = true;
+        const d = 500;
+        EnvSys.sunLight.shadow.camera.left = -d; EnvSys.sunLight.shadow.camera.right = d;
+        EnvSys.sunLight.shadow.camera.top = d; EnvSys.sunLight.shadow.camera.bottom = -d;
+        EnvSys.sunLight.shadow.mapSize.width = 2048; EnvSys.sunLight.shadow.mapSize.height = 2048;
+        this.scene.add(EnvSys.sunLight);
+        
+        const pointLight = new THREE.PointLight(0xffaa00, 2.5, C.HOME_RADIUS * 2.5);
+        pointLight.position.set(0, 30, 0);
+        this.scene.add(pointLight);
+
+        this.foodsGroup = new THREE.Group(); this.scene.add(this.foodsGroup);
+        
+        this.initMaterials(); 
+        this.buildHomeBase(); 
+        this.buildNature();
+        WeatherSys.init(this.scene);
+
+        for(let i=0; i<C.MAX_FOOD; i++) this.spawnFood();
+        for(let i=0; i<60; i++) this.spawnWisp();
+
+        window.addEventListener('resize', () => this.onResize());
+        document.addEventListener('keydown', Input.onKeyDown); 
+        document.addEventListener('keyup', Input.onKeyUp);
+        
+        // Safe Pointer Lock Binding
+        container.addEventListener('click', () => { 
+            if(!UI.isShopOpen) { 
+                document.body.requestPointerLock(); 
+                if(!AudioSys.enabled) AudioSys.init(); 
+            }
+        });
+        
+        document.addEventListener('mousemove', Input.onMouseMove);
+        document.addEventListener('pointerlockchange', () => {
+            const isLocked = document.pointerLockElement === document.body;
+            UI.isShopOpen = !isLocked;
+            
+            if(!isLocked && document.getElementById('shop-panel').className !== 'hud-element open') {
+                document.getElementById('pause-overlay').style.display = 'flex';
+            } else {
+                document.getElementById('pause-overlay').style.display = 'none';
+            }
+            
+            if(isLocked) {
+                document.getElementById('shop-panel').classList.remove('open');
+            }
+        });
+
+        // Initialize Game Systems
+        SaveSys.load();
+        UI.init(); 
+        
+        this.loop();
+        
+        setTimeout(() => {
+            document.getElementById('loading-screen').style.opacity = '0';
+            setTimeout(() => document.getElementById('loading-screen').style.display = 'none', 1500);
+        }, 2000);
+        
+        setInterval(() => SaveSys.save(), 10000); // Auto-save
+    },
+
+    generateTerrainTexture() {
+        const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512; const ctx = canvas.getContext('2d');
+        ctx.fillStyle = "#223311"; ctx.fillRect(0, 0, 512, 512);
+        for(let i=0; i<8000; i++) {
+            let val = Math.random() * 40;
+            ctx.fillStyle = `rgba(${40+val}, ${80+val}, ${40}, 0.6)`;
+            ctx.beginPath(); ctx.arc(Math.random()*512, Math.random()*512, Math.random()*2+1, 0, Math.PI*2); ctx.fill();
+        }
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(60, 60);
+        return tex;
+    },
+
+    initMaterials() {
+        this.matGround = new THREE.MeshStandardMaterial({ map: this.generateTerrainTexture(), roughness: 1.0, metalness: 0.0, color: 0x779966 });
+        this.matFoodNorm = new THREE.MeshStandardMaterial({ color: 0xffaa00, roughness: 0.7, metalness: 0.1 });
+        this.matFoodEpic = new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.2, metalness: 0.8, emissive: 0x660022 });
+        this.matFoodLeg = new THREE.MeshStandardMaterial({ color: 0xffea00, roughness: 0.1, metalness: 1.0, emissive: 0xaa7700 });
+    },
+
+    buildHomeBase() {
+        const geoPlane = new THREE.PlaneGeometry(C.WORLD_SIZE, C.WORLD_SIZE, 180, 180); 
+        geoPlane.rotateX(-Math.PI / 2);
+        const posAttr = geoPlane.attributes.position;
+        for(let i=0; i<posAttr.count; i++) {
+            let x = posAttr.getX(i), z = posAttr.getZ(i);
+            let y = fbm(x*0.006, z*0.006, 6) * 65;
+            let dist = Math.hypot(x, z);
+            if(dist < C.HOME_RADIUS) y = lerp(0, y, dist/C.HOME_RADIUS);
+            posAttr.setY(i, y);
+        }
+        geoPlane.computeVertexNormals();
+        const meshPlane = new THREE.Mesh(geoPlane, this.matGround); 
+        meshPlane.receiveShadow = true; 
+        this.scene.add(meshPlane);
+
+        const geoDome = new THREE.SphereGeometry(C.HOME_RADIUS, 32, 16, 0, Math.PI*2, 0, Math.PI/2);
+        const matDome = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.1, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending });
+        this.scene.add(new THREE.Mesh(geoDome, matDome));
+
+        const geoAltar = new THREE.CylinderGeometry(15, 20, 8, 32);
+        const matAltar = new THREE.MeshStandardMaterial({ color: 0x111115, emissive: 0x442200, metalness: 0.9, roughness: 0.2 });
+        const meshAltar = new THREE.Mesh(geoAltar, matAltar); 
+        meshAltar.position.y = 4; meshAltar.castShadow = true; 
+        this.scene.add(meshAltar);
+        
+        // Core energy crystal
+        const geoCrystal = new THREE.OctahedronGeometry(6, 0);
+        const matCrystal = new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xaa5500, wireframe: true });
+        const meshCrystal = new THREE.Mesh(geoCrystal, matCrystal);
+        meshCrystal.position.y = 18;
+        
+        this.coreCrystal = meshCrystal;
+        this.scene.add(meshCrystal);
+    },
+
+    buildNature() {
+        const grassGeo = new THREE.ConeGeometry(0.4, 2.0, 3); grassGeo.translate(0, 1.0, 0);
+        const grassMat = new THREE.MeshStandardMaterial({ color: 0x1a661a, roughness: 1.0 });
+        this.grassMesh = new THREE.InstancedMesh(grassGeo, grassMat, C.GRASS_COUNT);
+
+        const trunkGeo = new THREE.CylinderGeometry(0.7, 1.2, 7, 6); trunkGeo.translate(0, 3.5, 0);
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3a2311, roughness: 1.0 });
+        this.treeTrunkMesh = new THREE.InstancedMesh(trunkGeo, trunkMat, C.TREE_COUNT);
+
+        const leavesGeo = new THREE.IcosahedronGeometry(3.5, 1); leavesGeo.translate(0, 7.5, 0);
+        const leavesMat = new THREE.MeshStandardMaterial({ color: 0x144a16, roughness: 0.9 });
+        this.treeLeavesMesh = new THREE.InstancedMesh(leavesGeo, leavesMat, C.TREE_COUNT);
+
+        const dummy = new THREE.Object3D();
+        
+        for(let i=0; i<C.GRASS_COUNT; i++) {
+            let x = (Math.random() - 0.5) * C.WORLD_SIZE, z = (Math.random() - 0.5) * C.WORLD_SIZE;
+            if(Math.hypot(x,z) < C.HOME_RADIUS) continue;
+            let y = fbm(x*0.006, z*0.006, 6) * 65; 
+            dummy.position.set(x, y, z);
+            
+            const d = 0.1; 
+            const normal = new THREE.Vector3(fbm((x-d)*0.006, z*0.006, 6)*65 - fbm((x+d)*0.006, z*0.006, 6)*65, 2*d, fbm(x*0.006, (z-d)*0.006, 6)*65 - fbm(x*0.006, (z+d)*0.006, 6)*65).normalize();
+            dummy.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal); 
+            dummy.rotateY(Math.random() * Math.PI * 2); dummy.scale.setScalar(Math.random() * 0.7 + 0.3); 
+            dummy.updateMatrix(); this.grassMesh.setMatrixAt(i, dummy.matrix);
+        }
+
+        for(let i=0; i<C.TREE_COUNT; i++) {
+            let x = (Math.random() - 0.5) * C.WORLD_SIZE, z = (Math.random() - 0.5) * C.WORLD_SIZE;
+            if(Math.hypot(x,z) < C.HOME_RADIUS + 30) continue;
+            let y = fbm(x*0.006, z*0.006, 6) * 65; 
+            dummy.position.set(x, y, z); dummy.rotation.set(0, Math.random() * Math.PI * 2, 0); 
+            dummy.scale.setScalar(Math.random() * 2.0 + 0.8); dummy.updateMatrix();
+            this.treeTrunkMesh.setMatrixAt(i, dummy.matrix); this.treeLeavesMesh.setMatrixAt(i, dummy.matrix);
+        }
+        
+        this.scene.add(this.grassMesh); this.scene.add(this.treeTrunkMesh); this.scene.add(this.treeLeavesMesh);
+    },
+
+    spawnFood() {
+        let x, z;
+        while(true) { 
+            x = (Math.random() - 0.5) * C.WORLD_SIZE * 0.95; z = (Math.random() - 0.5) * C.WORLD_SIZE * 0.95; 
+            if (Math.hypot(x, z) > C.HOME_RADIUS + 25) break; 
+        }
+        let y = fbm(x*0.006, z*0.006, 6) * 65 + 3.0;
+        
+        let rand = Math.random(); 
+        let tier = 1, mat = this.matFoodNorm, val = 1, size = 1.2;
+        let emoji = '🍔';
+        if(rand < 0.02) { tier = 3; mat = this.matFoodLeg; val = 150; size = 3.5; emoji = '🍕'; } 
+        else if(rand < 0.12) { tier = 2; mat = this.matFoodEpic; val = 25; size = 2.2; emoji = '🍩'; }
+        else if(rand < 0.5) { emoji = '🍟'; }
+        
+        const mesh = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture((()=>{const c=document.createElement('canvas');c.width=64;c.height=64;const x=c.getContext('2d');x.font='48px serif';x.textAlign='center';x.textBaseline='middle';x.fillText(emoji,32,32);return c})()) })); mesh.position.set(x, y, z); mesh.scale.set(size*3, size*3, 1);
+        mesh.userData = { tier, val, rotSpeed: new THREE.Vector3(Math.random()*0.05, Math.random()*0.05, Math.random()*0.05), baseY: y, phase: Math.random()*Math.PI*2 };
+        
+        this.foodsGroup.add(mesh); this.foods.push(mesh);
+    },
+
+    spawnWisp() {
+        let x = (Math.random() - 0.5) * C.WORLD_SIZE * 0.8; let z = (Math.random() - 0.5) * C.WORLD_SIZE * 0.8;
+        let y = fbm(x*0.006, z*0.006, 6) * 65 + 20;
+        const mesh = new THREE.Mesh(new THREE.SphereGeometry(2.5, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff00ff, transparent: true, opacity: 0.9 }));
+        mesh.add(new THREE.PointLight(0xff00ff, 1.5, 60)); mesh.position.set(x, y, z);
+        mesh.userData = { baseY: y, angle: Math.random() * Math.PI * 2, speed: Math.random() * 25 + 15, radius: Math.random() * 120 + 60, centerX: x, centerZ: z };
+        this.scene.add(mesh); this.wisps.push(mesh);
+    },
+
+    spawnParticle(pos, color, scale, speed, life) {
+        if(this.particles.length > C.MAX_PARTICLES) return;
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(scale, scale, scale), new THREE.MeshBasicMaterial({ color: color, transparent: true })); 
+        mesh.position.copy(pos);
+        const angle = Math.random() * Math.PI * 2; 
+        mesh.userData = { vel: new THREE.Vector3(Math.cos(angle)*speed, Math.random()*speed, Math.sin(angle)*speed), life: life, maxLife: life };
+        this.scene.add(mesh); this.particles.push(mesh);
+    },
+
+    createExplosion(pos, colorHex, count) { 
+        for(let i=0; i<count; i++) this.spawnParticle(pos, colorHex, Math.random()*3+1, Math.random()*35+15, Math.random()*1.5+0.5); 
+    },
+
+    onResize() { 
+        this.camera.aspect = window.innerWidth / window.innerHeight; 
+        this.camera.updateProjectionMatrix(); 
+        this.renderer.setSize(window.innerWidth, window.innerHeight); 
+    },
+
+    loop() {
+        this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, State.isSprinting ? 100 : 85, 0.1); this.camera.updateProjectionMatrix();
+        Engine.scene.children.forEach(c => { if(c.geometry?.type === "SphereGeometry" && c.material?.opacity < 0.2) c.material.color.setHSL((Date.now() * 0.0001) % 1, 1.0, 0.2); });        requestAnimationFrame(() => this.loop());
+        const dt = Math.min(this.clock.getDelta(), 0.1);
+        const time = this.clock.getElapsedTime();
+        
+        EnvSys.update(dt, this.scene);
+        WeatherSys.update(dt);
+        const d = this.scene.children.find(c => c.geometry?.type === 'SphereGeometry'); if(d && d.material && State.foodInStomach >= State.stomachCap) d.material.color.setHex(Math.sin(time*10) > 0 ? 0xff0000 : 0xffaa00); else if(d && d.material) d.material.color.setHex(0xffaa00);
+        
+        if(!UI.isShopOpen) { 
+            Input.update(dt); 
+            Logic.update(dt); 
+        }
+        
+        if(this.coreCrystal) {
+            this.coreCrystal.rotation.y += dt;
+            this.coreCrystal.rotation.x += dt * 0.5;
+            this.coreCrystal.position.y = 18 + Math.sin(time * 2) * 2;
+        }
+        
+        this.foods.forEach(b => {
+            b.rotation.x += b.userData.rotSpeed.x; b.rotation.y += b.userData.rotSpeed.y; b.rotation.z += b.userData.rotSpeed.z;
+            b.position.y = b.userData.baseY + Math.sin(time * 3 + b.userData.phase) * 2.5;
+        });
+
+        this.wisps.forEach(w => {
+            w.userData.angle += (w.userData.speed / w.userData.radius) * dt;
+            w.position.x = w.userData.centerX + Math.cos(w.userData.angle) * w.userData.radius;
+            w.position.z = w.userData.centerZ + Math.sin(w.userData.angle) * w.userData.radius;
+            w.position.y = w.userData.baseY + Math.sin(time * 2) * 8;
+        });
+
+        for(let i=this.particles.length-1; i>=0; i--) {
+            let p = this.particles[i]; 
+            p.position.addScaledVector(p.userData.vel, dt);
+            p.userData.vel.y -= 45 * dt; 
+            p.userData.life -= dt;
+            p.material.opacity = p.userData.life / p.userData.maxLife; 
+            p.scale.setScalar(p.userData.life / p.userData.maxLife);
+            if(p.userData.life <= 0) { this.scene.remove(p); p.geometry.dispose(); p.material.dispose(); this.particles.splice(i, 1); }
+        }
+
+        this.renderer.render(this.scene, this.camera);
+    }
+};
+
+// ==========================================
+// INPUT CONTROLLER & 3RD PERSON CAMERA
+// ==========================================
+const Input = {
+    keys: { w:false, a:false, s:false, d:false, shift:false, space:false }, lastStep: 0,
+    onKeyDown(e) {
+        if(e.code === 'KeyW' || e.code === 'ArrowUp') Input.keys.w = true; 
+        if(e.code === 'KeyA' || e.code === 'ArrowLeft') Input.keys.a = true;
+        if(e.code === 'KeyS' || e.code === 'ArrowDown') Input.keys.s = true; 
+        if(e.code === 'KeyD' || e.code === 'ArrowRight') Input.keys.d = true;
+        if(e.code === 'ShiftLeft' || e.code === 'ShiftRight') Input.keys.shift = true; 
+        if(e.code === 'Space') Input.keys.space = true;
+        
+        if(e.code === 'Tab' || e.code === 'KeyE') { 
+            e.preventDefault(); 
+            if(document.pointerLockElement === document.body) {
+                document.exitPointerLock();
+                document.getElementById('shop-panel').classList.add('open');
+            } else {
+                document.body.requestPointerLock();
+            }
+        }
+    },
+    onKeyUp(e) {
+        if(e.code === 'KeyW' || e.code === 'ArrowUp') Input.keys.w = false; 
+        if(e.code === 'KeyA' || e.code === 'ArrowLeft') Input.keys.a = false;
+        if(e.code === 'KeyS' || e.code === 'ArrowDown') Input.keys.s = false; 
+        if(e.code === 'KeyD' || e.code === 'ArrowRight') Input.keys.d = false;
+        if(e.code === 'ShiftLeft' || e.code === 'ShiftRight') Input.keys.shift = false; 
+        if(e.code === 'Space') Input.keys.space = false;
+    },
+    onMouseMove(e) {
+        if(document.pointerLockElement === document.body) {
+            const sens = 0.0022; 
+            State.yaw -= e.movementX * sens; State.pitch -= e.movementY * sens;
+            State.pitch = Math.max(-Math.PI/4, Math.min(Math.PI/3, State.pitch)); // Clamped for 3rd person
+        }
+    },
+    update(dt) {
+        const dir = new THREE.Vector3();
+        if(Input.keys.w) dir.z -= 1; if(Input.keys.s) dir.z += 1; 
+        if(Input.keys.a) dir.x -= 1; if(Input.keys.d) dir.x += 1;
+        if(dir.lengthSq() > 0) dir.normalize();
+        dir.applyAxisAngle(new THREE.Vector3(0,1,0), State.yaw);
+
+        State.isSprinting = Input.keys.shift && State.stamina > 0 && dir.lengthSq() > 0;
+        let speed = State.baseSpeed * State.multSpeed;
+        if(State.isSprinting) { speed *= State.sprintMult; State.stamina -= 35 * dt; } 
+        else { State.stamina += 25 * dt; }
+        State.stamina = Math.max(0, Math.min(State.maxStamina, State.stamina));
+
+        const targetVel = dir.multiplyScalar(speed); 
+        State.vel.lerp(targetVel, 12 * dt);
+        State.distanceTraveled += State.vel.length() * dt;
+        State.pos.addScaledVector(State.vel, dt);
+        
+        const hSize = C.WORLD_SIZE/2; 
+        State.pos.x = Math.max(-hSize, Math.min(hSize, State.pos.x)); State.pos.z = Math.max(-hSize, Math.min(hSize, State.pos.z));
+        
+        let distToBase = Math.hypot(State.pos.x, State.pos.z);
+        let rawY = fbm(State.pos.x*0.006, State.pos.z*0.006, 6) * 65;
+        let terrainY = distToBase < C.HOME_RADIUS ? lerp(0, rawY, distToBase/C.HOME_RADIUS) : rawY;
+        State.pos.y = terrainY + 2; 
+
+        // Apply Position to Player Mesh
+        if(Engine.playerMesh) {
+            Engine.playerMesh.position.copy(State.pos);
+            // Bobbing effect for player mesh
+            if(State.vel.length() > 2) {
+                Engine.playerMesh.position.y += Math.sin(Engine.clock.getElapsedTime() * (State.isSprinting ? 15 : 10)) * 1.5;
+            }
+            // Rotate player mesh to face movement direction or camera yaw
+            if(State.vel.lengthSq() > 0.1) {
+                const targetYaw = Math.atan2(State.vel.x, State.vel.z) + Math.PI;
+                // Smooth rotation
+                let diff = targetYaw - Engine.playerMesh.rotation.y;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                Engine.playerMesh.rotation.y += diff * 10 * dt;
+            } else {
+                Engine.playerMesh.rotation.y = State.yaw;
+            }
+        }
+
+        // 3rd Person Camera Calculation
+        let camDist = 35;
+        let camHeightOffset = 10;
+        let camX = State.pos.x - Math.sin(State.yaw) * camDist * Math.cos(State.pitch);
+        let camY = State.pos.y + camHeightOffset + Math.sin(State.pitch) * camDist;
+        let camZ = State.pos.z - Math.cos(State.yaw) * camDist * Math.cos(State.pitch);
+
+        // Prevent camera from clipping deep underground
+        camY = Math.max(terrainY + 5, camY);
+
+        Engine.camera.position.set(camX, camY, camZ);
+        Engine.camera.lookAt(State.pos.x, State.pos.y + 6, State.pos.z);
+
+        if (Engine.navArrow) {
+            const arrowOffset = new THREE.Vector3(0, 15, 0);
+            Engine.navArrow.position.copy(Engine.playerMesh.position).add(arrowOffset);
+            Engine.navArrow.lookAt(0, 5, 0);
+            Engine.navArrow.visible = !State.inSafeZone;
+        }
+
+        if(State.vel.length() > 2) {
+            if(Engine.clock.getElapsedTime() - this.lastStep > (State.isSprinting ? 0.25 : 0.4)) { AudioSys.playFootstep(); this.lastStep = Engine.clock.getElapsedTime(); }
+            if(Math.random() < 0.2 && State.isSprinting && !State.inSafeZone) Engine.spawnParticle(State.pos.clone().add(new THREE.Vector3(0,2,0)), 0x555555, 1.5, 10, 0.5);
+        }
+    }
+};
+
+// ==========================================
+// GAMEPLAY LOGIC
+// ==========================================
+const Logic = {
+    update(dt) {
+        this.checkZones(); this.processCollection(); this.processDigestion(dt); this.checkAchievements();
+        if(Engine.clock.getElapsedTime() % 0.2 < dt) UI.updateStats();
+    },
+    checkZones() {
+        State.inSafeZone = Math.hypot(State.pos.x, State.pos.z) < C.HOME_RADIUS;
+        const prompt = document.getElementById('interact-prompt');
+        if(State.inSafeZone && State.foodInStomach > 0) { 
+            prompt.style.display = 'block'; document.getElementById('fx-overlay').className = 'fx-heal'; State.stamina = State.maxStamina; 
+        } else { 
+            prompt.style.display = 'none'; document.getElementById('fx-overlay').className = State.isSprinting ? 'fx-speed' : ''; 
+        }
+    },
+    processCollection() {
+        if(State.foodInStomach >= State.stomachCap) return;
+        const collectRad = 15 + (State.multRadius * 3.0);
+        
+        for(let i=Engine.foods.length-1; i>=0; i--) {
+            let b = Engine.foods[i];
+            if(State.pos.distanceTo(b.position) < collectRad) {
+                State.foodInStomach = Math.min(State.stomachCap, State.foodInStomach + b.userData.val); 
+                State.foodEaten += b.userData.val;
+                UI.spawnFloatingText(`+${b.userData.val}`, window.innerWidth/2, window.innerHeight/2, b.userData.tier===3?'#ffd700':'#ffaa00');
+                AudioSys.playCollect(b.userData.tier);
+                Engine.foodsGroup.remove(b); Engine.foods.splice(i, 1); Engine.spawnFood();
+                if(State.foodInStomach >= State.stomachCap) break;
+            }
+        }
+        for(let i=Engine.wisps.length-1; i>=0; i--) {
+            let w = Engine.wisps[i];
+            if(State.pos.distanceTo(w.position) < collectRad * 2.5) {
+                let gain = 10000 * State.multCal;
+                State.calories += gain;
+                UI.spawnFloatingText(`SUGAR RUSH! +${UI.formatNum(gain)}`, window.innerWidth/2, window.innerHeight/2 - 50, '#ff00ff');
+                AudioSys.playCollect(3);
+                Engine.scene.remove(w); Engine.wisps.splice(i, 1); Engine.spawnWisp();
+            }
+        }
+    },
+    processDigestion(dt) {
+        if(State.autoCal > 0) State.calories += State.autoCal * State.multCal * dt;
+        
+        if(State.inSafeZone && State.foodInStomach > 0 && Input.keys.space) {
+            let amount = Math.min(40 * State.multDigest * dt, State.foodInStomach);
+            if(amount > 0) {
+                State.foodInStomach -= amount; 
+                let gen = amount * State.multCal; State.calories += gen;
+                
+                if(Math.random() < 0.4) {
+                    Engine.createExplosion(State.pos.clone().add(new THREE.Vector3(0,5,0)), 0xffaa00, 15);
+                    AudioSys.playDigest();
+                    UI.spawnFloatingText(`+${Math.floor(gen)}`, window.innerWidth/2 + (Math.random()-0.5)*150, window.innerHeight/2 + 50, '#ffaa00');
+                }
+            }
+        }
+    },
+    checkAchievements() {
+        DB.achievements.forEach(a => {
+            if(State.achievementsData[a.id]) return; 
+            let achieved = false;
+            if(a.req.type === 'cals' && State.calories >= a.req.val) achieved = true;
+            if(a.req.type === 'food' && State.foodEaten >= a.req.val) achieved = true;
+            if(a.req.type === 'dist' && State.distanceTraveled >= a.req.val) achieved = true;
+            if(a.req.type === 'rebirth' && State.rebirths >= a.req.val) achieved = true;
+            if(a.req.type === 'cap' && State.stomachCap >= a.req.val) achieved = true;
+            
+            if(achieved) { 
+                State.achievementsData[a.id] = true; a.unlocked = true; 
+                UI.spawnLog(`TROPHY UNLOCKED: ${a.name}`, "var(--gold)", true); 
+                UI.renderShopList('achievements'); AudioSys.playTone(880, 'sine', 0.8, 0.4); 
+            }
+        });
+    },
+    recalculateStats() {
+        State.stomachCap = 10; State.maxStamina = 100; State.multCal = 1; State.multSpeed = 1; State.multRadius = 1; State.multDigest = 1; State.autoCal = 0;
+        
+        DB.prestige.forEach(p => { 
+            let c = State.inventory[p.id].count; if(c===0) return; 
+            let val = Math.pow(p.val, c);
+            if(p.type==='pcal') State.multCal *= val; if(p.type==='pspeed') State.multSpeed *= val; 
+            if(p.type==='pcap') State.stomachCap *= val; if(p.type==='pdigest') State.multDigest *= val; 
+            if(p.type==='prad') State.multRadius *= val; if(p.type==='pstam') State.maxStamina *= val; 
+            if(p.type==='pauto') State.autoCal += (p.val * c);
+        });
+        
+        DB.upgrades.forEach(u => { 
+            let c = State.inventory[u.id].count; if(c===0) return;
+            if(u.type==='cap') State.stomachCap += (u.val * c); if(u.type==='cal') State.multCal *= Math.pow(u.val, c); 
+            if(u.type==='stam') State.maxStamina += (u.val * c); if(u.type==='speed') State.multSpeed += (u.val * c); 
+            if(u.type==='rad') State.multRadius += (u.val * c); if(u.type==='digest') State.multDigest *= Math.pow(u.val, c); 
+            if(u.type==='auto') State.autoCal += (u.val * c);
+        });
+        
+        DB.mutations.forEach(m => { 
+            let c = State.inventory[m.id].count; if(c===0) return;
+            if(m.type==='cal') State.multCal *= Math.pow(m.val, c); if(m.type==='auto') State.autoCal += (m.val * c);
+        });
+        
+        UI.updateStats();
+    }
+};
+
+// ==========================================
+// USER INTERFACE
+// ==========================================
+const UI = {
+    isShopOpen: false, currentPage: { upgrades: 0, mutations: 0, prestige: 0, achievements: 0 }, itemsPerPage: 4, buyMode: 1,
+    init() { this.switchTab('upgrades'); },
+    formatNum(n) {
+        if(n >= 1e21) return (n/1e21).toFixed(2) + 'Sx';
+        if(n >= 1e18) return (n/1e18).toFixed(2) + 'Qi'; 
+        if(n >= 1e15) return (n/1e15).toFixed(2) + 'Qa'; 
+        if(n >= 1e12) return (n/1e12).toFixed(2) + 'T';
+        if(n >= 1e9) return (n/1e9).toFixed(2) + 'B'; 
+        if(n >= 1e6) return (n/1e6).toFixed(2) + 'M'; 
+        if(n >= 1e3) return (n/1e3).toFixed(1) + 'k';
+        return Math.floor(n).toLocaleString();
+    },
+    updateStats() {
+        document.getElementById('txt-cals').innerText = this.formatNum(State.calories); 
+        document.getElementById('txt-mult').innerText = `x${this.formatNum(State.multCal)}`;
+        document.getElementById('txt-auto').innerText = this.formatNum(State.autoCal * State.multCal);
+        document.getElementById('txt-food').innerText = this.formatNum(State.foodEaten); 
+        document.getElementById('txt-tokens').innerText = this.formatNum(State.prestigeTokens);
+        document.getElementById('txt-dist').innerText = Math.floor(State.distanceTraveled).toLocaleString();
+        
+        let stomPct = Math.min(100, (State.foodInStomach / State.stomachCap) * 100);
+        document.getElementById('txt-stom').innerText = `${Math.floor(State.foodInStomach).toLocaleString()} / ${this.formatNum(State.stomachCap)}`;
+        document.getElementById('stomach-fill').style.width = `${stomPct}%`; document.getElementById('stomach-pct').innerText = `${stomPct.toFixed(1)}%`;
+        document.getElementById('stamina-fill').style.width = `${(State.stamina / State.maxStamina) * 100}%`;
+    },
+    setBuyMode(amt) {
+        this.buyMode = amt;
+        document.querySelectorAll('.mult-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`btn-buy-${amt}`).classList.add('active');
+        let activeTab = document.querySelector('.tab-btn.active').getAttribute('data-target');
+        if(activeTab !== 'system' && activeTab !== 'achievements') this.renderShopList(activeTab);
+    },
+    switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`.tab-btn[data-target="${tab}"]`).classList.add('active');
+        ['upgrades', 'mutations', 'prestige', 'achievements', 'system'].forEach(t => {
+            document.getElementById(`list-${t}`).style.display = t === tab ? 'flex' : 'none';
+        });
+        if(tab !== 'system') this.renderShopList(tab);
+    },
+    changePage(cat, dir) { this.currentPage[cat] += dir; AudioSys.playTone(1000, 'sine', 0.05, 0.1); this.renderShopList(cat); },
+    
+    renderShopList(cat) {
+        const container = document.getElementById(`list-${cat}`); 
+        container.innerHTML = ''; 
+        
+        if(cat === 'prestige' && this.currentPage[cat] === 0) {
+            const rebirthDiv = document.createElement('div');
+            rebirthDiv.className = "upgrade-card"; rebirthDiv.style.borderColor = "var(--gold)"; rebirthDiv.style.minHeight = "120px";
+            rebirthDiv.onpointerdown = (e) => { e.preventDefault(); Game.showRebirthModal(); };
+            rebirthDiv.innerHTML = `
+                <div style="text-align:center; pointer-events:none;">
+                    <h3 style="color:var(--gold); font-family:'Orbitron',sans-serif; margin:0 0 10px 0; font-size:24px; text-shadow:0 0 15px var(--gold-glow); letter-spacing:2px;">PERFORM ASCENSION</h3>
+                    <p style="font-size:15px; color:#ccc; margin:0; font-family:'Rajdhani',sans-serif;">Reset all mass to gain Michelin Stars.</p>
+                </div>`;
+            container.appendChild(rebirthDiv);
+        }
+
+        let page = this.currentPage[cat]; 
+        let start = page * this.itemsPerPage; 
+        let end = start + this.itemsPerPage;
+        let slice = DB[cat].slice(start, end);
+        
+        slice.forEach(item => {
+            const div = document.createElement('div');
+            if(cat === 'achievements') {
+                div.className = `upgrade-card ${item.unlocked ? 'maxed' : 'locked'}`;
+                div.innerHTML = `
+                    <div class="uc-header"><span class="uc-name" style="color:${item.unlocked?'var(--gold)':'#555'}">${item.name}</span></div>
+                    <div class="uc-desc">${item.desc}</div>
+                    <div class="uc-footer"><span class="uc-cost" style="color:${item.unlocked?'var(--primary)':'#555'}; border-color:${item.unlocked?'var(--primary)':'#555'}">${item.unlocked ? 'UNLOCKED' : 'LOCKED'}</span></div>`;
+            } else {
+                const inv = State.inventory[item.id]; 
+                const currency = cat === 'prestige' ? State.prestigeTokens : State.calories;
+                
+                // Calculate batch cost
+                let batchCount = 0; let batchCost = 0; let simCost = inv.currentCost;
+                let target = this.buyMode === 'max' ? item.max - inv.count : Math.min(this.buyMode, item.max - inv.count);
+                
+                for(let i=0; i<target; i++) {
+                    if(currency >= batchCost + simCost) { batchCost += simCost; batchCount++; simCost = Math.floor(simCost * item.mult); } 
+                    else break;
+                }
+                
+                // Fallback for display if we can't afford even 1, or if maxed
+                let displayCost = batchCount > 0 ? batchCost : inv.currentCost;
+                let canAfford = currency >= displayCost && batchCount > 0;
+                const isMax = inv.count >= item.max; 
+                
+                div.className = `upgrade-card ${isMax ? 'maxed' : (!canAfford ? 'locked' : '')}`;
+                div.onpointerdown = (e) => { e.preventDefault(); e.stopPropagation(); if(batchCount > 0) Game.buyItem(item.id, cat, batchCount, batchCost); else AudioSys.playError(); };
+
+                div.innerHTML = `
+                    <div class="uc-header" style="pointer-events:none;">
+                        <span class="uc-name" style="color:${cat==='prestige'?'var(--gold)':(cat==='mutations'?'var(--secondary)':'#fff')}">${item.name}</span>
+                        <span class="uc-level">Lv.${inv.count}/${item.max}</span>
+                    </div>
+                    <div class="uc-effect" style="pointer-events:none;">${item.effectDesc}</div>
+                    <div class="uc-footer" style="pointer-events:none;">
+                        <span class="uc-cost ${cat==='prestige'?'prestige-cost':''}">${isMax ? 'MAXED' : this.formatNum(displayCost) + (cat==='prestige'?' STARS':' CALS')} ${batchCount > 1 ? `(x${batchCount})` : ''}</span>
+                    </div>`;
+            }
+            container.appendChild(div);
+        });
+
+        let maxPage = Math.ceil(DB[cat].length / this.itemsPerPage) - 1;
+        const nav = document.createElement('div'); nav.className = 'pagination-controls';
+        
+        const bPrev = document.createElement('button'); bPrev.className = 'page-btn'; bPrev.innerText = 'PREV';
+        bPrev.disabled = (page === 0); bPrev.onpointerdown = (e) => { e.preventDefault(); this.changePage(cat, -1); };
+
+        const pInfo = document.createElement('span'); pInfo.className = 'page-info'; pInfo.innerText = `PG ${page+1}/${maxPage+1}`;
+
+        const bNext = document.createElement('button'); bNext.className = 'page-btn'; bNext.innerText = 'NEXT';
+        bNext.disabled = (page === maxPage); bNext.onpointerdown = (e) => { e.preventDefault(); this.changePage(cat, 1); };
+
+        nav.appendChild(bPrev); nav.appendChild(pInfo); nav.appendChild(bNext); container.appendChild(nav);
+    },
+    
+    spawnLog(msg, color, isAch = false) {
+        const container = document.getElementById('notification-log');
+        const el = document.createElement('div');
+        el.className = `log-entry ${isAch ? 'achievement' : ''}`;
+        el.style.borderLeftColor = color;
+        el.innerHTML = `<strong style="color:${color}">${isAch ? '🏆 ' : ''}SYS:</strong> ${msg}`;
+        
+        container.prepend(el); 
+        if(container.children.length > 6) container.removeChild(container.lastChild); 
+        
+        setTimeout(() => {
+            el.classList.add('fade-out');
+            setTimeout(() => { if(el.parentNode === container) container.removeChild(el); }, 500);
+        }, 4000);
+    },
+    
+    spawnFloatingText(txt, x, y, color) {
+        const el = document.createElement('div'); el.className = 'floating-text';
+        el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.color = color; el.innerText = txt; 
+        el.style.fontSize = (Math.random()*12 + 22) + 'px'; document.body.appendChild(el); 
+        setTimeout(() => el.remove(), 1800);
+    }
+};
+
+// ==========================================
+// STORE TRANSACTIONS AND CORE LOOP
+// ==========================================
+const Game = {
+    buyItem(id, cat, qty, totalCost) {
+        const itemData = DB[cat].find(i => i.id === id); 
+        const inv = State.inventory[id];
+        
+        if(cat === 'prestige') State.prestigeTokens -= totalCost; 
+        else State.calories -= totalCost;
+        
+        inv.count += qty;
+        inv.currentCost = Math.floor(itemData.cost * Math.pow(itemData.mult, inv.count));
+        
+        AudioSys.playBuy(); Logic.recalculateStats(); UI.renderShopList(cat); 
+        UI.spawnLog(`Acquired [${itemData.name}] x${qty}`, cat === 'prestige' ? 'var(--gold)' : 'var(--primary)');
+    },
+    
+    calcRebirthGain() { return Math.floor(Math.pow(State.calories / 1000000, 0.70)); },
+    
+    showRebirthModal() {
+        const gain = this.calcRebirthGain();
+        if(gain < 1) { UI.spawnLog("ASCENSION FAILED: REQUIRES 1,000,000 CALORIES", "var(--danger)"); AudioSys.playError(); return; }
+        document.getElementById('rebirth-amt').innerText = UI.formatNum(gain); 
+        document.getElementById('rebirth-overlay').style.display = 'flex'; 
+        document.exitPointerLock();
+    },
+    
+    executeRebirth() {
+        const gain = this.calcRebirthGain(); 
+        State.prestigeTokens += gain; State.rebirths++;
+        State.calories = 0; State.foodInStomach = 0; State.autoCal = 0;
+        
+        DB.upgrades.forEach(u => { State.inventory[u.id].count = 0; State.inventory[u.id].currentCost = u.cost; });
+        DB.mutations.forEach(m => { State.inventory[m.id].count = 0; State.inventory[m.id].currentCost = m.cost; });
+        
+        State.pos.set(0, 7, 0); State.vel.set(0, 0, 0);
+        
+        document.getElementById('rebirth-overlay').style.display = 'none'; 
+        document.getElementById('row-prestige').style.display = 'flex';
+        
+        Logic.recalculateStats(); SaveSys.save();
+        UI.currentPage.upgrades = 0; UI.switchTab('upgrades');
+        
+        Engine.createExplosion(new THREE.Vector3(0,7,0), 0xffd700, 2000); 
+        AudioSys.playAscend();
+        document.getElementById('fx-overlay').style.boxShadow = "inset 0 0 800px rgba(255, 215, 0, 1)"; 
+        setTimeout(()=> document.getElementById('fx-overlay').style.boxShadow = "none", 3000);
+        
+        UI.spawnLog(`ASCENSION COMPLETE. CULINARY MASTERY ACHIEVED.`, "var(--gold)"); 
+        document.body.requestPointerLock();
+    }
+};
+
+window.onload = () => Engine.init();
 </script>
 </body>
 </html>
